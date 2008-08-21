@@ -1,0 +1,6 @@
+replace PoolSource.fileNames = {
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/0C4BA1A3-FF1B-DD11-ACDF-000423D9870C.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/40C26705-FA1B-DD11-9F19-000423D6BA18.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/5432B105-FA1B-DD11-A032-000423D98DB4.root'
+}
+ 

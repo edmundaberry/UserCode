@@ -1,0 +1,109 @@
+#!/bin/tcsh
+
+cd ${CMSSW_BASE}
+cmsenv
+
+cd ${CMSSW_BASE}/src/Analyzers/HcalDigiAnalyzer/test
+
+## set runIndex = $1
+##if ($runIndex == 1) set run = 43363 ## CRUZET1
+##if ($runIndex == 2) set run = 46808 ## CRUZET2
+##if ($runIndex == 3) set run = 50908 ## CRUZET3
+
+set run = 50908
+
+set cffFileName = "CRUZETDataSet_run${run}.cff"
+
+cat > extractDigisAndAnalyze_run${run}.cfg<<EOF
+
+process ExtractDigisAndAnalyze =  {
+
+	##-----------------------------------------------
+	## Input number of events (10000 is typical)
+	##-----------------------------------------------
+
+	untracked PSet maxEvents = {untracked int32 input = 2000}
+
+	##-----------------------------------------------
+	## Input data files
+	##-----------------------------------------------
+
+        include "Geometry/CMSCommonData/data/cmsIdealGeometryXML.cfi"
+        include "Geometry/CaloEventSetup/data/CaloGeometry.cfi"
+	include "EventFilter/HcalRawToDigi/data/HcalRawToDigi.cfi"
+	include "Configuration/StandardSequences/data/FakeConditions.cff"
+	include "Analyzers/DijetAnalyzer/data/RecommendedHcalConditions.cff"
+	
+	##-----------------------------------------------
+	## Source goes here.  You need an empty source
+	## that'll get replaced in the datafile
+	##-----------------------------------------------
+	
+	##source = PoolSource  {
+	##	untracked vstring fileNames = {}
+	##}
+	##
+	##include "Analyzers/HcalDigiAnalyzer/data/${cffFileName}"
+
+	include "Analyzers/DijetAnalyzer/data/dataFiles_nuGun_CRUZET_test.cff"
+	##include "Analyzers/DijetAnalyzer/data/dataFiles_nuGun_Gauss_test.cff"
+	
+
+	##-----------------------------------------------
+	## Input proper LUT's
+	##-----------------------------------------------
+	
+	include "SimCalorimetry/HcalTrigPrimProducers/data/hcaltpdigi.cff" 
+	replace HcalTPGCoderULUT.read_Ascii_LUTs = true
+	replace HcalTPGCoderULUT.inputLUTs = "CalibCalorimetry/CaloTPG/data/forCRUZET3/inputLUTcoder_CRUZET_part3_v2_noHO.dat"
+	
+	include "CalibCalorimetry/CaloTPG/data/CaloTPGTranscoder.cfi"
+	replace CaloTPGTranscoder.hcalLUT1 = "CalibCalorimetry/CaloTPG/data/forCRUZET3/outputLUTtranscoder_CRUZET_part3_v2.dat"
+	replace CaloTPGTranscoder.hcalLUT2 = "CalibCalorimetry/CaloTPG/data/forCRUZET3/Decompression.dat"
+
+
+	##-----------------------------------------------
+	## Declare analyzer objects for each DataFrame type
+	##-----------------------------------------------
+
+	## Only if getting info from simulation
+	replace hcalDigis.InputLabel = hcalRawData
+	##
+
+	module hbDigiAnalyzer = HBHEDigiAnalyzer {
+		untracked string outPath    = "${HOME}/data/"
+		untracked string outSuffix  = "_run${run}_PostSimAnalysis_TEST"
+		untracked string subdetName = "HB"
+		untracked bool scanForSpikes = true
+	}
+
+	module heDigiAnalyzer = HBHEDigiAnalyzer {
+		untracked string outPath    = "${HOME}/data/"
+		untracked string outSuffix  = "_run${run}_PostSimAnalysis_TEST"
+		untracked string subdetName = "HE"
+	}
+	
+	module hoDigiAnalyzer = HODigiAnalyzer {
+		untracked string outPath    = "${HOME}/data/"
+		untracked string outSuffix  = "_run${run}_PostSimAnalysis_TEST"
+		untracked string subdetName = "HO"
+	}
+	
+	module hfDigiAnalyzer = HFDigiAnalyzer {
+		untracked string outPath    = "${HOME}/data/"
+		untracked string outSuffix  = "_run${run}_PostSimAnalysis_TEST"
+		untracked string subdetName = "HF"
+		untracked bool scanForSpikes = true
+	}
+
+	path analyze = {hbDigiAnalyzer,
+			heDigiAnalyzer,
+			hoDigiAnalyzer,
+			hfDigiAnalyzer }
+			
+	schedule = {analyze}
+
+}
+EOF
+
+cmsRun extractDigisAndAnalyze_run${run}.cfg

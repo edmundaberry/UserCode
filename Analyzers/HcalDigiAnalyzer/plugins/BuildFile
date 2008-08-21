@@ -1,0 +1,22 @@
+<export></export>
+<library name=AnalyzersHcalDigiAnalyzer_plugins file=*.cc>
+   <flags EDM_PLUGIN=1>
+   <use name=root>
+   <use name=Analyzers/HcalDigiAnalyzer>
+   <use name=FWCore/PluginManager>
+   <use name=FWCore/MessageLogger>
+   <use name=Geometry/CaloEventSetup>
+   <use name=Geometry/HcalTowerAlgo>
+   <use name=DataFormats/HcalDetId>
+   <use name=CalibFormats/CaloTPG>
+   <use name=CalibFormats/CaloObjects>
+   <use name=SimDataFormats/HepMCProduct>
+   <use name=SimDataFormats/CrossingFrame>
+   <use name=SimCalorimetry/HcalSimAlgos>
+   <use name=FWCore/Framework>
+   <use name=Foundation/PluginManager>
+   <use name=FWCore/ParameterSet>
+   <use name=CalibFormats/HcalObjects>
+</library>
+ 
+ 

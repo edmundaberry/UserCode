@@ -1,0 +1,20 @@
+#!/bin/tcsh
+
+## USAGE:
+## Argument 1 is the DIJET bit:
+##	0 = use neutrino gun source
+##      1 = use dijet source
+## Argument 2 is whether or not to use CRUZET noise
+##	0 = use gaussian noise
+##      1 = use CRUZET noise
+
+setenv DIJETbit $1
+setenv CRUZETbit $2
+
+if ($CRUZETbit == 0) setenv tempMethodName "Gauss"
+if ($CRUZETbit == 1) setenv tempMethodName "CRUZET"
+
+if ($DIJETbit == 0) setenv tempSourceName "nuGun"
+if ($DIJETbit == 1) setenv tempSourceName "diJet"
+
+qsub -q hep -l walltime=2:59:00 -o ./log/dijetAnalyzer_${tempMethodName}_${tempSourceName}.stdout -e ./log/dijetAnalyzer_${tempMethodName}_${tempSourceName}.stderr -v methodName=${tempMethodName},sourceName=${tempSourceName} ./qrun_dijetAnalyzer

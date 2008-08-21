@@ -1,0 +1,19 @@
+replace PoolSource.fileNames = {
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/12515399-0A1C-DD11-89CF-000423D9939C.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/1C9FF971-0B1C-DD11-8320-000423D9863C.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/22DBC09B-0A1C-DD11-878C-000423D986A8.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/243FE29B-0A1C-DD11-9687-000423D6AF24.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/34388C98-0A1C-DD11-83FF-001617E30CD4.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/3AABE499-0A1C-DD11-A4B2-001617E30D00.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/52FA2E98-0A1C-DD11-9432-001617E30CC8.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/66AB069C-0A1C-DD11-9EAE-000423D9870C.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/6E54F097-0A1C-DD11-BEB0-001617DBD230.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/807F109A-0A1C-DD11-A262-000423D6B42C.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/8099C89A-0A1C-DD11-BFDE-000423D6BA18.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/92937C99-0A1C-DD11-ABAB-000423D98DB4.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/9A922F99-0A1C-DD11-B169-001617C3B64C.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/C2C5E49C-0A1C-DD11-853A-000423DD2F34.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/DEF60999-0A1C-DD11-98FC-0019DB2F3F9B.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/E4F92D99-0A1C-DD11-88A7-001617DBD556.root',
+'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/EC89F83A-101C-DD11-AFFE-000423D94A20.root'
+}
