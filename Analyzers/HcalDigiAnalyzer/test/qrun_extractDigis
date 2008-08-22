@@ -22,12 +22,12 @@ if ($1 == 1) set source = "Analyzers/DijetAnalyzer/data/dataFiles_nuGun_CRUZET_t
 if ($1 == 0) set suffix = "TP"
 if ($1 == 1) set suffix = "PostSimAnalysis"
 
-if ($1 == 0) set schedule = "{produce,analyze}"
+if ($1 == 0) set schedule = "{produce1,produce2,analyze}"
 if ($1 == 1) set schedule = "{analyze}"
 
 cat > extractDigisAndAnalyze_run${run}.cfg<<EOF
 
-process ExtractDigisAndAnalyze =  {
+process ExtractDigisAndAnalyze =  {  
 
 	##-----------------------------------------------
 	## Input number of events (10000 is typical)
@@ -68,37 +68,36 @@ process ExtractDigisAndAnalyze =  {
 	## Declare analyzer objects for each DataFrame type
 	##-----------------------------------------------
 
-	## Only if getting info from simulation
-	## replace hcalDigis.InputLabel = hcalRawData
-	##
+	replace hcalTriggerPrimitiveDigis.inputLabel = hcalDigis
 
 	module hbDigiAnalyzer = HBHEDigiAnalyzer {
 		untracked string outPath    = "${HOME}/data/"
-		untracked string outSuffix  = "_run${run}_${suffix}_TEST"
+		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HB"
 		untracked bool scanForSpikes = true
 	}
 
 	module heDigiAnalyzer = HBHEDigiAnalyzer {
 		untracked string outPath    = "${HOME}/data/"
-		untracked string outSuffix  = "_run${run}_${suffix}_TEST"
+		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HE"
 	}
 	
 	module hoDigiAnalyzer = HODigiAnalyzer {
 		untracked string outPath    = "${HOME}/data/"
-		untracked string outSuffix  = "_run${run}_${suffix}_TEST"
+		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HO"
 	}
 	
 	module hfDigiAnalyzer = HFDigiAnalyzer {
 		untracked string outPath    = "${HOME}/data/"
-		untracked string outSuffix  = "_run${run}_${suffix}_TEST"
+		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HF"
 		untracked bool scanForSpikes = true
 	}
 
-	path produce = {hcalDigis}
+	path produce1 = {hcalDigis}
+	path produce2 = {hcalTriggerPrimitiveDigis}
 	path analyze = {hbDigiAnalyzer,
 			heDigiAnalyzer,
 			hoDigiAnalyzer,
