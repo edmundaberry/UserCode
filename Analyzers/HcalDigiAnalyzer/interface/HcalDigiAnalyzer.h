@@ -143,10 +143,10 @@ HcalDigiAnalyzer<T>::HcalDigiAnalyzer(const edm::ParameterSet& iConfig):
   
   m_fillDigi.init(rootFile_, &m_digiTree);
 
-  const edm::InputTag dHcalTrigPrimTag("hcalDigis");//,"","ExtractDigisAndAnalyze");
+  const edm::InputTag dHcalTrigPrimTag("hcalTriggerPrimitiveDigis");
   hcalTrigPrimTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag",dHcalTrigPrimTag);
 
-  const edm::InputTag dHcalDigiTag("hcalDigis");//,"","ExtractDigisAndAnalyze");
+  const edm::InputTag dHcalDigiTag("hcalDigis");
   hcalDigiTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hcalDigiTag",dHcalDigiTag);
 
 }
