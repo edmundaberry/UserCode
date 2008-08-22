@@ -22,6 +22,9 @@ if ($1 == 1) set source = "Analyzers/DijetAnalyzer/data/dataFiles_nuGun_CRUZET_t
 if ($1 == 0) set suffix = "TP"
 if ($1 == 1) set suffix = "PostSimAnalysis"
 
+if ($1 == 0) set schedule = "{produce,analyze}"
+if ($1 == 1) set schedule = "{analyze}"
+
 cat > extractDigisAndAnalyze_run${run}.cfg<<EOF
 
 process ExtractDigisAndAnalyze =  {
@@ -95,12 +98,13 @@ process ExtractDigisAndAnalyze =  {
 		untracked bool scanForSpikes = true
 	}
 
+	path produce = {hcalDigis}
 	path analyze = {hbDigiAnalyzer,
 			heDigiAnalyzer,
 			hoDigiAnalyzer,
 			hfDigiAnalyzer }
 			
-	schedule = {analyze}
+	schedule = ${schedule}
 
 }
 EOF
