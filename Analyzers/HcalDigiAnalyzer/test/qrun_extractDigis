@@ -19,8 +19,8 @@ set cffFileName = "CRUZETDataSet_run${run}.cff"
 if ($1 == 0) set source = "Analyzers/HcalDigiAnalyzer/data/${cffFileName}"
 if ($1 == 1) set source = "Analyzers/DijetAnalyzer/data/dataFiles_nuGun_CRUZET_test.cff"
 
-if ($1 == 0) set suffix = "TP"
-if ($1 == 1) set suffix = "PostSimAnalysis"
+if ($1 == 0) set suffix = "TP_UnSup"
+if ($1 == 1) set suffix = "PostSimAnalysis_UnSup"
 
 if ($1 == 0) set schedule = "{produce1,produce2,analyze}"
 if ($1 == 1) set schedule = "{analyze}"
@@ -56,7 +56,9 @@ process ExtractDigisAndAnalyze =  {
 	## Input proper LUT's
 	##-----------------------------------------------
 	
+	include "SimCalorimetry/HcalSimProducers/data/hcalUnsuppressedDigis.cfi"
 	include "SimCalorimetry/HcalTrigPrimProducers/data/hcaltpdigi.cff" 
+
 	replace HcalTPGCoderULUT.read_Ascii_LUTs = true
 	replace HcalTPGCoderULUT.inputLUTs = "Analyzers/HcalDigiAnalyzer/data/forCRUZET3/inputLUTcoder_CRUZET_part3_v2_noHO.dat"
 	
@@ -68,7 +70,7 @@ process ExtractDigisAndAnalyze =  {
 	## Declare analyzer objects for each DataFrame type
 	##-----------------------------------------------
 
-	replace hcalTriggerPrimitiveDigis.inputLabel = hcalDigis
+	##replace hcalTriggerPrimitiveDigis.inputLabel = hcalDigis
 
 	module hbDigiAnalyzer = HBHEDigiAnalyzer {
 		untracked string outPath    = "${HOME}/data/"
@@ -96,7 +98,7 @@ process ExtractDigisAndAnalyze =  {
 		untracked bool scanForSpikes = true
 	}
 
-	path produce1 = {hcalDigis}
+	path produce1 = {hcalUnsuppressedDigis}
 	path produce2 = {hcalTriggerPrimitiveDigis}
 	path analyze = {hbDigiAnalyzer,
 			heDigiAnalyzer,
