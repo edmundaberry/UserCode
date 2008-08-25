@@ -1,0 +1,24 @@
+#!/bin/tcsh
+
+set begin = 3
+set end = 3
+set count = $begin
+
+while ($count <= $end)
+
+cat > extractDigis_${count}_condor <<EOF
+   universe = vanilla
+   Executable = /uscms/home/eberry/CMSSW_2_0_8/src/Analyzers/HcalDigiAnalyzer/test/qrun_extractDigis
+   Requirements = Memory >= 199 &&OpSys == "LINUX" && (Arch != "DUMMY" )
+   Should_Transfer_Files = NO
+   Output = /uscms/home/eberry/nobackup/log/analyze_study_${count}_\$(Cluster)_\$(Process).stdout
+   Error = /uscms/home/eberry/nobackup/log/analyze_study_${count}_\$(Cluster)_\$(Process).stderr
+   Log = /uscms/home/eberry/nobackup/log/analyze_study_${count}_\$(Cluster)_\$(Process).log
+   notify_user = ${user}@FNAL.GOV
+   Arguments = $count
+   Queue 1
+EOF
+
+   condor_submit extractDigis_${count}_condor
+   @ count = $count + 1
+end
