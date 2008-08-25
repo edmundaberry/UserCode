@@ -143,11 +143,11 @@ process OVERLAY = {
 	
 	include "SimCalorimetry/HcalTrigPrimProducers/data/hcaltpdigi.cff" 
 	replace HcalTPGCoderULUT.read_Ascii_LUTs = true
-	replace HcalTPGCoderULUT.inputLUTs = "CalibCalorimetry/CaloTPG/data/forCRUZET3/inputLUTcoder_CRUZET_part3_v2_noHO.dat"
+	replace HcalTPGCoderULUT.inputLUTs = "Analyzers/HcalDigiAnalyzer/data/forCRUZET3/inputLUTcoder_CRUZET_part3_v2_noHO.dat"
 	
 	include "CalibCalorimetry/CaloTPG/data/CaloTPGTranscoder.cfi"
-	replace CaloTPGTranscoder.hcalLUT1 = "CalibCalorimetry/CaloTPG/data/forCRUZET3/outputLUTtranscoder_CRUZET_part3_v2.dat"
-	replace CaloTPGTranscoder.hcalLUT2 = "CalibCalorimetry/CaloTPG/data/forCRUZET3/Decompression.dat"
+	replace CaloTPGTranscoder.hcalLUT1 = "Analyzers/HcalDigiAnalyzer/data/forCRUZET3/outputLUTtranscoder_CRUZET_part3_v2.dat"
+	replace CaloTPGTranscoder.hcalLUT2 = "Analyzers/HcalDigiAnalyzer/data/forCRUZET3/Decompression.dat"
 
 
 	##-----------------------------------------------------------
@@ -173,7 +173,7 @@ process OVERLAY = {
 		    "keep *"
 		}
 
-		untracked string fileName = "${CMSSW_BASE}/data/dataOverlayOutput_${seed}_${numevents}_${useCRUZET}_${sourceName}_keepAll.root"
+		untracked string fileName = "${HOME}/data/dataOverlayOutput_${seed}_${numevents}_${useCRUZET}_${sourceName}_keepAll.root"
     	}
 
 	endpath outpath = {output}
