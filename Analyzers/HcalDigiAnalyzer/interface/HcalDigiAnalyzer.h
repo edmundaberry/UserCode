@@ -280,7 +280,7 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 
   if (!hcalUnsuppressedDigiTagExists &&
       !hcalDigiTagExists){
-    printf("Could not extract HCAL digis with EITHER tag!\n");
+    LogWarning("HcalDigiAnalyzer") << "Could not extract HCAL digis with EITHER tag!";
     return;
   }
   
@@ -317,6 +317,8 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
     //-----------------------------------------------------
 
     if(cell.subdet() == subdet_) {
+
+      ndigis++;
       
       //-----------------------------------------------------
       // Get the Cell Geometry and make sure it's sane
@@ -493,8 +495,6 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 	m_digiTree.t_spike[count-1] = 0;
 	m_digiTree.t_ntp  [count-1] = 0;
       }
-      
-      ndigis++;
     }
   }
     
