@@ -136,6 +136,11 @@ process OVERLAY = {
 	
 	replace hcalUnsuppressedDigis.takeNoiseFromCRUZETData = $useCRUZET
 	replace hcalUnsuppressedDigis.startingEventNumber = $startingEventNumber
+	
+	replace hcalUnsuppressedDigis.hbFile = "${HOME}/data/HcalFinalOutput_HB_run50908_TP.root"
+	replace hcalUnsuppressedDigis.heFile = "${HOME}/data/HcalFinalOutput_HE_run50908_TP.root"
+	replace hcalUnsuppressedDigis.hoFile = "${HOME}/data/HcalFinalOutput_HO_run50908_TP.root"
+	replace hcalUnsuppressedDigis.hfFile = "${HOME}/data/HcalFinalOutput_HF_run50908_TP.root"
 
 	##-----------------------------------------------------------
 	## Include appropriate LUT's
