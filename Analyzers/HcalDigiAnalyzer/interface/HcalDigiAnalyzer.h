@@ -103,6 +103,7 @@ class HcalDigiAnalyzer : public edm::EDAnalyzer {
   std::string rootFile_;
 
   edm::InputTag hcalTrigPrimTag_;
+  edm::InputTag hcalUnsuppressedDigiTag_;
   edm::InputTag hcalDigiTag_;
 
   bool scanForSpikes_;
@@ -146,8 +147,38 @@ HcalDigiAnalyzer<T>::HcalDigiAnalyzer(const edm::ParameterSet& iConfig):
   const edm::InputTag dHcalTrigPrimTag("hcalTriggerPrimitiveDigis");
   hcalTrigPrimTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag",dHcalTrigPrimTag);
 
+  //-----------------------------------------------------
+  // IMPORTANT:
+  // 
+  // In SIMULATION (as of CMSSW_2_0_8):
+  // 
+  // -- ZERO-SUPPRESSED digis are stored with the tag 
+  //    'hcalDigis'
+  // -- UNSUPPRESSED digis are stored with the tag
+  //    'hcalUnsuppressedDigis'
+  //
+  // In DATA (as of CRUZET3):
+  // 
+  // -- Only UNSUPPRESSED digis are stored
+  // -- They must be unpacked from the FED
+  // -- When they are unpacked, they are stored with
+  //    the tag 'hcalDigis', the SAME tag as the 
+  //    SUPPRESSED digis in simulation.
+  //
+  // The trick, then, is to see whether we have a digi
+  // object with the tag 'hcalUnsuppressedDigis'
+  //
+  // - If the tag EXISTS, this is SIMULATION, and we
+  //   have the digis we want. Done.
+  // - If the tag DOES NOT EXIST, this is DATA, and
+  //   we need to look for the tag 'hcalDigis'
+  //-----------------------------------------------------
+
   const edm::InputTag dHcalDigiTag("hcalDigis");
   hcalDigiTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hcalDigiTag",dHcalDigiTag);
+
+  const edm::InputTag dHcalUnsuppressedDigiTag("hcalUnsuppressedDigis");
+  hcalUnsuppressedDigiTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hcalUnsuppressedDigiTag",dHcalUnsuppressedDigiTag);
 
 }
 
@@ -211,7 +242,6 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
   if (subdet_ == 3) sprintf(subdetName,"HO");
   if (subdet_ == 4) sprintf(subdetName,"HF");
 
-
   HcalTrigTowerGeometry theTrigTowerGeometry;
 
   vector<HcalTrigTowerDetId> trigTowerDetIds;
@@ -239,16 +269,26 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 
   typename T::const_iterator ihcal;
 
+  bool hcalUnsuppressedDigiTagExists = false;
+  bool hcalDigiTagExists = false;
+
   Handle < T > hcalDigiCol;
-  try { iEvent.getByLabel(hcalDigiTag_,hcalDigiCol); }
-  catch(...){
-    LogWarning("HcalDigiAnalyzer") << "Could not extract HCAL digis!";
+  hcalUnsuppressedDigiTagExists = iEvent.getByLabel(hcalUnsuppressedDigiTag_,hcalDigiCol);
+  
+  if (!hcalUnsuppressedDigiTagExists)
+    hcalDigiTagExists = iEvent.getByLabel(hcalDigiTag_,hcalDigiCol);
+
+  if (!hcalUnsuppressedDigiTagExists &&
+      !hcalDigiTagExists){
+    printf("Could not extract HCAL digis with EITHER tag!\n");
+    return;
   }
   
   Handle<HcalTrigPrimDigiCollection> HCALTrigPrimDigis;
-  try { iEvent.getByLabel(hcalTrigPrimTag_,HCALTrigPrimDigis);}
-  catch(...){
+  bool hcalTrigPrimDigiTagExists = iEvent.getByLabel(hcalTrigPrimTag_,HCALTrigPrimDigis);
+  if (!hcalTrigPrimDigiTagExists){
     LogWarning("HcalDigiAnalyzer") << "Could not extract trigger primitives!";
+    return;
   }
 
   //-----------------------------------------------------
