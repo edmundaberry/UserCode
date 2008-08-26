@@ -7,8 +7,6 @@
 #include "DataFormats/HcalDigi/interface/ZDCDataFrame.h"
 #include "CLHEP/Random/RandFlat.h"
 
-
-
 HcalElectronicsSim::HcalElectronicsSim(HcalAmplifier * amplifier, const HcalCoderFactory * coderFactory)
   : theAmplifier(amplifier),
     theCoderFactory(coderFactory),
@@ -44,11 +42,7 @@ template<class Digi>
 void HcalElectronicsSim::convertCRUZET(CaloSamples & frame, Digi & result){
   
   result.setSize(frame.size());
-  
-  HcalDetId detId = result.id();
-  theAmplifier->setId(detId);
-  theAmplifier->amplifyCRUZET(frame);
-  
+  theAmplifier->amplifyCRUZET(frame);  
   theCoderFactory->coder(frame.id())->fC2adc(frame, result, theStartingCapId);
 }
 
