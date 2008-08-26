@@ -13,9 +13,8 @@
 ## Submit to condor with qsub_dataOverlay
 
 ## -----------------------------------------------------
-## Uncomment the next 5 lines to test this executable on any computer
-## Comment them to submit to queue
-
+## Uncomment these lines to test this executable on any computer
+##
 ## set work_dir = $PWD
 ## set seed = 1
 ## set numevents = 10
@@ -23,18 +22,27 @@
 ## set sourceName = nuGun
 
 ## -----------------------------------------------------
-## These lines are here for when you submit to cmslpc
-## Comment them if you submit to della
-
-set work_dir = $1
-set seed = $2
-set numevents = $3
-if ($4 == 0) set sourceName = nuGun
-if ($4 == 1) set sourceName = diJet
-if ($5 == 0) set useCRUZET = false
-if ($5 == 1) set useCRUZET = true
+## Uncomment these lines to run interactively
+##
+## set work_dir = $1
+## set seed = $2
+## set numevents = $3
+## set source = $4
+## set useCRUZET = $5
+## if ($source == 0) set sourceName = nuGun
+## if ($source == 1) set sourceName = diJet 
 
 ## -----------------------------------------------------
+## Uncomment these lines to submit to cmslpc
+## 
+## set work_dir = $1
+## set seed = $2
+## set numevents = $3
+## set source = $4
+## set useCRUZET = $5
+
+## -----------------------------------------------------
+## Leave all lines commented to submit to della
 
 cd ${CMSSW_BASE}
 cmsenv
@@ -46,8 +54,10 @@ set seed2 = 200
 set seed3 = 300
 set seed4 = 400
 
-if ($useCRUZET == 1) set methodName = CRUZET
 if ($useCRUZET == 0) set methodName = Gauss
+if ($useCRUZET == 1) set methodName = CRUZET
+if ($useCRUZET == 0) set useCRUZETname = false;
+if ($useCRUZET == 1) set useCRUZETname = true;
 
 set startingEventNumber = 0
 @ startingEventNumber = $seed * $numevents
@@ -62,7 +72,7 @@ set startingEventNumber = 0
 
 echo This is job $seed, generating $numevents events
 echo with a $sourceName source and with
-echo useCRUZET set to $useCRUZET
+echo useCRUZETname set to $useCRUZETname
 echo " "
 echo "Seeds " $seed1 $seed2 $seed3 $seed4
 
@@ -134,7 +144,7 @@ process OVERLAY = {
 	## to take noise from CRUZET
 	##-----------------------------------------------------------
 	
-	replace hcalUnsuppressedDigis.takeNoiseFromCRUZETData = $useCRUZET
+	replace hcalUnsuppressedDigis.takeNoiseFromCRUZETData = $useCRUZETname
 	replace hcalUnsuppressedDigis.startingEventNumber = $startingEventNumber
 	
 	replace hcalUnsuppressedDigis.hbFile = "${HOME}/data/HcalFinalOutput_HB_run50908_TP.root"
