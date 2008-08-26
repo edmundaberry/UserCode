@@ -102,7 +102,7 @@ process OVERLAY = {
 	## Latest HCAL configuration file
 	##-----------------------------------------------------------
 	
-	##include "Analyzers/DijetAnalyzer/data/RecommendedHcalConditions.cff"
+	include "Analyzers/DijetAnalyzer/data/RecommendedHcalConditions.cff"
 	
 	##-----------------------------------------------------------
 	## Set random seeds
