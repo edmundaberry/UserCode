@@ -51,8 +51,6 @@ private:
   double noiseArray_[5][200][100][5][10];
   double haveDataForThisChannel_[5][83][73][4];
   bool takeNoiseFromCRUZETData_;
-  bool noiseArraySet_;
-  HcalDetId theDetId_;
   int amplifierEvent_;
   std::string hbFile_, heFile_, hoFile_, hfFile_;
 
