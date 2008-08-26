@@ -19,13 +19,7 @@
 using namespace std;
 
 HcalDigiProducer::HcalDigiProducer(const edm::ParameterSet& ps) :
-  hbFile(ps.getParameter<string>("hbFile")),
-  heFile(ps.getParameter<string>("heFile")),
-  hoFile(ps.getParameter<string>("hoFile")),
-  hfFile(ps.getParameter<string>("hfFile")),
-  takeNoiseFromCRUZETData(ps.getParameter<bool>("takeNoiseFromCRUZETData")),
   theParameterMap(new HcalSimParameterMap(ps)),
-  startingEventNumber(ps.getParameter<int>("startingEventNumber")),
   theHcalShape(new HcalShape()),
   theHFShape(new HFShape()),
   theZDCShape(new ZDCShape()),
@@ -44,8 +38,13 @@ HcalDigiProducer::HcalDigiProducer(const edm::ParameterSet& ps) :
   theHODigitizer(0),
   theHFDigitizer(0),
   theZDCDigitizer(0),
-  doZDC(true)
-
+  doZDC(true),
+  hbFile(ps.getParameter<string>("hbFile")),
+  heFile(ps.getParameter<string>("heFile")),
+  hoFile(ps.getParameter<string>("hoFile")),
+  hfFile(ps.getParameter<string>("hfFile")),
+  takeNoiseFromCRUZETData(ps.getParameter<bool>("takeNoiseFromCRUZETData")),
+  startingEventNumber(ps.getParameter<int>("startingEventNumber"))
 {
 
   produces<HBHEDigiCollection>();
@@ -129,8 +128,6 @@ HcalDigiProducer::~HcalDigiProducer() {
 
 void HcalDigiProducer::produce(edm::Event& e, const edm::EventSetup& eventSetup) {
   
-  int eventNumber = (int)  e.id().event();
-
   // get the appropriate gains, noises, & widths for this event
   edm::ESHandle<HcalDbService> conditions;
   eventSetup.get<HcalDbRecord>().get(conditions);

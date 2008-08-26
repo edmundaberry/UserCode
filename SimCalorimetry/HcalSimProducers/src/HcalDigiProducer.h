@@ -74,9 +74,11 @@ private:
   HFDigitizer   * theHFDigitizer;
   ZDCDigitizer  * theZDCDigitizer;
 
-  std::string hbFile, heFile, hoFile, hfFile;
-
   bool doZDC;
+  
+  // My additions
+  
+  std::string hbFile, heFile, hoFile, hfFile;
   bool takeNoiseFromCRUZETData;
   int startingEventNumber;
 
