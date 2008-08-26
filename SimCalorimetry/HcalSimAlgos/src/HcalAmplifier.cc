@@ -22,8 +22,6 @@ HcalAmplifier::HcalAmplifier(const CaloVSimParameterMap * parameters, bool addNo
   theParameterMap(parameters),
   theStartingCapId(0), 
   addNoise_(addNoise),
-  noiseArraySet_(false),
-  theDetId_(0),
   amplifierEvent_(1)
 {}
 
@@ -37,18 +35,6 @@ void HcalAmplifier::setAmplifierEvent(int iEvent){
   //------------------------------------------------------
   
   amplifierEvent_ = iEvent;
-  
-}
-
-void HcalAmplifier::setId(HcalDetId detId){
-
-  //------------------------------------------------------
-  // Sets the det ID that the amplifier should look at
-  //
-  // Called many times per event
-  //------------------------------------------------------
- 
-  theDetId_ = detId;
   
 }
 
@@ -68,12 +54,6 @@ void HcalAmplifier::setFileNames(std::string hbFile,
   hoFile_ = hoFile;
   hfFile_ = hfFile;
 
-}
-
-
-void HcalAmplifier::setRandomEngine(CLHEP::HepRandomEngine & engine)
-{
-  theRandGaussQ = new CLHEP::RandGaussQ(engine);
 }
 
 void HcalAmplifier::readTree(){
@@ -180,13 +160,15 @@ void HcalAmplifier::readTree(){
 void HcalAmplifier::amplifyCRUZET(CaloSamples & frame) const {
 
   //------------------------------------------------------
-  // Get the channel info from the det id
+  // Get the channel info from the frame id
   //------------------------------------------------------
 
-  int tempIeta  = (int) theDetId_.ieta() + 41;
-  int tempIphi  = (int) theDetId_.iphi();
-  int subdetId  = (int) theDetId_.subdet();
-  int tempDepth = (int) theDetId_.depth();
+  HcalDetId tempHcalDetId = HcalDetId(frame.id());
+
+  int tempIeta  = (int) tempHcalDetId.ieta() + 41;
+  int tempIphi  = (int) tempHcalDetId.iphi();
+  int subdetId  = (int) tempHcalDetId.subdet();
+  int tempDepth = (int) tempHcalDetId.depth();
 
   //------------------------------------------------------
   // IF we don't have info on this channel
@@ -201,10 +183,8 @@ void HcalAmplifier::amplifyCRUZET(CaloSamples & frame) const {
     return;
   }
 
-  assert(theDbService != 0);
-
   //------------------------------------------------------
-  // Finally, fill the time slice
+  // Fill the time slice
   //------------------------------------------------------
 
   for (int tbin = 0 ; tbin < frame.size(); ++tbin)
@@ -217,16 +197,17 @@ void HcalAmplifier::amplifyCRUZET(CaloSamples & frame) const {
 // This is the normal HcalAmplifier::amplify function
 //------------------------------------------------------
 
-void HcalAmplifier::amplify(CaloSamples & frame) const {
+void HcalAmplifier::setRandomEngine(CLHEP::HepRandomEngine & engine)
+{
+  theRandGaussQ = new CLHEP::RandGaussQ(engine);
+}
 
+void HcalAmplifier::amplify(CaloSamples & frame) const {
   const CaloSimParameters & parameters = theParameterMap->simParameters(frame.id());
   assert(theDbService != 0);
   HcalGenericDetId hcalGenDetId(frame.id());
-  HcalDetId hcalDetId(frame.id());
-
-  const HcalPedestal      *peds    = theDbService -> getPedestal      (hcalGenDetId);
-  const HcalPedestalWidth *pwidths = theDbService -> getPedestalWidth (hcalGenDetId);
-
+  const HcalPedestal* peds = theDbService->getPedestal(hcalGenDetId);
+  const HcalPedestalWidth* pwidths = theDbService->getPedestalWidth(hcalGenDetId);
   if (!peds || !pwidths )
   {
     edm::LogError("HcalAmplifier") << "Could not fetch HCAL conditions for channel " << hcalGenDetId;
@@ -249,4 +230,6 @@ void HcalAmplifier::amplify(CaloSamples & frame) const {
   }
   LogDebug("HcalAmplifier") << frame;
 }
+
+
 
