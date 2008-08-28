@@ -53,7 +53,6 @@
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/Records/interface/IdealGeometryRecord.h"
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
-#include "Geometry/CaloGeometry/interface/CaloCellGeometry.h"
 
 #include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
 #include "SimDataFormats/HepMCProduct/interface/HepMCProduct.h"
@@ -107,6 +106,7 @@ class HcalDigiAnalyzer : public edm::EDAnalyzer {
   edm::InputTag hcalDigiTag_;
 
   bool scanForSpikes_;
+  bool verbose_;
 
   double noiseArray_ [4][3000][10];
   
@@ -125,6 +125,8 @@ HcalDigiAnalyzer<T>::HcalDigiAnalyzer(const edm::ParameterSet& iConfig):
   
   std::vector<std::string> defaultInFiles;
 
+  verbose_ = iConfig.getUntrackedParameter<bool>("verbose",false);
+
   scanForSpikes_ = iConfig.getUntrackedParameter<bool>("scanForSpikes",false);
   
   subdetName_ = iConfig.getUntrackedParameter<std::string>("subdetName","NO");
@@ -140,7 +142,7 @@ HcalDigiAnalyzer<T>::HcalDigiAnalyzer(const edm::ParameterSet& iConfig):
   
   rootFile_ = outPath_ + "HcalFinalOutput_" + subdetName_+ outSuffix_ + ".root";
   
-  cout << "my root file is: " << rootFile_ << endl;
+  if (verbose_) cout << "my root file is: " << rootFile_ << endl;
   
   m_fillDigi.init(rootFile_, &m_digiTree);
 
@@ -205,16 +207,15 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
   //-----------------------------------------------------
   // Fill the run and event number information
   //-----------------------------------------------------
-  
+
   int run   = iEvent.id().run();
   int event = iEvent.id().event();  
 
   m_digiTree.run   = run;
   m_digiTree.event = event;
-  m_digiTree.nadc  = 0;
 
   if (scanForSpikes_ && subdet_ == 1)
-    printf("Run = %d, Event = %d\n",run,event);
+    if (verbose_) printf("Run = %d, Event = %d\n",run,event);
 
   //-----------------------------------------------------
   // Get setup information
@@ -254,6 +255,8 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
   int ntptsample;
   int ntrigprim;
   int id;
+
+  int ieta, iphi, depth;
 
   int nTrigTowerDetIds;
   int trigPrimDigiSize;
@@ -319,33 +322,28 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
     if(cell.subdet() == subdet_) {
 
       ndigis++;
-      
+            
       //-----------------------------------------------------
-      // Get the Cell Geometry and make sure it's sane
+      // Get cell location information (do not sort)
       //-----------------------------------------------------
-      
-      const CaloCellGeometry* cellGeometry =
-	geometry->getSubdetectorGeometry (cell)->getGeometry (cell);
-      if( cellGeometry == 0 ) LogInfo("") << "No cell geometry " << cell.rawId();
-      
-      //-----------------------------------------------------
-      // Get cell location information
-      //-----------------------------------------------------
-
-      double fEta   = cellGeometry->getPosition().eta();
-      double fPhi   = cellGeometry->getPosition().phi();
       
       id = (int)(*ihcal).id();
 
-      m_digiTree.h_psam [count-1] = (*ihcal).presamples();
-      m_digiTree.h_size [count-1] = (*ihcal).size();
-      
+      ieta  = cell.ieta();
+      iphi  = cell.iphi();
+      depth = cell.depth();
+
       m_digiTree.h_depth[count-1] = cell.depth();
-      m_digiTree.h_eta  [count-1] = fEta;
-      m_digiTree.h_phi  [count-1] = fPhi; 
       m_digiTree.h_ieta [count-1] = cell.ieta();
       m_digiTree.h_iphi [count-1] = cell.iphi();
       m_digiTree.h_id   [count-1] = (int) id;
+
+      //-----------------------------------------------------
+      // Get digi size information (number of [pre]samples)
+      //-----------------------------------------------------
+      
+      m_digiTree.h_psam [ieta+41][iphi][depth] = (*ihcal).presamples();
+      m_digiTree.h_size [ieta+41][iphi][depth] = (*ihcal).size();
       
       //-----------------------------------------------------
       // Now comes the coding...
@@ -367,17 +365,18 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 	int capid  = (*ihcal)[ii].capid();
 	float ped  = calibrations.pedestal(capid);
 	float gain = calibrations.rawgain(capid);  
-	
-	m_digiTree.h_adc     [count-1][ii] = (*ihcal)[ii].adc();
-	m_digiTree.h_fC      [count-1][ii] = tool[ii];	  
-	m_digiTree.h_ped     [count-1][ii] = ped;
-	m_digiTree.h_gain    [count-1][ii] = gain;
-	m_digiTree.h_capid   [count-1][ii] = capid;
-	m_digiTree.h_fiber   [count-1][ii] = (*ihcal)[ii].fiber();
-	m_digiTree.h_fchan   [count-1][ii] = (*ihcal)[ii].fiberChan();
-	
+		
+	m_digiTree.h_adc   [ieta+41][iphi][depth][ii] = (*ihcal)[ii].adc(); 
+	m_digiTree.h_fC    [ieta+41][iphi][depth][ii] = tool[ii];	  
+	m_digiTree.h_ped   [ieta+41][iphi][depth][ii] = ped;
+	m_digiTree.h_gain  [ieta+41][iphi][depth][ii] = gain;
+	m_digiTree.h_capid [ieta+41][iphi][depth][ii] = capid;
+	m_digiTree.h_fiber [ieta+41][iphi][depth][ii] = (*ihcal)[ii].fiber();
+	m_digiTree.h_fchan [ieta+41][iphi][depth][ii] = (*ihcal)[ii].fiberChan();	
+
 	//-----------------------------------------------------
 	// Check for spikes and print out warnings
+	// (must set verbose to 'true' in .cfg file
 	//-----------------------------------------------------
 	
 	if (scanForSpikes_){	
@@ -387,19 +386,23 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 	    
 	    foundSpike = true;
 	    
-	    printf("%s SPIKE?: %f\n",subdetName,tool[ii]);
-	    printf("  run = %d, event = %d\n",run,event);
-	    printf("  ieta = %d, iphi = %d, depth = %d, ts = %d\n",cell.ieta(),cell.iphi(),cell.depth(),ii);
-	    
-	    if (tool[ii] > 100.0){		
-	      printf("%s SPIKE!!!: %f\n",subdetName,tool[ii]);
+	    if (verbose_){
+	      
+	      printf("%s SPIKE?: %f\n",subdetName,tool[ii]);
 	      printf("  run = %d, event = %d\n",run,event);
-	      printf("  ieta = %d, iphi = %d, depth = %d\n",cell.ieta(),cell.iphi(),cell.depth());
+	      printf("  ieta = %d, iphi = %d, depth = %d, ts = %d\n",ieta,iphi,depth,ii);
+	      
+	      if (tool[ii] > 100.0){		
+		
+		printf("%s SPIKE!!!: %f\n",subdetName,tool[ii]);
+		printf("  run = %d, event = %d\n",run,event);
+		printf("  ieta = %d, iphi = %d, depth = %d\n",ieta,iphi,depth);
+	      }	
 	    }
 	  }	    
 	}
       }
-      
+
       //-----------------------------------------------------
       // Done looping over the time samples...
       //
@@ -459,8 +462,11 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 	    
 	    trigPrimDigiSize = (int) (*iTrigPrimDigi).size();
 	    
-	    m_digiTree.t_size [count-1][ntrigprim] = trigPrimDigiSize;  
-	    m_digiTree.t_psam [count-1][ntrigprim] = (*iTrigPrimDigi).presamples();
+	    m_digiTree.t_size  [ieta+41][iphi][depth][ntrigprim] = trigPrimDigiSize;  
+	    m_digiTree.t_psam  [ieta+41][iphi][depth][ntrigprim] = (*iTrigPrimDigi).presamples();
+	    m_digiTree.t_ieta  [ieta+41][iphi][depth][ntrigprim] = (int) trigTowerDetId.ieta();
+	    m_digiTree.t_iphi  [ieta+41][iphi][depth][ntrigprim] = (int) trigTowerDetId.iphi();
+	    m_digiTree.t_subdet[ieta+41][iphi][depth][ntrigprim] = (int) trigTowerDetId.subdet();	    
 	    
 	    for (int iTrigPrimSample = 0; iTrigPrimSample < trigPrimDigiSize; iTrigPrimSample++){
 	      
@@ -468,7 +474,7 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 	      
 	      compressedEt = (int) trigPrimSample.compressedEt();
 	      
-	      m_digiTree.t_cET[count-1][ntrigprim][ntptsample] = (int) compressedEt;
+	      m_digiTree.t_cET[ieta+41][iphi][depth][ntrigprim][ntptsample] = (int) compressedEt;
 	      
 	      ntptsample++;
 	      
@@ -480,20 +486,20 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 	    printTrigPrimError(trigTowerDetId,cell,nTrigTowerDetIds,ntrigprim);
 	  }
 	  
-	  m_digiTree.t_found [count-1][ntrigprim] = foundDigiBit;		
-	  m_digiTree.t_ntpts [count-1][ntrigprim] = ntptsample;
+	  m_digiTree.t_found [ieta+41][iphi][depth][ntrigprim] = foundDigiBit;		
+	  m_digiTree.t_ntpts [ieta+41][iphi][depth][ntrigprim] = ntptsample;
 	  ntrigprim++;
 
 	}
 	
-	m_digiTree.t_spike[count-1] = 1;
-	m_digiTree.t_ntp  [count-1] = ntrigprim;
+	m_digiTree.t_spike[ieta+41][iphi][depth] = 1;
+	m_digiTree.t_ntp  [ieta+41][iphi][depth] = ntrigprim;
 	
       }
       
       else {
-	m_digiTree.t_spike[count-1] = 0;
-	m_digiTree.t_ntp  [count-1] = 0;
+	m_digiTree.t_spike[ieta+41][iphi][depth] = 0;
+	m_digiTree.t_ntp  [ieta+41][iphi][depth] = 0;
       }
     }
   }
@@ -502,7 +508,7 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
   m_digiTree.nhit = ndigis;
   
   m_fillDigi.fill();
-  
+
 }
 
 template < typename T >
