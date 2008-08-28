@@ -8,10 +8,10 @@
 ## Use 0 to run over CRUZET data (only available on CMSLPC)
 ## Use 1 to run over reco-level MC (if available, default is for nuGun)
 
-cd ${CMSSW_BASE}
-cmsenv
+echo "CMSSW_BASE = ${CMSSW_BASE}"
 
 cd ${CMSSW_BASE}/src/Analyzers/HcalDigiAnalyzer/test
+cmsenv
 
 set run = 50908
 set cffFileName = "CRUZETDataSet_run${run}.cff"
@@ -19,8 +19,8 @@ set cffFileName = "CRUZETDataSet_run${run}.cff"
 if ($1 == 0) set source = "Analyzers/HcalDigiAnalyzer/data/${cffFileName}"
 if ($1 == 1) set source = "Analyzers/DijetAnalyzer/data/dataFiles_nuGun_CRUZET_test.cff"
 
-if ($1 == 0) set suffix = "TP_UnSup"
-if ($1 == 1) set suffix = "PostSimAnalysis_UnSup"
+if ($1 == 0) set suffix = "TP"
+if ($1 == 1) set suffix = "PostSimAnalysis"
 
 if ($1 == 0) set schedule = "{produce1,produce2,analyze}"
 if ($1 == 1) set schedule = "{analyze}"
@@ -30,10 +30,10 @@ cat > extractDigisAndAnalyze_run${run}.cfg<<EOF
 process ExtractDigisAndAnalyze =  {  
 
 	##-----------------------------------------------
-	## Input number of events (10000 is typical)
+	## Input number of events (2000 is typical)
 	##-----------------------------------------------
 
-	untracked PSet maxEvents = {untracked int32 input = 2000}
+	untracked PSet maxEvents = {untracked int32 input = 20}
 
 	##-----------------------------------------------
 	## Input data files
@@ -51,7 +51,7 @@ process ExtractDigisAndAnalyze =  {
 	##-----------------------------------------------
 	
 	include "${source}"
-
+	
 	##-----------------------------------------------
 	## Input proper LUT's
 	##-----------------------------------------------
@@ -70,25 +70,26 @@ process ExtractDigisAndAnalyze =  {
 	## Declare analyzer objects for each DataFrame type
 	##-----------------------------------------------
 
-	##replace hcalTriggerPrimitiveDigis.inputLabel = hcalDigis
-
 	module hbDigiAnalyzer = HBHEDigiAnalyzer {
 		untracked string outPath    = "${HOME}/data/"
 		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HB"
 		untracked bool scanForSpikes = true
+		untracked bool verbose = false
 	}
-
+	
 	module heDigiAnalyzer = HBHEDigiAnalyzer {
 		untracked string outPath    = "${HOME}/data/"
 		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HE"
+		untracked bool verbose = false
 	}
 	
 	module hoDigiAnalyzer = HODigiAnalyzer {
 		untracked string outPath    = "${HOME}/data/"
 		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HO"
+		untracked bool verbose = false
 	}
 	
 	module hfDigiAnalyzer = HFDigiAnalyzer {
@@ -96,14 +97,15 @@ process ExtractDigisAndAnalyze =  {
 		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HF"
 		untracked bool scanForSpikes = true
+		untracked bool verbose = false
 	}
 
 	path produce1 = {hcalUnsuppressedDigis}
 	path produce2 = {hcalTriggerPrimitiveDigis}
-	path analyze = {hbDigiAnalyzer,
-			heDigiAnalyzer,
-			hoDigiAnalyzer,
-			hfDigiAnalyzer }
+	path analyze  = {hbDigiAnalyzer,
+			 heDigiAnalyzer,
+		         hoDigiAnalyzer,
+			 hfDigiAnalyzer }
 			
 	schedule = ${schedule}
 
