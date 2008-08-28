@@ -89,47 +89,66 @@ class HcalDigiAnalyzer : public edm::EDAnalyzer {
   void printTrigPrimError(HcalTrigTowerDetId trigTowerDetId, HcalDetId cell,
 			  int nTrigTowerDetIds, int ntrigprim);
   
-  // ----------member data ---------------------------
+
+  //-----------------------------------------------------
+  // Root tree objects
+  //-----------------------------------------------------
+
   DigiTree     m_digiTree;
   FillDigiTree m_fillDigi;
-  
-  bool adc2fcDone_;
-  //std::vector<double> perpIeta_;
-  
-  std::string subdetName_;
+    
+  //-----------------------------------------------------
+  // Out file info
+  //-----------------------------------------------------
+
   std::string outPath_;
   std::string outSuffix_;
+  std::string subdetName_;
   std::string rootFile_;
 
+  //-----------------------------------------------------
+  // edm::InputTags 
+  //-----------------------------------------------------
+
   edm::InputTag hcalTrigPrimTag_;
-  edm::InputTag hcalUnsuppressedDigiTag_;
   edm::InputTag hcalDigiTag_;
 
-  bool scanForSpikes_;
-  bool verbose_;
+  //-----------------------------------------------------
+  // Output flags
+  //-----------------------------------------------------
 
-  double noiseArray_ [4][3000][10];
-  
+  bool scanForSpikes_;
+  bool verbose_;  
+
   int subdet_;
   
 };
 
 template < typename T >
-HcalDigiAnalyzer<T>::HcalDigiAnalyzer(const edm::ParameterSet& iConfig):
-  adc2fcDone_(false),
-  outPath_(iConfig.getUntrackedParameter<std::string>("outPath","/uscms/home/eberry/CMSSW_2_0_8/src/Analyzers/HcalDigiAnalyzer")),
-  outSuffix_(iConfig.getUntrackedParameter<std::string>("outSuffix",""))    
+HcalDigiAnalyzer<T>::HcalDigiAnalyzer(const edm::ParameterSet& iConfig)
 {
 
+  //-----------------------------------------------------
+  // Declare namespace
+  //-----------------------------------------------------
+  
   using namespace std;
-  
-  std::vector<std::string> defaultInFiles;
 
-  verbose_ = iConfig.getUntrackedParameter<bool>("verbose",false);
+  //-----------------------------------------------------
+  // Get input from .cfg file
+  //-----------------------------------------------------
 
-  scanForSpikes_ = iConfig.getUntrackedParameter<bool>("scanForSpikes",false);
-  
-  subdetName_ = iConfig.getUntrackedParameter<std::string>("subdetName","NO");
+  verbose_         = iConfig.getUntrackedParameter<bool>         ("verbose",false);
+  scanForSpikes_   = iConfig.getUntrackedParameter<bool>         ("scanForSpikes",false);
+  hcalTrigPrimTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag");
+  hcalDigiTag_     = iConfig.getUntrackedParameter<edm::InputTag>("hcalDigiTag"); 
+  outPath_         = iConfig.getUntrackedParameter<std::string>  ("outPath","/uscms/home/eberry/CMSSW_2_0_8/src/Analyzers/HcalDigiAnalyzer");
+  outSuffix_       = iConfig.getUntrackedParameter<std::string>  ("outSuffix","");
+  subdetName_      = iConfig.getUntrackedParameter<std::string>  ("subdetName","NO");
+
+  //-----------------------------------------------------
+  // Determine the subdetector from the .cfg file entry
+  //-----------------------------------------------------
   
   if (subdetName_ == "HB") { subdet_ = 1; }
   if (subdetName_ == "HE") { subdet_ = 2; }
@@ -139,48 +158,21 @@ HcalDigiAnalyzer<T>::HcalDigiAnalyzer(const edm::ParameterSet& iConfig):
     printf("Please pick a subdetector\n");
      exit(0);
   }
+
+  //-----------------------------------------------------
+  // Determine the path for the output
+  //-----------------------------------------------------
   
   rootFile_ = outPath_ + "HcalFinalOutput_" + subdetName_+ outSuffix_ + ".root";
   
   if (verbose_) cout << "my root file is: " << rootFile_ << endl;
   
+  //-----------------------------------------------------
+  // Initialize the root tree you're going to fill
+  //-----------------------------------------------------
+
   m_fillDigi.init(rootFile_, &m_digiTree);
-
-  const edm::InputTag dHcalTrigPrimTag("hcalTriggerPrimitiveDigis");
-  hcalTrigPrimTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag",dHcalTrigPrimTag);
-
-  //-----------------------------------------------------
-  // IMPORTANT:
-  // 
-  // In SIMULATION (as of CMSSW_2_0_8):
-  // 
-  // -- ZERO-SUPPRESSED digis are stored with the tag 
-  //    'hcalDigis'
-  // -- UNSUPPRESSED digis are stored with the tag
-  //    'hcalUnsuppressedDigis'
-  //
-  // In DATA (as of CRUZET3):
-  // 
-  // -- Only UNSUPPRESSED digis are stored
-  // -- They must be unpacked from the FED
-  // -- When they are unpacked, they are stored with
-  //    the tag 'hcalDigis', the SAME tag as the 
-  //    SUPPRESSED digis in simulation.
-  //
-  // The trick, then, is to see whether we have a digi
-  // object with the tag 'hcalUnsuppressedDigis'
-  //
-  // - If the tag EXISTS, this is SIMULATION, and we
-  //   have the digis we want. Done.
-  // - If the tag DOES NOT EXIST, this is DATA, and
-  //   we need to look for the tag 'hcalDigis'
-  //-----------------------------------------------------
-
-  const edm::InputTag dHcalDigiTag("hcalDigis");
-  hcalDigiTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hcalDigiTag",dHcalDigiTag);
-
-  const edm::InputTag dHcalUnsuppressedDigiTag("hcalUnsuppressedDigis");
-  hcalUnsuppressedDigiTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hcalUnsuppressedDigiTag",dHcalUnsuppressedDigiTag);
+  
 
 }
 
@@ -189,7 +181,6 @@ HcalDigiAnalyzer<T>::~HcalDigiAnalyzer(){}
 
 template < typename T >
 void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
-  
 
   //-----------------------------------------------------
   // Declare namespaces
@@ -266,24 +257,16 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
   bool digiExists;				
   bool foundDigiBit;
   
-  //-----------------------------------------------------
-  // Get Handle of digis
-  //-----------------------------------------------------
-
   typename T::const_iterator ihcal;
 
-  bool hcalUnsuppressedDigiTagExists = false;
-  bool hcalDigiTagExists = false;
+  //-----------------------------------------------------
+  // Get handles of digis and trig prims
+  //-----------------------------------------------------
 
-  Handle < T > hcalDigiCol;
-  hcalUnsuppressedDigiTagExists = iEvent.getByLabel(hcalUnsuppressedDigiTag_,hcalDigiCol);
-  
-  if (!hcalUnsuppressedDigiTagExists)
-    hcalDigiTagExists = iEvent.getByLabel(hcalDigiTag_,hcalDigiCol);
-
-  if (!hcalUnsuppressedDigiTagExists &&
-      !hcalDigiTagExists){
-    LogWarning("HcalDigiAnalyzer") << "Could not extract HCAL digis with EITHER tag!";
+  Handle < T > hcalDigiCol;  
+  bool hcalDigiTagExists = iEvent.getByLabel(hcalDigiTag_,hcalDigiCol);
+  if (!hcalDigiTagExists){
+    LogWarning("HcalDigiAnalyzer") << "Could not extract HCAL digis!";
     return;
   }
   
@@ -351,7 +334,7 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
       
       const HcalCalibrations& calibrations = conditions->getHcalCalibrations(cell);
       const HcalQIECoder* channelCoder = conditions->getHcalCoder(cell);
-      HcalCoderDb coder (*channelCoder, *shape);
+      HcalCoderDb coder (*channelCoder, *shape); 
       coder.adc2fC(*ihcal,tool);
       
       //-----------------------------------------------------
