@@ -8,22 +8,37 @@
 ## Use 0 to run over CRUZET data (only available on CMSLPC)
 ## Use 1 to run over reco-level MC (if available, default is for nuGun)
 
-echo "CMSSW_BASE = ${CMSSW_BASE}"
+## Tell submission script where to go
 
+source ${HOME}/.tcshrc
+echo "CMSSW_BASE = ${CMSSW_BASE}"
 cd ${CMSSW_BASE}/src/Analyzers/HcalDigiAnalyzer/test
 cmsenv
+
+## Where will you get your Global Run data?
 
 set run = 50908
 set cffFileName = "CRUZETDataSet_run${run}.cff"
 
-if ($1 == 0) set source = "Analyzers/HcalDigiAnalyzer/data/${cffFileName}"
-if ($1 == 1) set source = "Analyzers/DijetAnalyzer/data/dataFiles_nuGun_CRUZET_test.cff"
+## For getting info straight from Global Run data
 
-if ($1 == 0) set suffix = "TP"
-if ($1 == 1) set suffix = "PostSimAnalysis"
+if ($1 == 0) then 
+	set source          = "Analyzers/HcalDigiAnalyzer/data/${cffFileName}"
+	set suffix          = "TP_new"
+	set schedule        = "{unpack,analyze}"
+	set hcalDigiTag     = "hcalDigis"
+	set hcalTrigPrimTag = "hcalDigis"
+endif
 
-if ($1 == 0) set schedule = "{produce1,produce2,analyze}"
-if ($1 == 1) set schedule = "{analyze}"
+## For getting info from simulation
+
+if ($1 == 1) then
+	set source          = "Analyzers/DijetAnalyzer/data/dataFiles_nuGun_CRUZET_test.cff"
+	set suffix          = "PostSimAnalysis"
+	set schedule        = "{analyze}"
+	set hcalDigiTag     = "hcalUnsuppressedDigis"
+	set hcalTrigPrimTag = "hcalTriggerPrimitiveDigis"
+endif
 
 cat > extractDigisAndAnalyze_run${run}.cfg<<EOF
 
@@ -33,7 +48,7 @@ process ExtractDigisAndAnalyze =  {
 	## Input number of events (2000 is typical)
 	##-----------------------------------------------
 
-	untracked PSet maxEvents = {untracked int32 input = 20}
+	untracked PSet maxEvents = {untracked int32 input = 2000}
 
 	##-----------------------------------------------
 	## Input data files
@@ -70,42 +85,60 @@ process ExtractDigisAndAnalyze =  {
 	## Declare analyzer objects for each DataFrame type
 	##-----------------------------------------------
 
-	module hbDigiAnalyzer = HBHEDigiAnalyzer {
+	module hbDigiAnalyzer = HBHEDigiAnalyzer { 
+		untracked InputTag hcalDigiTag = "${hcalDigiTag}"
+		untracked InputTag hcalTrigPrimTag = "${hcalTrigPrimTag}"
+
 		untracked string outPath    = "${HOME}/data/"
-		untracked string outSuffix  = "_run${run}_${suffix}"
+		untracked string outSuffix  = "_run${run}_${suffix}"		
 		untracked string subdetName = "HB"
+
 		untracked bool scanForSpikes = true
 		untracked bool verbose = false
 	}
 	
 	module heDigiAnalyzer = HBHEDigiAnalyzer {
+		
+		untracked InputTag hcalDigiTag = "${hcalDigiTag}"
+		untracked InputTag hcalTrigPrimTag = "${hcalTrigPrimTag}"
+		
 		untracked string outPath    = "${HOME}/data/"
 		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HE"
+		
+		untracked bool scanForSpikes = false
 		untracked bool verbose = false
 	}
 	
 	module hoDigiAnalyzer = HODigiAnalyzer {
+		untracked InputTag hcalDigiTag = "${hcalDigiTag}"
+		untracked InputTag hcalTrigPrimTag = "${hcalTrigPrimTag}"
+
 		untracked string outPath    = "${HOME}/data/"
 		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HO"
+
+		untracked bool scanForSpikes = false
 		untracked bool verbose = false
 	}
 	
 	module hfDigiAnalyzer = HFDigiAnalyzer {
+		untracked InputTag hcalDigiTag = "${hcalDigiTag}"
+		untracked InputTag hcalTrigPrimTag = "${hcalTrigPrimTag}"
+
 		untracked string outPath    = "${HOME}/data/"
 		untracked string outSuffix  = "_run${run}_${suffix}"
 		untracked string subdetName = "HF"
+
 		untracked bool scanForSpikes = true
 		untracked bool verbose = false
 	}
 
-	path produce1 = {hcalUnsuppressedDigis}
-	path produce2 = {hcalTriggerPrimitiveDigis}
-	path analyze  = {hbDigiAnalyzer,
-			 heDigiAnalyzer,
-		         hoDigiAnalyzer,
-			 hfDigiAnalyzer }
+	path unpack  = {hcalDigis}
+	path analyze = {hbDigiAnalyzer,
+			heDigiAnalyzer,
+		        hoDigiAnalyzer,
+			hfDigiAnalyzer }
 			
 	schedule = ${schedule}
 
