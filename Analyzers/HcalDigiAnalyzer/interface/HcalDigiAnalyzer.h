@@ -345,14 +345,16 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 
       for( int ii=0; ii<tool.size(); ii++ ) { 
 
-	int capid  = (*ihcal)[ii].capid();
-	float ped  = calibrations.pedestal(capid);
-	float gain = calibrations.rawgain(capid);  
+	int capid    = (*ihcal)[ii].capid();
+	float ped    = calibrations.pedestal(capid);
+	float gain   = calibrations.rawgain(capid);  
+	float rcgain = calibrations.respcorrgain(capid);
 		
 	m_digiTree.h_adc   [ieta+41][iphi][depth][ii] = (*ihcal)[ii].adc(); 
 	m_digiTree.h_fC    [ieta+41][iphi][depth][ii] = tool[ii];	  
 	m_digiTree.h_ped   [ieta+41][iphi][depth][ii] = ped;
 	m_digiTree.h_gain  [ieta+41][iphi][depth][ii] = gain;
+	m_digiTree.h_rcgain[ieta+41][iphi][depth][ii] = rcgain;
 	m_digiTree.h_capid [ieta+41][iphi][depth][ii] = capid;
 	m_digiTree.h_fiber [ieta+41][iphi][depth][ii] = (*ihcal)[ii].fiber();
 	m_digiTree.h_fchan [ieta+41][iphi][depth][ii] = (*ihcal)[ii].fiberChan();	

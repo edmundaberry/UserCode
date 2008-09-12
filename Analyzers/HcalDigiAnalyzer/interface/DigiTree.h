@@ -36,6 +36,7 @@ class DigiTree
       float h_ped   [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
       float h_pedc  [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
       float h_gain  [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
+      float h_rcgain[MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
       int   h_capid [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
       int   h_fiber [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
       int   h_fchan [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
