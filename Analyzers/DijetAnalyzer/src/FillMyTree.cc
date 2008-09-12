@@ -48,7 +48,8 @@ void FillMyTree::init(std::string filename, MyTree* treePtr) {
    m_tree->Branch("jetTower_ntslice"    ,&(m_treePtr->jetTower_ntslice    ),"jetTower_ntslice[nrjet][100][20]/I");
    m_tree->Branch("jetTower_depth"      ,&(m_treePtr->jetTower_depth      ),"jetTower_depth[nrjet][100][20]/I");
    m_tree->Branch("jetTower_digi_ADC"   ,&(m_treePtr->jetTower_digi_ADC   ),"jetTower_digi_ADC[nrjet][100][20][10]/I");
-   
+   m_tree->Branch("jetTower_rhEnergy"   ,&(m_treePtr->jetTower_rhEnergy   ),"jetTower_rhEnergy[nrjet][100][20]/F");
+
    m_tree->Branch("jet_p"             ,&(m_treePtr->jet_p              ),"jet_p[nrjet]/F"  );
    m_tree->Branch("jet_pt"            ,&(m_treePtr->jet_pt             ),"jet_pt[nrjet]/F" );
    m_tree->Branch("jet_px"            ,&(m_treePtr->jet_px             ),"jet_px[nrjet]/F" );

@@ -69,6 +69,7 @@ class MyTree {
   int   jetTower_depth     [MAXNJETS][MAXNJTOWERS][MAXNRECHITS];
   int   jetTower_rhSubdet  [MAXNJETS][MAXNJTOWERS][MAXNRECHITS];
   int   jetTower_ntslice   [MAXNJETS][MAXNJTOWERS][MAXNRECHITS];
+  float jetTower_rhEnergy  [MAXNJETS][MAXNJTOWERS][MAXNRECHITS];
 
   int   jetTower_digi_ADC  [MAXNJETS][MAXNJTOWERS][MAXNRECHITS][MAXTIMESLICES];
   float jetTower_digi_fC   [MAXNJETS][MAXNJTOWERS][MAXNRECHITS][MAXTIMESLICES];
@@ -115,6 +116,9 @@ class MyTree {
 	for (int k = 0; k<MAXNRECHITS; k++){
 	  
 	  jetTower_rhSubdet[i][j][k] = -999;
+	  jetTower_rhEnergy[i][j][k] = -999.0;
+	  jetTower_depth   [i][j][k] = -999;
+	  jetTower_ntslice [i][j][k] = -999;
 
 	  for (int l = 0; l < MAXTIMESLICES; l++){
 	    jetTower_digi_fC [i][j][k][l] = -999.0;

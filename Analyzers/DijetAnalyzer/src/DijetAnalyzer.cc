@@ -13,7 +13,7 @@
 //
 // Original Author:  "Edmund Berry"
 //         Created:  Wed Jun 11 14:17:06 CDT 2008
-// $Id$
+// $Id: DijetAnalyzer.cc,v 1.1 2008/08/21 16:27:21 eberry Exp $
 //
 //
 
@@ -82,6 +82,10 @@ private:
   edm::InputTag l1CenJetTag_;
   edm::InputTag l1TauJetTag_;
 
+  edm::InputTag hbheRecHitTag_;
+  edm::InputTag hoRecHitTag_;
+  edm::InputTag hfRecHitTag_;
+
   std::string rootFile_;
   
   TFile *outFile;
@@ -117,6 +121,15 @@ DijetAnalyzer::DijetAnalyzer(const edm::ParameterSet& iConfig):
   const edm::InputTag dGctTauJetsTag ("l1GctHwDigis","tauJets");
   l1TauJetTag_ = iConfig.getUntrackedParameter<edm::InputTag>("tauJetTag",dGctTauJetsTag);
   
+  const edm::InputTag dHBHERecHitTag ("hbhereco");
+  hbheRecHitTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hbheRecHitTag",dHBHERecHitTag);
+  
+  const edm::InputTag dHORecHitTag ("horeco");
+  hoRecHitTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hoRecHitTag",dHORecHitTag);
+
+  const edm::InputTag dHFRecHitTag ("hfreco");
+  hfRecHitTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hfRecHitTag",dHFRecHitTag);
+
   m_fillTree.init(rootFile_,&m_myTree);
 
 }
@@ -152,33 +165,53 @@ DijetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   // Get all handles for data types. Catch exceptions.
   //-----------------------------------------------------
   
+  bool gotHandle;
+
   Handle<CaloJetCollection> jets;
-  try { iEvent.getByLabel(calJetsTag_,jets);}
-  catch(...){
+  gotHandle =  iEvent.getByLabel(calJetsTag_,jets);
+  if (!gotHandle){
     LogWarning("DijetAnalyzer") << "Could not extract reco jets with the tag" << calJetsTag_;
   }
   
   Handle<CaloTowerCollection> caloTowers;
-  try { iEvent.getByLabel(caloTowerTag_,caloTowers);}
-  catch(...){
+  gotHandle =  iEvent.getByLabel(caloTowerTag_,caloTowers);
+  if (!gotHandle){
     LogWarning("DijetAnalyzer") << "Could not extract calo towers";
   }
   
+  Handle<HBHERecHitCollection> HBHERecHits;
+  gotHandle =  iEvent.getByLabel(hbheRecHitTag_ ,HBHERecHits);
+  if (!gotHandle){
+    LogWarning("DijetAnalyzer") << "Could not extract HBHE Rec Hits";
+  }
+
+  Handle<HORecHitCollection> HORecHits;
+  gotHandle =  iEvent.getByLabel(hoRecHitTag_ ,HORecHits);
+  if (!gotHandle){
+    LogWarning("DijetAnalyzer") << "Could not extract HO Rec Hits";
+  }
+  
+  Handle<HFRecHitCollection> HFRecHits;
+  gotHandle =  iEvent.getByLabel(hfRecHitTag_ ,HFRecHits);
+  if (!gotHandle){
+    LogWarning("DijetAnalyzer") << "Could not extract HF Rec Hits";
+  }
+  
   Handle<HBHEDigiCollection> HBHEDigis;
-  try { iEvent.getByLabel(hbheDigiTag_,HBHEDigis);}
-  catch(...){
+  gotHandle =  iEvent.getByLabel(hbheDigiTag_,HBHEDigis);
+  if (!gotHandle){
     LogWarning("DijetAnalyzer") << "Could not extract HB/HE Digis";
   }
   
   Handle<HODigiCollection> HODigis;
-  try { iEvent.getByLabel(hoDigiTag_,HODigis);}
-  catch(...){
+  gotHandle =  iEvent.getByLabel(hoDigiTag_,HODigis);
+  if (!gotHandle){
     LogWarning("DijetAnalyzer") << "Could not extract HO Digis";
   }
   
   Handle<HFDigiCollection> HFDigis;
-  try { iEvent.getByLabel(hfDigiTag_,HFDigis);}
-  catch(...){
+  gotHandle =  iEvent.getByLabel(hfDigiTag_,HFDigis);
+  if (!gotHandle){
     LogWarning("DijetAnalyzer") << "Could not extract HF Digis";
   }
 
@@ -424,7 +457,9 @@ DijetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 	    if (HcalSubdet == HcalBarrel || HcalSubdet == HcalEndcap){
 
-	      HBHEDigiCollection::const_iterator iHBHEDigi = HBHEDigis -> find(HcalID);
+	      HBHEDigiCollection::const_iterator   iHBHEDigi   = HBHEDigis   -> find(HcalID);
+	      HBHERecHitCollection::const_iterator iHBHERecHit = HBHERecHits -> find(HcalID);
+
 	      coder.adc2fC(*iHBHEDigi,tool);
 
 	      for (int iTS = 0; iTS < tool.size(); iTS++){
@@ -437,11 +472,15 @@ DijetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		ntslice++;
 	      }
 
+	      m_myTree.jetTower_rhEnergy[nrjet][njtower][nrhits] = (*iHBHERecHit).energy();
+
 	    }
 	    
 	    else if (HcalSubdet == HcalOuter){
 
-	      HODigiCollection::const_iterator iHODigi = HODigis -> find(HcalID);
+	      HODigiCollection::const_iterator   iHODigi   = HODigis   -> find(HcalID);
+	      HORecHitCollection::const_iterator iHORecHit = HORecHits -> find(HcalID);
+
 	      coder.adc2fC(*iHODigi,tool);
 
 	      for (int iTS = 0; iTS < tool.size(); iTS++){
@@ -454,11 +493,16 @@ DijetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		ntslice++;
 
 	      }
+
+	      m_myTree.jetTower_rhEnergy[nrjet][njtower][nrhits] = (*iHORecHit).energy();
+
 	    }
 	    
 	    else if (HcalSubdet == HcalForward){
 
-	      HFDigiCollection::const_iterator iHFDigi = HFDigis -> find(HcalID);
+	      HFDigiCollection::const_iterator   iHFDigi   = HFDigis   -> find(HcalID);
+	      HFRecHitCollection::const_iterator iHFRecHit = HFRecHits -> find(HcalID);
+
 	      coder.adc2fC(*iHFDigi,tool);
 
 	      for (int iTS = 0; iTS < tool.size(); iTS++){
@@ -470,6 +514,9 @@ DijetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 		ntslice++;
 	      }
+	      
+	      m_myTree.jetTower_rhEnergy[nrjet][njtower][nrhits] = (*iHFRecHit).energy();
+
 	    }
 
 	    else {
