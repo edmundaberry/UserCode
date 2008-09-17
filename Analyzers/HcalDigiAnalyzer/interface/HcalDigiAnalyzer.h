@@ -47,6 +47,7 @@
 #include "CalibFormats/CaloTPG/interface/CaloTPGRecord.h"
 #include "CalibFormats/CaloObjects/interface/IntegerCaloSamples.h"
 #include "CalibCalorimetry/HcalTPGAlgos/interface/HcaluLUTTPGCoder.h"
+#include "CalibCalorimetry/HcalAlgos/interface/HcalPulseContainmentCorrection.h"
 
 #include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
 #include "Geometry/HcalTowerAlgo/src/HcalHardcodeGeometryData.h"
@@ -73,6 +74,14 @@
 
 #include <iostream>
 #include <string>
+
+//-----------------------------------------------------
+// This is a purposely hardcoded value.
+// Do not change it.
+
+static double MaximumFractionalError_ =  0.0005; 
+
+//-----------------------------------------------------
 
 template< typename T>
 class HcalDigiAnalyzer : public edm::EDAnalyzer {
@@ -117,10 +126,21 @@ class HcalDigiAnalyzer : public edm::EDAnalyzer {
   // Output flags
   //-----------------------------------------------------
 
+  bool doRHPulseCorrect_;
   bool scanForSpikes_;
   bool verbose_;  
-
   int subdet_;
+
+  //-----------------------------------------------------
+  // Pulse corrections 
+  // (for calculating RH energy on the fly)
+  //-----------------------------------------------------
+  
+  std::auto_ptr<HcalPulseContainmentCorrection> pulseCorrectionPtr;
+  
+  int firstRHSample_;
+  int rhSamplesToAdd_;
+  float phaseNS_;
   
 };
 
@@ -138,13 +158,14 @@ HcalDigiAnalyzer<T>::HcalDigiAnalyzer(const edm::ParameterSet& iConfig)
   // Get input from .cfg file
   //-----------------------------------------------------
 
-  verbose_         = iConfig.getUntrackedParameter<bool>         ("verbose",false);
-  scanForSpikes_   = iConfig.getUntrackedParameter<bool>         ("scanForSpikes",false);
-  hcalTrigPrimTag_ = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag");
-  hcalDigiTag_     = iConfig.getUntrackedParameter<edm::InputTag>("hcalDigiTag"); 
-  outPath_         = iConfig.getUntrackedParameter<std::string>  ("outPath","/uscms/home/eberry/CMSSW_2_0_8/src/Analyzers/HcalDigiAnalyzer");
-  outSuffix_       = iConfig.getUntrackedParameter<std::string>  ("outSuffix","");
-  subdetName_      = iConfig.getUntrackedParameter<std::string>  ("subdetName","NO");
+  verbose_          = iConfig.getUntrackedParameter<bool>         ("verbose",false);
+  doRHPulseCorrect_ = iConfig.getUntrackedParameter<bool>         ("doRecHitPulseCorrection",true);
+  scanForSpikes_    = iConfig.getUntrackedParameter<bool>         ("scanForSpikes",false);
+  hcalTrigPrimTag_  = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag");
+  hcalDigiTag_      = iConfig.getUntrackedParameter<edm::InputTag>("hcalDigiTag"); 
+  outPath_          = iConfig.getUntrackedParameter<std::string>  ("outPath","/uscms/home/eberry/CMSSW_2_0_8/src/Analyzers/HcalDigiAnalyzer");
+  outSuffix_        = iConfig.getUntrackedParameter<std::string>  ("outSuffix","");
+  subdetName_       = iConfig.getUntrackedParameter<std::string>  ("subdetName","NO");
 
   //-----------------------------------------------------
   // Determine the subdetector from the .cfg file entry
@@ -159,6 +180,16 @@ HcalDigiAnalyzer<T>::HcalDigiAnalyzer(const edm::ParameterSet& iConfig)
      exit(0);
   }
 
+  //-----------------------------------------------------
+  // Set up pulse correction
+  //-----------------------------------------------------
+
+  firstRHSample_          = 4;      // Configured for HBHE for now, may have user input later 
+  rhSamplesToAdd_         = 4;      // Configured for HBHE for now, may have user input later
+  phaseNS_                = 13.0;   // Configured for HBHE for now, may have user input later
+  
+  pulseCorrectionPtr = std::auto_ptr<HcalPulseContainmentCorrection>(new HcalPulseContainmentCorrection(rhSamplesToAdd_,phaseNS_,MaximumFractionalError_));
+  
   //-----------------------------------------------------
   // Determine the path for the output
   //-----------------------------------------------------
@@ -220,6 +251,7 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
   iSetup.get<HcalDbRecord>().get(conditions);
   iSetup.get<IdealGeometryRecord>().get(geometry);
 
+  const HcalPulseContainmentCorrection* pulseCorrection = pulseCorrectionPtr.get();
   const HcalQIEShape* shape = conditions->getHcalShape();
   CaloSamples tool;
 
@@ -246,6 +278,9 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
   int ntptsample;
   int ntrigprim;
   int id;
+
+  float fC_amp, GeV_amp, temp_amp;
+  float correction;
 
   int ieta, iphi, depth;
 
@@ -343,13 +378,38 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
       
       foundSpike = false;
 
+      fC_amp = 0.0;
+      GeV_amp = 0.0;
+
       for( int ii=0; ii<tool.size(); ii++ ) { 
 
 	int capid    = (*ihcal)[ii].capid();
-	float ped    = calibrations.pedestal(capid);
+	float ped    = calibrations.pedestal(capid);	
 	float gain   = calibrations.rawgain(capid);  
 	float rcgain = calibrations.respcorrgain(capid);
 		
+	//-----------------------------------------------------
+	// Get rec hit amplitude in GeV 
+	// (should agree with rec hit energy)
+	//-----------------------------------------------------
+
+	if ( ii >= firstRHSample_ &&                 
+	     ii <  firstRHSample_ + rhSamplesToAdd_ ){  
+	  
+	  // Subtract fC pedestal from digi
+	  temp_amp = tool[ii] - ped;
+	  
+	  // Store the fC amplitude
+	  fC_amp  += temp_amp;
+
+	  // Convert the fC amplitude to GeV
+	  temp_amp *= rcgain;
+	  
+	  // Store the GeV amplitude
+	  GeV_amp += temp_amp;
+	  
+	}
+
 	m_digiTree.h_adc   [ieta+41][iphi][depth][ii] = (*ihcal)[ii].adc(); 
 	m_digiTree.h_fC    [ieta+41][iphi][depth][ii] = tool[ii];	  
 	m_digiTree.h_ped   [ieta+41][iphi][depth][ii] = ped;
@@ -387,7 +447,22 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 	  }	    
 	}
       }
+      
+      //-----------------------------------------------------
+      // Correct for RH amplitude for phase
+      // Store both fC and GeV amplitudes
+      //-----------------------------------------------------
 
+      if (pulseCorrection != 0){
+	correction = pulseCorrection -> getCorrection(fC_amp);
+	GeV_amp *= correction;
+      }
+      else correction = 0.0;
+      
+      m_digiTree.h_correction [ieta+41][iphi][depth] = correction;
+      m_digiTree.h_rh_GeV_amp [ieta+41][iphi][depth] = GeV_amp;
+      m_digiTree.h_rh_fC_amp  [ieta+41][iphi][depth] = fC_amp;
+      
       //-----------------------------------------------------
       // Done looping over the time samples...
       //

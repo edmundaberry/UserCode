@@ -41,6 +41,10 @@ FillDigiTree::init(std::string filename, DigiTree* treePtr) {
    m_tree->Branch("h_gain",     &(m_treePtr->h_gain),     "h_gain  [83][73][4][10]/F");
    m_tree->Branch("h_rcgain",   &(m_treePtr->h_rcgain),   "h_rcgain[83][73][4][10]/F");
 
+   m_tree->Branch("h_correction",&(m_treePtr->h_correction),"h_correction[83][73][4]/F");
+   m_tree->Branch("h_rh_GeV_amp",&(m_treePtr->h_rh_GeV_amp),"h_rh_GeV_amp[83][73][4]/F");
+   m_tree->Branch("h_rh_fC_amp", &(m_treePtr->h_rh_fC_amp), "h_rh_fC_amp[83][73][4]/F");
+   
    m_tree->Branch("t_spike",    &(m_treePtr->t_spike),    "t_spike [83][73][4]/I");
    m_tree->Branch("t_ntp",      &(m_treePtr->t_ntp),      "t_ntp   [83][73][4]/I");
    m_tree->Branch("t_found",    &(m_treePtr->t_found),    "t_found [83][73][4][2]/I");

@@ -31,6 +31,9 @@ class DigiTree
 		    
       int   h_psam  [MAX_IETA][MAX_IPHI][MAX_DEPTH];
       int   h_size  [MAX_IETA][MAX_IPHI][MAX_DEPTH];
+      float h_rh_GeV_amp [MAX_IETA][MAX_IPHI][MAX_DEPTH];
+      float h_rh_fC_amp  [MAX_IETA][MAX_IPHI][MAX_DEPTH];
+      float h_correction [MAX_IETA][MAX_IPHI][MAX_DEPTH];
       int   h_adc   [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
       float h_fC    [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
       float h_ped   [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
@@ -72,6 +75,10 @@ class DigiTree
 	for (int ieta = 0; ieta < MAX_IETA; ieta++){
 	  for (int iphi = 0; iphi < MAX_IPHI; iphi++){
 	    for (int depth = 0; depth < MAX_DEPTH; depth++){
+	      
+	      h_correction [ieta][iphi][depth] = -999.0;
+	      h_rh_GeV_amp [ieta][iphi][depth] = -999.0;
+	      h_rh_fC_amp  [ieta][iphi][depth] = -999.0;
 	      
 	      h_psam    [ieta][iphi][depth] = -999;
 	      h_size    [ieta][iphi][depth] = -999;

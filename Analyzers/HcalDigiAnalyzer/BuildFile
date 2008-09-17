@@ -9,6 +9,7 @@
 <use name=CalibFormats/HcalObjects>
 <use name=CalibFormats/CaloTPG>
 <use name=CalibFormats/CaloObjects>
+<use name=CalibCalorimetry/HcalAlgos>
 <use name=SimDataFormats/HepMCProduct>
 <use name=SimDataFormats/CrossingFrame>
 <use name=SimCalorimetry/HcalSimAlgos>
