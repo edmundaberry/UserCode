@@ -1,0 +1,16 @@
+#!/bin/tcsh
+
+cat > l1SkimQSUB_condor <<EOF
+universe = vanilla
+Executable = ${CMSSW_BASE}/src/Analyzers/L1SkimAnalyzer/test/qrun_l1SkimAnalyzer_cmslpc
+Requirements = Memory >= 199 &&OpSys == "LINUX" && (Arch != "DUMMY" )
+ShouldTransferFiles = YES
+WhenToTransferOutput = ON_EXIT
+Output =  ${HOME}/nobackup/log/l1Skim.stdout
+Error = ${HOME}/nobackup/log/l1Skim.stderr
+Log = ${HOME}/nobackup/log/l1Skim.log
+notify_user = ${user}@FNAL.GOV
+Queue 1
+EOF
+
+condor_submit l1SkimQSUB_condor

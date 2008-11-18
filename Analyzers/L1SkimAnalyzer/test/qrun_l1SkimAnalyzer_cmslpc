@@ -1,0 +1,8 @@
+#!/bin/tcsh
+
+cd /uscms/home/eberry/CMSSW_2_1_10/src/Analyzers/L1SkimAnalyzer/test/
+
+source /uscmst1/prod/sw/cms/cshrc uaf
+eval `scramv1 runtime -csh`
+
+cmsRun /uscms/home/eberry/CMSSW_2_1_10/src/Analyzers/L1SkimAnalyzer/test/l1GctOutput_cfg.py

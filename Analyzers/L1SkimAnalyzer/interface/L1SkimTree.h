@@ -1,3 +1,5 @@
+
+
 #ifndef Analyzers_L1SkimAnalyzer_L1SkimTree_h
 #define Analyzers_L1SkimAnalyzer_L1SkimTree_h
 
@@ -7,6 +9,9 @@ class L1SkimTree
  public:
   
   enum {MAXNCALOEM    = 200};
+  enum {MAXNHLTJETS   = 100};
+  enum {MAXNHLTJTOWERS= 100};
+  enum {MAXNGCTHT     = 100};
   enum {MAXNGCTCENJET = 4  };
   enum {MAXNGCTFORJET = 4  };
   enum {MAXNGCTTAUJET = 4  };
@@ -15,7 +20,12 @@ class L1SkimTree
   virtual ~L1SkimTree();
 
   int   nCaloEm;
-        
+  int   nHLTJetCands;					 
+  int   nGctCenJet;
+  int   nGctForJet;
+  int   nGctTauJet;
+  int   nL1GctEtHads;
+	  
   int   caloEm_ieta        [MAXNCALOEM]; 
   int   caloEm_iphi        [MAXNCALOEM]; 
   int   caloEm_rank        [MAXNCALOEM]; 
@@ -27,81 +37,119 @@ class L1SkimTree
   int   caloEm_bx          [MAXNCALOEM]; 
   int   caloEm_iso         [MAXNCALOEM]; 
 
-  int   nGctCenJet;
-
+  int   gctCenJet_iphiMin  [MAXNGCTCENJET];
+  int   gctCenJet_iphiMax  [MAXNGCTCENJET];
+  int   gctCenJet_ietaMin  [MAXNGCTCENJET];
+  int   gctCenJet_ietaMax  [MAXNGCTCENJET];
   int   gctCenJet_ietaSign [MAXNGCTCENJET];
-  int   gctCenJet_ieta     [MAXNGCTCENJET];
-  int   gctCenJet_iphi     [MAXNGCTCENJET];
+  int   gctCenJet_etaIndex [MAXNGCTCENJET];
+  int   gctCenJet_phiIndex [MAXNGCTCENJET];
   int   gctCenJet_capBlock [MAXNGCTCENJET];
   int   gctCenJet_capIndex [MAXNGCTCENJET];
   int   gctCenJet_bx       [MAXNGCTCENJET];
   int   gctCenJet_rank     [MAXNGCTCENJET];
-  float gctCenJet_et       [MAXNGCTCENJET];
-
-  int   nGctForJet;
  
+  int   gctForJet_iphiMin  [MAXNGCTFORJET];
+  int   gctForJet_iphiMax  [MAXNGCTFORJET];
+  int   gctForJet_ietaMin  [MAXNGCTCENJET];
+  int   gctForJet_ietaMax  [MAXNGCTCENJET];
   int   gctForJet_ietaSign [MAXNGCTFORJET];
-  int   gctForJet_ieta     [MAXNGCTFORJET];
-  int   gctForJet_iphi     [MAXNGCTFORJET];
+  int   gctForJet_etaIndex [MAXNGCTFORJET];
+  int   gctForJet_phiIndex [MAXNGCTFORJET];
   int   gctForJet_capBlock [MAXNGCTFORJET];
   int   gctForJet_capIndex [MAXNGCTFORJET];
   int   gctForJet_bx       [MAXNGCTFORJET];
   int   gctForJet_rank     [MAXNGCTFORJET];
-  float gctForJet_et       [MAXNGCTFORJET];
-
-  int   nGctTauJet;
   
+  int   gctTauJet_iphiMin  [MAXNGCTTAUJET];
+  int   gctTauJet_iphiMax  [MAXNGCTTAUJET];
+  int   gctTauJet_ietaMin  [MAXNGCTCENJET];
+  int   gctTauJet_ietaMax  [MAXNGCTCENJET];
   int   gctTauJet_ietaSign [MAXNGCTTAUJET];
-  int   gctTauJet_ieta     [MAXNGCTTAUJET];
-  int   gctTauJet_iphi     [MAXNGCTTAUJET];
+  int   gctTauJet_etaIndex [MAXNGCTTAUJET];
+  int   gctTauJet_phiIndex [MAXNGCTTAUJET];
   int   gctTauJet_capBlock [MAXNGCTTAUJET];
   int   gctTauJet_capIndex [MAXNGCTTAUJET];
   int   gctTauJet_bx       [MAXNGCTTAUJET];
   int   gctTauJet_rank     [MAXNGCTTAUJET];
+
+  int   nHLTJetTowers      [MAXNHLTJETS];		 
+  int   hltJetTower_ieta   [MAXNHLTJETS][MAXNHLTJTOWERS];
+  int   hltJetTower_iphi   [MAXNHLTJETS][MAXNHLTJTOWERS];
+
+  float gctCenJet_et       [MAXNGCTCENJET];
+  float gctForJet_et       [MAXNGCTFORJET];
   float gctTauJet_et       [MAXNGCTTAUJET];
+  
+  float gctHT              [MAXNGCTHT];
+  
+  float hltJet_pt          [MAXNHLTJETS];		 
+  float hltJet_et          [MAXNHLTJETS];		 
+  float hltJet_phi         [MAXNHLTJETS];		 
+  float hltJet_eta         [MAXNHLTJETS];		 	                                               
 
   void init (){
+    
+    nL1GctEtHads = -999;
+    nCaloEm      = -999;
+    nGctCenJet   = -999;
+    nGctTauJet   = -999;
+    nHLTJetCands = -999;
 
-    nCaloEm    = -999;
-    nGctCenJet = -999;
-    nGctTauJet = -999;
+    for (int i = 0; i < MAXNGCTHT; i++){
+
+      gctHT              [i] = -999;
+
+    }
 
     for (int i = 0; i < MAXNGCTCENJET; i++){
 
+      gctCenJet_iphiMin  [i] = -999;
+      gctCenJet_iphiMax  [i] = -999;
+      gctCenJet_ietaMin  [i] = -999;
+      gctCenJet_ietaMax  [i] = -999;
       gctCenJet_ietaSign [i] = -999;
-      gctCenJet_ieta     [i] = -999;
-      gctCenJet_iphi     [i] = -999;
+      gctCenJet_etaIndex [i] = -999;
+      gctCenJet_phiIndex [i] = -999;
       gctCenJet_capBlock [i] = -999;
       gctCenJet_capIndex [i] = -999;
       gctCenJet_bx       [i] = -999;
       gctCenJet_rank     [i] = -999;
-      gctCenJet_et       [i] = -999;
+      gctCenJet_et       [i] = -999.0;
 
     }
     
     for (int i = 0; i < MAXNGCTFORJET; i++){
 
+      gctForJet_iphiMin  [i] = -999;
+      gctForJet_iphiMax  [i] = -999;
+      gctForJet_ietaMin  [i] = -999;
+      gctForJet_ietaMax  [i] = -999;
       gctForJet_ietaSign [i] = -999;
-      gctForJet_ieta     [i] = -999;
-      gctForJet_iphi     [i] = -999;
+      gctForJet_etaIndex [i] = -999;
+      gctForJet_phiIndex [i] = -999;
       gctForJet_capBlock [i] = -999;
       gctForJet_capIndex [i] = -999;
       gctForJet_bx       [i] = -999;
       gctForJet_rank     [i] = -999;
-      gctForJet_et       [i] = -999;
+      gctForJet_et       [i] = -999.0;
 
     }
 
     for (int i = 0; i < MAXNGCTTAUJET; i++){
 
+      gctTauJet_iphiMin  [i] = -999;
+      gctTauJet_iphiMax  [i] = -999;
+      gctTauJet_ietaMin  [i] = -999;
+      gctTauJet_ietaMax  [i] = -999;
       gctTauJet_ietaSign [i] = -999;
-      gctTauJet_ieta     [i] = -999;
-      gctTauJet_iphi     [i] = -999;
+      gctTauJet_etaIndex [i] = -999;
+      gctTauJet_phiIndex [i] = -999;
       gctTauJet_capBlock [i] = -999;
       gctTauJet_capIndex [i] = -999;
       gctTauJet_bx       [i] = -999;
       gctTauJet_rank     [i] = -999;
-      gctTauJet_et       [i] = -999;
+      gctTauJet_et       [i] = -999.0;
 
     }
     
@@ -118,6 +166,22 @@ class L1SkimTree
       caloEm_bx          [i] = -999;
       caloEm_iso         [i] = -999;
 
+    }
+
+    for (int i = 0; i < MAXNHLTJETS; i++){
+
+      hltJet_pt      [i] = -999.0;
+      hltJet_et      [i] = -999.0;
+      hltJet_phi     [i] = -999.0;
+      hltJet_eta     [i] = -999.0;
+      nHLTJetTowers  [i] = -999;
+
+      for (int j = 0; j < MAXNHLTJTOWERS; j++){
+	
+	hltJetTower_ieta [i][j] = -999;  
+	hltJetTower_iphi [i][j] = -999;
+ 
+      }
     }
   }
 
