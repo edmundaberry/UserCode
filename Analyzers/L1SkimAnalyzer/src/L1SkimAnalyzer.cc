@@ -10,6 +10,13 @@
 #include "CondFormats/L1TObjects/interface/L1GctJetEtCalibrationFunction.h"
 #include "CondFormats/DataRecord/interface/L1GctJetCalibFunRcd.h"
 
+// Trigger menu and record
+#include "CondFormats/L1TObjects/interface/L1GtTriggerMenu.h"
+#include "CondFormats/DataRecord/interface/L1GtTriggerMenuRcd.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutSetupFwd.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutSetup.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
+
 // L1 Calo Geometry
 #include "CondFormats/L1TObjects/interface/L1CaloGeometry.h"
 #include "CondFormats/DataRecord/interface/L1CaloGeometryRecord.h"
@@ -39,13 +46,13 @@ L1SkimAnalyzer::L1SkimAnalyzer(const edm::ParameterSet& iConfig)
   m_l1CaloEmCandsTag = iConfig.getUntrackedParameter<edm::InputTag>("l1CaloEmCandsTag",dL1CaloEmCandsTag);
 
   const edm::InputTag dL1GctJetCands_cenJets_Tag("l1GctHwDigis","cenJets");
-  m_l1GctJetCands_cenJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>(" l1GctJetCands_cenJets_Tag",dL1GctJetCands_cenJets_Tag);
+  m_l1GctJetCands_cenJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>("l1GctJetCandsCenJetsTag",dL1GctJetCands_cenJets_Tag);
 
   const edm::InputTag dL1GctJetCands_tauJets_Tag("l1GctHwDigis","tauJets");
-  m_l1GctJetCands_tauJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>(" l1GctJetCands_tauJets_Tag",dL1GctJetCands_tauJets_Tag);
+  m_l1GctJetCands_tauJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>("l1GctJetCandsTauJetsTag",dL1GctJetCands_tauJets_Tag);
   
   const edm::InputTag dL1GctJetCands_forJets_Tag("l1GctHwDigis","forJets");
-  m_l1GctJetCands_forJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>(" l1GctJetCands_forJets_Tag",dL1GctJetCands_forJets_Tag);
+  m_l1GctJetCands_forJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>("l1GctJetCandsForJetsTag",dL1GctJetCands_forJets_Tag);
  
   const edm::InputTag dHLTRecoCaloJetCandsTag("hltIterativeCone5CaloJets");
   m_hltRecoCaloJetCandsTag = iConfig.getUntrackedParameter<edm::InputTag>("hltRecoCaloJetCandsTag",dHLTRecoCaloJetCandsTag);
@@ -53,11 +60,28 @@ L1SkimAnalyzer::L1SkimAnalyzer(const edm::ParameterSet& iConfig)
   const edm::InputTag dL1GctEtHadsTag("l1GctHwDigis");
   m_l1GctEtHadsTag = iConfig.getUntrackedParameter<edm::InputTag>("l1GctEtHadsTag",dL1GctEtHadsTag);
 
+  const edm::InputTag dL1DecisionWordTag("simGtDigis");
+  m_l1DecisionWordTag = iConfig.getUntrackedParameter<edm::InputTag>("l1DecisionWordTag",dL1DecisionWordTag);
+
+  //-----------------------------------------------
+  // Do HLT studies?
+  //-----------------------------------------------
+
+  m_doHLT = iConfig.getUntrackedParameter<bool>("doHLT",false);
+
+  //-----------------------------------------------
+  // Where should we save the root tree?
+  //-----------------------------------------------
+  
+  m_outPath   = iConfig.getUntrackedParameter<std::string>  ("outPath","/uscms/home/eberry/data/L1SkimAnalyzer/");
+  m_outSuffix = iConfig.getUntrackedParameter<std::string>  ("outSuffix","");
+  m_rootFile  = m_outPath + "L1SkimAnalyzerOutput" + m_outSuffix + ".root";
+
   //-----------------------------------------------
   // Initialize the root tree
   //-----------------------------------------------
 
-  m_fillTree.init("/uscms/home/eberry/3DayLifetime/triggerOutput.root",&m_skimTree);
+  m_fillTree.init(m_rootFile,&m_skimTree);
 
 }
 
@@ -91,6 +115,9 @@ L1SkimAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   m_setup -> get<L1EmEtScaleRcd> ().get(m_emScale );
   m_setup -> get<L1GctJetCalibFunRcd>().get(m_jetCalibrationFunction);
 
+  // Get trigger menu
+  m_setup -> get<L1GtTriggerMenuRcd>().get(m_triggerMenu);
+
   //-----------------------------------------------
   // Initialize the tree values (-999 = empty)
   //-----------------------------------------------
@@ -107,9 +134,10 @@ L1SkimAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   getL1GctJetCands_tauJets();
   getL1GctJetCands_forJets();
 
-  getHLTRecoCaloJetCands();
-
   getL1GctEtHads();
+  getL1DecisionWord();
+
+  getHLTRecoCaloJetCands();
 
   //-----------------------------------------------
   // Fill the tree
@@ -407,6 +435,16 @@ void L1SkimAnalyzer::getL1GctJetCands_tauJets(){
 
 void L1SkimAnalyzer::getHLTRecoCaloJetCands(){
 
+  //-----------------------------------------------
+  // Are we even bothering?
+  //-----------------------------------------------
+
+  if (!m_doHLT) return;
+
+  //-----------------------------------------------
+  // Normal code:
+  //-----------------------------------------------
+
   Handle<reco::CaloJetCollection> hltRecoCaloJetCands_Handle;
   bool hltRecoCaloJetCAnds_exist = m_event -> getByLabel(m_hltRecoCaloJetCandsTag,hltRecoCaloJetCands_Handle);
   if (!hltRecoCaloJetCAnds_exist){
@@ -470,7 +508,7 @@ void L1SkimAnalyzer::getL1GctEtHads(){
     return;
   }
 
-  float ht;
+  float ht, htUncorr;
   float htScaleLSB = (float)  m_jetCalibrationFunction -> getHtScaleLSB();
   
   int nL1GctEtHad = 0;
@@ -482,16 +520,16 @@ void L1SkimAnalyzer::getL1GctEtHads(){
     // This is the method for getting HT used within
     // L1ExtraParticlesProd
 
-    ht = ( (*iL1GctEtHad).overFlow() ?
-	   ( float ) L1GctEtHad::kEtHadMaxValue :
-	   ( float ) (*iL1GctEtHad).et() ) * htScaleLSB + 1.e-6 ;
+    ht       = ( (*iL1GctEtHad).overFlow() ?
+		 ( float ) L1GctEtHad::kEtHadMaxValue :
+		 ( float ) (*iL1GctEtHad).et() ) * htScaleLSB + 1.e-6 ;
     
-    cout << "***New HT values" << endl;
-    cout << "   MaxValue   = " << L1GctEtHad::kEtHadMaxValue << endl;
-    cout << "   etValue    = " << (*iL1GctEtHad).et()        << endl;
-    cout << "   htScaleLSB = " << htScaleLSB                 << endl;
+    htUncorr = ( (*iL1GctEtHad).overFlow() ?
+		 ( float ) L1GctEtHad::kEtHadMaxValue :
+		 ( float ) (*iL1GctEtHad).et() ) + 1.e-6 ;
     
     m_skimTree.gctHT[nL1GctEtHad] = ht;
+    m_skimTree.gctHT_UnCorr[nL1GctEtHad] = htUncorr;
 
     nL1GctEtHad++;
 
@@ -500,5 +538,31 @@ void L1SkimAnalyzer::getL1GctEtHads(){
   m_skimTree.nL1GctEtHads = nL1GctEtHad;
 
 }
+
+void L1SkimAnalyzer::getL1DecisionWord(){
+
+  Handle<L1GlobalTriggerReadoutRecord> l1GtReadoutRecord_Handle;
+  bool l1GtReadoutRecord_exists = m_event -> getByLabel(m_l1DecisionWordTag,l1GtReadoutRecord_Handle);
+  if (!l1GtReadoutRecord_exists){
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Global Trigger Readout Record (L1 Decision Word)";
+    return;      
+  }
+
+  const DecisionWord     decisionWord = l1GtReadoutRecord_Handle -> decisionWord(); 
+  const L1GtTriggerMenu *triggerMenu  = m_triggerMenu.product();
+
+  bool l1_HTT100 = triggerMenu -> gtAlgorithmResult("L1_HTT100",decisionWord);
+  bool l1_HTT200 = triggerMenu -> gtAlgorithmResult("L1_HTT200",decisionWord);
+  bool l1_HTT300 = triggerMenu -> gtAlgorithmResult("L1_HTT300",decisionWord);
+  bool l1_HTT400 = triggerMenu -> gtAlgorithmResult("L1_HTT400",decisionWord);
+  bool l1_HTT500 = triggerMenu -> gtAlgorithmResult("L1_HTT500",decisionWord);
+
+  m_skimTree.l1_HTT100 = 0; if (l1_HTT100) m_skimTree.l1_HTT100 = 1;
+  m_skimTree.l1_HTT200 = 0; if (l1_HTT200) m_skimTree.l1_HTT200 = 1;
+  m_skimTree.l1_HTT300 = 0; if (l1_HTT300) m_skimTree.l1_HTT300 = 1;
+  m_skimTree.l1_HTT400 = 0; if (l1_HTT400) m_skimTree.l1_HTT400 = 1;
+  m_skimTree.l1_HTT500 = 0; if (l1_HTT500) m_skimTree.l1_HTT500 = 1;
+
+} 
 
 DEFINE_FWK_MODULE(L1SkimAnalyzer);

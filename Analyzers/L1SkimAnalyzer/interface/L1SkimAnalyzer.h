@@ -61,12 +61,29 @@ private:
   void getL1GctJetCands_forJets();
   void getL1GctJetCands_tauJets();
 
-  // HLT jets
-  void getHLTRecoCaloJetCands();
+  // L1 Decision Word
+  void getL1DecisionWord();
 
   // L1 HT output 
   void getL1GctEtHads();
+
+  // HLT jets
+  void getHLTRecoCaloJetCands();
+
+  //-----------------------------------------------
+  // Strings to say where to save the file
+  //-----------------------------------------------
+
+  std::string m_outPath;
+  std::string m_outSuffix;
+  std::string m_rootFile;
+
+  //-----------------------------------------------
+  // Global bools
+  //-----------------------------------------------
   
+  bool m_doHLT;
+
   //-----------------------------------------------
   // Event and event setup pointers
   //-----------------------------------------------
@@ -86,6 +103,9 @@ private:
   ESHandle<L1CaloEtScale> m_emScale;
   ESHandle<L1GctJetEtCalibrationFunction> m_jetCalibrationFunction;
   
+  // L1 trigger menu
+  ESHandle<L1GtTriggerMenu> m_triggerMenu;
+
   //-----------------------------------------------
   // My ROOT objects
   //-----------------------------------------------
@@ -107,9 +127,11 @@ private:
   edm::InputTag m_l1GctJetCands_forJets_Tag;
   edm::InputTag m_l1GctJetCands_tauJets_Tag;
 
-  edm::InputTag m_hltRecoCaloJetCandsTag;
+  edm::InputTag m_l1DecisionWordTag;
 
   edm::InputTag m_l1GctEtHadsTag;
+
+  edm::InputTag m_hltRecoCaloJetCandsTag;
     
 };
 

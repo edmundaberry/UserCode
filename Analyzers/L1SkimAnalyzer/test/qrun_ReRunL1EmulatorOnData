@@ -1,0 +1,174 @@
+#!/bin/tcsh
+
+## Set variables
+set work_dir = $1
+set threshold = $2
+set numevents = $3
+
+## Load CMSSW
+cd /uscms/home/eberry/CMSSW_2_1_11/
+source /uscmst1/prod/sw/cms/cshrc uaf
+eval `scram runtime -csh`
+cd $work_dir
+
+## Tell the log file what you're going to do
+echo I am going to analyze $numevents events
+
+## Make the config file and run it
+
+cat > ReRunL1EmulatorOnData_${threshold}_cfg.py<<EOF
+
+import FWCore.ParameterSet.Config as cms
+
+process = cms.Process("L1ReRun")
+process.load("FWCore.MessageLogger.MessageLogger_cfi")
+
+process.source = cms.Source(
+    "PoolSource",
+    fileNames = cms.untracked.vstring(
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/006540F5-32A8-DD11-A0C1-000423D98EC4.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/007F2BE0-51A8-DD11-9B1D-000423D98750.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/00F5DCD0-43A8-DD11-B7FF-000423D98BE8.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0276CF62-55A8-DD11-9535-000423D98868.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0467F071-55A8-DD11-831D-000423D991D4.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/04699363-28A8-DD11-9C97-001D09F23174.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0855BCA1-3FA8-DD11-8408-0019B9F7310E.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/087E67AC-38A8-DD11-A4FC-000423D944FC.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/08B7E2A3-46A8-DD11-9885-000423D99BF2.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0A208F55-5AA8-DD11-A3F8-0030487A3C9A.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0AA3AC89-44A8-DD11-840C-0030487A3232.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0AAEA350-53A8-DD11-937D-000423D6B2D8.root',
+    '/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0C3C192F-56A8-DD11-A0BD-000423D9989E.root'
+    )
+)
+
+process.maxEvents = cms.untracked.PSet(
+    input = cms.untracked.int32(${numevents})
+)
+
+# Include geometry and global tag
+process.load("Configuration.StandardSequences.Geometry_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.GlobalTag.globaltag = 'CRAFT_V3P::All'
+
+# Unpack raw data
+process.load("Configuration.StandardSequences.RawToDigi_Data_cff")
+
+# Run trigger primitive generation on unpacked digis.  Then central L1
+process.load("L1Trigger.Configuration.CaloTriggerPrimitives_cff")
+process.load("L1Trigger.Configuration.SimL1Emulator_cff")
+process.simEcalTriggerPrimitiveDigis.Label = 'ecalDigis'
+process.simHcalTriggerPrimitiveDigis.inputLabel = 'hcalDigis'
+process.simDtTriggerPrimitiveDigis.digiTag = 'muonDTDigis'
+process.simCscTriggerPrimitiveDigis.CSCComparatorDigiProducer = cms.InputTag("muonCSCDigis","MuonCSCComparatorDigi")
+process.simCscTriggerPrimitiveDigis.CSCWireDigiProducer = cms.InputTag("muonCSCDigis","MuonCSCWireDigi")
+process.simRpcTriggerDigis.label = 'muonRPCDigis'
+
+#--------------------------------------------------------------------------------
+# L1 configuration
+#--------------------------------------------------------------------------------
+
+from L1Trigger.Configuration.L1DummyConfig_cff import *
+
+# RCT EM
+RCTConfigProducers.eGammaLSB = cms.double(0.25)
+l1CaloScales.L1CaloEmEtScaleLSB = cms.double(0.25)
+l1CaloScales.L1CaloEmThresholds = cms.vdouble(
+        0.0, 0.5, 1.0, 1.5, 2.0, 
+        2.5, 3.0, 3.5, 4.0, 4.5,
+        5.0, 5.5, 6.0, 6.5, 7.0, 
+        7.5, 8.0, 8.5, 9.0, 9.5,
+        10.0, 10.5, 11.0, 11.5, 12.0, 
+        12.5, 13.0, 13.5, 14.0, 14.5,
+        15.0, 15.5, 16.0, 16.5, 17.0, 
+        17.5, 18.0, 18.5, 19.0, 19.5,
+        20.0, 20.5, 21.0, 21.5, 22.0, 
+        22.5, 23.0, 23.5, 24.0, 24.5,
+        25.0, 25.5, 26.0, 26.5, 27.0, 
+        27.5, 28.0, 28.5, 29.0, 29.5,
+        30.0, 30.5, 31.0, 31.5)
+
+# RCT Regions
+RCTConfigProducers.jetMETLSB = cms.double(1.0)
+l1CaloScales.L1CaloRegionEtScaleLSB = cms.double(1.0)
+
+# GCT jet finding params
+L1GctConfigProducers.JetFinderCentralJetSeed = cms.uint32(0)
+L1GctConfigProducers.JetFinderForwardJetSeed = cms.uint32(0)
+L1GctConfigProducers.L1CaloJetZeroSuppressionThresholdInGeV = cms.double(${threshold}.0)
+L1GctConfigProducers.L1CaloHtScaleLsbInGeV = cms.double(1.0)
+
+
+# GCT jet corrections
+L1GctConfigProducers.CalibrationStyle = cms.string('PowerSeries')
+L1GctConfigProducers.PowerSeriesCoefficients = cms.PSet(
+        nonTauJetCalib0 = cms.vdouble( 0.0 ),
+        nonTauJetCalib1 = cms.vdouble( 0.0 ),
+        nonTauJetCalib2 = cms.vdouble( 0.0 ),
+        nonTauJetCalib3 = cms.vdouble( 0.0 ),
+        nonTauJetCalib4 = cms.vdouble( 0.0 ),
+        nonTauJetCalib5 = cms.vdouble( 0.0 ),
+        nonTauJetCalib6 = cms.vdouble( 0.0 ),
+        nonTauJetCalib7 = cms.vdouble( 0.0 ),
+        nonTauJetCalib8 = cms.vdouble( 0.0 ),
+        nonTauJetCalib9 = cms.vdouble( 0.0 ),
+        nonTauJetCalib10 = cms.vdouble( 0.0 ),
+        tauJetCalib0 = cms.vdouble( 0.0 ),
+        tauJetCalib1 = cms.vdouble( 0.0 ),
+        tauJetCalib2 = cms.vdouble( 0.0 ),
+        tauJetCalib3 = cms.vdouble( 0.0 ),
+        tauJetCalib4 = cms.vdouble( 0.0 ),
+        tauJetCalib5 = cms.vdouble( 0.0 ),
+        tauJetCalib6 = cms.vdouble( 0.0 ),
+)
+
+# GCT jet output scale
+l1CaloScales.L1CaloJetThresholds = cms.vdouble(
+    0.0, 2.0, 4.0, 6.0, 8.0,
+    10.0, 12.0, 14.0, 16.0, 18.0,
+    20.0, 22.0, 24.0, 26.0, 28.0,
+    30.0, 32.0, 34.0, 36.0, 38.0,
+    40.0, 42.0, 44.0, 46.0, 48.0,
+    50.0, 52.0, 54.0, 56.0, 58.0,
+    60.0, 62.0, 64.0, 66.0, 68.0,
+    70.0, 72.0, 74.0, 76.0, 78.0,
+    80.0, 82.0, 84.0, 86.0, 88.0,
+    90.0, 92.0, 94.0, 96.0, 98.0,
+    100.0, 102.0, 104.0, 106.0, 108.0,
+    110.0, 112.0, 114.0, 116.0, 118.0,
+    120.0, 122.0, 124.0, 126.0)
+
+# GCT HF ring sum scale
+L1GctConfigProducers.HfLutThresholds = cms.vuint32(8, 12, 16, 24, 200, 800, 2000) 
+
+
+#--------------------------------------------------------------------------------
+# End configuration information
+#--------------------------------------------------------------------------------
+
+# Load my analyzer
+process.load('Analyzers.L1SkimAnalyzer.l1skimanalyzer_Data_cfi')
+process.l1SkimAnalyzerData.outSuffix = "_L1EmulatorOnData_${threshold}GeV_${numevents}events"
+
+# Set up my path
+process.p = cms.Path(
+    process.ecalDigis
+    *process.hcalDigis
+    *process.muonDTDigis
+    *process.muonCSCDigis
+    *process.muonRPCDigis
+    *process.CaloTriggerPrimitives
+    *process.SimL1Emulator
+    *process.l1SkimAnalyzerData
+) 
+
+process.PoolOutput = cms.OutputModule("PoolOutputModule",
+    fileName = cms.untracked.string('test.root'),
+    outputCommands = cms.untracked.vstring('keep *')
+)
+
+process.theend = cms.EndPath(process.PoolOutput)
+
+EOF
+
+cmsRun $work_dir/ReRunL1EmulatorOnData_${threshold}_cfg.py

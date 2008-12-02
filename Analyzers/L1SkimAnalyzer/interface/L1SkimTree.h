@@ -26,6 +26,12 @@ class L1SkimTree
   int   nGctTauJet;
   int   nL1GctEtHads;
 	  
+  int   l1_HTT100;
+  int   l1_HTT200;
+  int   l1_HTT300;
+  int   l1_HTT400;
+  int   l1_HTT500;
+  
   int   caloEm_ieta        [MAXNCALOEM]; 
   int   caloEm_iphi        [MAXNCALOEM]; 
   int   caloEm_rank        [MAXNCALOEM]; 
@@ -82,6 +88,7 @@ class L1SkimTree
   float gctTauJet_et       [MAXNGCTTAUJET];
   
   float gctHT              [MAXNGCTHT];
+  float gctHT_UnCorr       [MAXNGCTHT];
   
   float hltJet_pt          [MAXNHLTJETS];		 
   float hltJet_et          [MAXNHLTJETS];		 
@@ -96,9 +103,16 @@ class L1SkimTree
     nGctTauJet   = -999;
     nHLTJetCands = -999;
 
+    l1_HTT100    = -999;
+    l1_HTT200    = -999;
+    l1_HTT300    = -999;
+    l1_HTT400    = -999;
+    l1_HTT500    = -999;
+
     for (int i = 0; i < MAXNGCTHT; i++){
 
       gctHT              [i] = -999;
+      gctHT_UnCorr       [i] = -999;
 
     }
 

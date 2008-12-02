@@ -18,12 +18,18 @@ void FillL1SkimTree:: init(std::string filename, L1SkimTree* treePtr){
 
   m_tree = new TTree("l1SkimTree","L1 Skim Info", 1);
 
-  m_tree -> Branch("nCaloEm",      &(m_treePtr->nCaloEm),      "nCaloEm/I");
-  m_tree -> Branch("nHLTJetCands", &(m_treePtr->nHLTJetCands), "nHLTJetCands/I");
-  m_tree -> Branch("nGctCenJet",   &(m_treePtr->nGctCenJet),   "nGctCenJet/I");
-  m_tree -> Branch("nGctForJet",   &(m_treePtr->nGctForJet),   "nGctForJet/I");
-  m_tree -> Branch("nGctTauJet",   &(m_treePtr->nGctTauJet),   "nGctTauJet/I");
-  m_tree -> Branch("nL1GctEtHads", &(m_treePtr->nL1GctEtHads), "nL1GctEtHads/I");
+  m_tree -> Branch("nCaloEm"           , &(m_treePtr->nCaloEm           ), "nCaloEm/I");
+  m_tree -> Branch("nHLTJetCands"      , &(m_treePtr->nHLTJetCands      ), "nHLTJetCands/I");
+  m_tree -> Branch("nGctCenJet"        , &(m_treePtr->nGctCenJet        ), "nGctCenJet/I");
+  m_tree -> Branch("nGctForJet"        , &(m_treePtr->nGctForJet        ), "nGctForJet/I");
+  m_tree -> Branch("nGctTauJet"        , &(m_treePtr->nGctTauJet        ), "nGctTauJet/I");
+  m_tree -> Branch("nL1GctEtHads"      , &(m_treePtr->nL1GctEtHads      ), "nL1GctEtHads/I");
+
+  m_tree -> Branch("l1_HTT100"         , &(m_treePtr->l1_HTT100         ), "l1_HTT100/I");
+  m_tree -> Branch("l1_HTT200"         , &(m_treePtr->l1_HTT200         ), "l1_HTT200/I");
+  m_tree -> Branch("l1_HTT300"         , &(m_treePtr->l1_HTT300         ), "l1_HTT300/I");
+  m_tree -> Branch("l1_HTT400"         , &(m_treePtr->l1_HTT400         ), "l1_HTT400/I");
+  m_tree -> Branch("l1_HTT500"         , &(m_treePtr->l1_HTT500         ), "l1_HTT500/I");
 
   m_tree -> Branch("caloEm_ieta"       , &(m_treePtr->caloEm_ieta       ), "caloEm_ieta[nCaloEm]/I");      
   m_tree -> Branch("caloEm_iphi"       , &(m_treePtr->caloEm_iphi       ), "caloEm_iphi[nCaloEm]/I");       
@@ -82,6 +88,7 @@ void FillL1SkimTree:: init(std::string filename, L1SkimTree* treePtr){
   m_tree -> Branch("gctTauJet_et"      , &(m_treePtr->gctTauJet_et      ), "gctTauJet_et[nGctTauJet]/F");     
   
   m_tree -> Branch("gctHT"             , &(m_treePtr->gctHT             ), "gctHT[nL1GctEtHads]/F");
+  m_tree -> Branch("gctHT_UnCorr"      , &(m_treePtr->gctHT_UnCorr      ), "gctHT_UnCorr[nL1GctEtHads]/F");
 
   m_tree -> Branch("hltJet_pt"         , &(m_treePtr->hltJet_pt         ), "hltJet_pt[nHLTJetCands]/F");		 
   m_tree -> Branch("hltJet_et"         , &(m_treePtr->hltJet_et         ), "hltJet_et[nHLTJetCands]/F"); 		 
