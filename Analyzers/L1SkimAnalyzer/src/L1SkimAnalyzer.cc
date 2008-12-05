@@ -73,7 +73,7 @@ L1SkimAnalyzer::L1SkimAnalyzer(const edm::ParameterSet& iConfig)
   // Where should we save the root tree?
   //-----------------------------------------------
   
-  m_outPath   = iConfig.getUntrackedParameter<std::string>  ("outPath","/uscms/home/eberry/data/L1SkimAnalyzer/");
+  m_outPath   = iConfig.getUntrackedParameter<std::string>  ("outPath","/uscms/home/eberry/data/");
   m_outSuffix = iConfig.getUntrackedParameter<std::string>  ("outSuffix","");
   m_rootFile  = m_outPath + "L1SkimAnalyzerOutput" + m_outSuffix + ".root";
 
@@ -102,6 +102,12 @@ L1SkimAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   
   m_event = &iEvent;
   m_setup = &iSetup;
+
+  int run   = iEvent.id().run();
+  int event = iEvent.id().event();
+  
+  m_skimTree.run   = run;
+  m_skimTree.event = event;
 
   //-----------------------------------------------
   // Get ESHandles from database records

@@ -19,6 +19,9 @@ class L1SkimTree
   L1SkimTree();
   virtual ~L1SkimTree();
 
+  int   run;
+  int   event;
+
   int   nCaloEm;
   int   nHLTJetCands;					 
   int   nGctCenJet;
@@ -97,6 +100,9 @@ class L1SkimTree
 
   void init (){
     
+    run          = -999;
+    event        = -999;
+
     nL1GctEtHads = -999;
     nCaloEm      = -999;
     nGctCenJet   = -999;

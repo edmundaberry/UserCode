@@ -18,6 +18,9 @@ void FillL1SkimTree:: init(std::string filename, L1SkimTree* treePtr){
 
   m_tree = new TTree("l1SkimTree","L1 Skim Info", 1);
 
+  m_tree -> Branch("run"               , &(m_treePtr->run               ), "run/I");
+  m_tree -> Branch("event"             , &(m_treePtr->event             ), "event/I");
+  
   m_tree -> Branch("nCaloEm"           , &(m_treePtr->nCaloEm           ), "nCaloEm/I");
   m_tree -> Branch("nHLTJetCands"      , &(m_treePtr->nHLTJetCands      ), "nHLTJetCands/I");
   m_tree -> Branch("nGctCenJet"        , &(m_treePtr->nGctCenJet        ), "nGctCenJet/I");
