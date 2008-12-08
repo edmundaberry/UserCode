@@ -11,10 +11,10 @@ class L1SkimTree
   enum {MAXNCALOEM    = 200};
   enum {MAXNHLTJETS   = 100};
   enum {MAXNHLTJTOWERS= 100};
-  enum {MAXNGCTHT     = 100};
-  enum {MAXNGCTCENJET = 4  };
-  enum {MAXNGCTFORJET = 4  };
-  enum {MAXNGCTTAUJET = 4  };
+  enum {MAXNGCTHT     = 12 };
+  enum {MAXNGCTCENJET = 12 };
+  enum {MAXNGCTFORJET = 12 };
+  enum {MAXNGCTTAUJET = 12 };
 
   L1SkimTree();
   virtual ~L1SkimTree();
@@ -34,7 +34,12 @@ class L1SkimTree
   int   l1_HTT300;
   int   l1_HTT400;
   int   l1_HTT500;
-  
+
+  int   l1_SingleJet15;
+  int   l1_SingleJet20;
+  int   l1_SingleJet30;
+  int   l1_SingleJet50;
+
   int   caloEm_ieta        [MAXNCALOEM]; 
   int   caloEm_iphi        [MAXNCALOEM]; 
   int   caloEm_rank        [MAXNCALOEM]; 
@@ -100,20 +105,25 @@ class L1SkimTree
 
   void init (){
     
-    run          = -999;
-    event        = -999;
+    run            = -999;
+    event          = -999;
+		   
+    nL1GctEtHads   = -999;
+    nCaloEm        = -999;
+    nGctCenJet     = -999;
+    nGctTauJet     = -999;
+    nHLTJetCands   = -999;
 
-    nL1GctEtHads = -999;
-    nCaloEm      = -999;
-    nGctCenJet   = -999;
-    nGctTauJet   = -999;
-    nHLTJetCands = -999;
+    l1_SingleJet15 = -999;
+    l1_SingleJet20 = -999;
+    l1_SingleJet30 = -999;
+    l1_SingleJet50 = -999;
 
-    l1_HTT100    = -999;
-    l1_HTT200    = -999;
-    l1_HTT300    = -999;
-    l1_HTT400    = -999;
-    l1_HTT500    = -999;
+    l1_HTT100      = -999;
+    l1_HTT200      = -999;
+    l1_HTT300      = -999;
+    l1_HTT400      = -999;
+    l1_HTT500      = -999;
 
     for (int i = 0; i < MAXNGCTHT; i++){
 

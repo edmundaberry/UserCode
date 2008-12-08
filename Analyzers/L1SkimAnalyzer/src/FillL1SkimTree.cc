@@ -33,6 +33,11 @@ void FillL1SkimTree:: init(std::string filename, L1SkimTree* treePtr){
   m_tree -> Branch("l1_HTT300"         , &(m_treePtr->l1_HTT300         ), "l1_HTT300/I");
   m_tree -> Branch("l1_HTT400"         , &(m_treePtr->l1_HTT400         ), "l1_HTT400/I");
   m_tree -> Branch("l1_HTT500"         , &(m_treePtr->l1_HTT500         ), "l1_HTT500/I");
+  
+  m_tree -> Branch("l1_SingleJet15"    , &(m_treePtr->l1_SingleJet15    ), "l1_SingleJet15/I");
+  m_tree -> Branch("l1_SingleJet20"    , &(m_treePtr->l1_SingleJet20    ), "l1_SingleJet20/I");
+  m_tree -> Branch("l1_SingleJet30"    , &(m_treePtr->l1_SingleJet30    ), "l1_SingleJet30/I");
+  m_tree -> Branch("l1_SingleJet50"    , &(m_treePtr->l1_SingleJet50    ), "l1_SingleJet50/I");
 
   m_tree -> Branch("caloEm_ieta"       , &(m_treePtr->caloEm_ieta       ), "caloEm_ieta[nCaloEm]/I");      
   m_tree -> Branch("caloEm_iphi"       , &(m_treePtr->caloEm_iphi       ), "caloEm_iphi[nCaloEm]/I");       

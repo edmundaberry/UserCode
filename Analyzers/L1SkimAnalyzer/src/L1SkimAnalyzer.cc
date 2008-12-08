@@ -291,6 +291,8 @@ void L1SkimAnalyzer::getL1GctJetCands_cenJets(){
     nGctCenJets++;
   }
 
+  //cout << "nGctCenJets = " << nGctCenJets << endl;
+
   m_skimTree.nGctCenJet = nGctCenJets; 
   
 }
@@ -361,6 +363,8 @@ void L1SkimAnalyzer::getL1GctJetCands_forJets(){
     nGctForJets++;
   }
 
+  //cout << "nGctForJets = " << nGctForJets << endl;
+
   m_skimTree.nGctForJet = nGctForJets; 
   
 }
@@ -430,6 +434,8 @@ void L1SkimAnalyzer::getL1GctJetCands_tauJets(){
     			      
     nGctTauJets++;
   }
+
+  //cout << "nGctTauJets = " << nGctTauJets << endl;
 
   m_skimTree.nGctTauJet = nGctTauJets; 
   
@@ -563,11 +569,21 @@ void L1SkimAnalyzer::getL1DecisionWord(){
   bool l1_HTT400 = triggerMenu -> gtAlgorithmResult("L1_HTT400",decisionWord);
   bool l1_HTT500 = triggerMenu -> gtAlgorithmResult("L1_HTT500",decisionWord);
 
-  m_skimTree.l1_HTT100 = 0; if (l1_HTT100) m_skimTree.l1_HTT100 = 1;
-  m_skimTree.l1_HTT200 = 0; if (l1_HTT200) m_skimTree.l1_HTT200 = 1;
-  m_skimTree.l1_HTT300 = 0; if (l1_HTT300) m_skimTree.l1_HTT300 = 1;
-  m_skimTree.l1_HTT400 = 0; if (l1_HTT400) m_skimTree.l1_HTT400 = 1;
-  m_skimTree.l1_HTT500 = 0; if (l1_HTT500) m_skimTree.l1_HTT500 = 1;
+  bool l1_SingleJet15 = triggerMenu -> gtAlgorithmResult("L1_SingleJet15",decisionWord);
+  bool l1_SingleJet20 = triggerMenu -> gtAlgorithmResult("L1_SingleJet20",decisionWord);
+  bool l1_SingleJet30 = triggerMenu -> gtAlgorithmResult("L1_SingleJet30",decisionWord);
+  bool l1_SingleJet50 = triggerMenu -> gtAlgorithmResult("L1_SingleJet50",decisionWord);
+  
+  m_skimTree.l1_SingleJet15 = 0; if (l1_SingleJet15) m_skimTree.l1_SingleJet15 = 1;
+  m_skimTree.l1_SingleJet20 = 0; if (l1_SingleJet20) m_skimTree.l1_SingleJet20 = 1;
+  m_skimTree.l1_SingleJet30 = 0; if (l1_SingleJet30) m_skimTree.l1_SingleJet30 = 1;
+  m_skimTree.l1_SingleJet50 = 0; if (l1_SingleJet50) m_skimTree.l1_SingleJet50 = 1;
+
+  m_skimTree.l1_HTT100      = 0; if (l1_HTT100     ) m_skimTree.l1_HTT100      = 1;
+  m_skimTree.l1_HTT200      = 0; if (l1_HTT200     ) m_skimTree.l1_HTT200      = 1;
+  m_skimTree.l1_HTT300      = 0; if (l1_HTT300     ) m_skimTree.l1_HTT300      = 1;
+  m_skimTree.l1_HTT400      = 0; if (l1_HTT400     ) m_skimTree.l1_HTT400      = 1;
+  m_skimTree.l1_HTT500      = 0; if (l1_HTT500     ) m_skimTree.l1_HTT500      = 1;
 
 } 
 

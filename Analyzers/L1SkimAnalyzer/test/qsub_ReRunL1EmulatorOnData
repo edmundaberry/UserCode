@@ -3,19 +3,24 @@
 set work_dir = $PWD
 set begin = 0
 set end = 0
+set numjobs = 0
 set numevents = 0
 
-if ($#argv == 3) then
+if ($#argv == 5) then
     echo 'Setting working directory to' $PWD
     set begin = $1
     set end = $2
-    set numevents = $3
-else if( $#argv == 4 ) then
+    set numjobs = $3
+    set numevents = $4
+    set suffix = $5
+else if( $#argv == 6 ) then
     if ( -d $1 ) then
 	set work_dir = $1
 	set begin = $2
 	set end = $3
-	set numevents = $4
+	set numjobs = $4
+	set numevents = $5
+	set suffix = $6
     else
 	echo "Error! $1 is not a directory, exiting!"
 	exit 1
@@ -42,6 +47,7 @@ endif
 echo "Notifications will be sent to $user@fnal.gov"
 
 set threshold = $begin
+set job = 1
 
 
 echo Begin is $begin, threshold is $threshold, end is $end
@@ -49,24 +55,31 @@ while ($threshold <= $end)
 
 echo Entering loop: Threshold is $threshold
 
-cat > reRunL1EmulatorOnData_${threshold}_condor<<EOF
+while ($job <= $numjobs) 
+
+cat > reRunL1EmulatorOnData_${threshold}_${job}_condor<<EOF
 universe = vanilla
 Executable = ${CMSSW_BASE}/src/Analyzers/L1SkimAnalyzer/test/qrun_ReRunL1EmulatorOnData
 Requirements = Memory >= 199 &&OpSys == "LINUX" && (Arch != "DUMMY" )
 ShouldTransferFiles = YES
 WhenToTransferOutput = ON_EXIT
-Output = ${CMSSW_BASE}/src/Analyzers/L1SkimAnalyzer/test/log/reRunL1EmulatorOnData_threshold${threshold}_\$(Cluster)_\$(Process).stdout
-Error = ${CMSSW_BASE}/src/Analyzers/L1SkimAnalyzer/test/log/reRunL1EmulatorOnData_threshold${threshold}_\$(Cluster)_\$(Process).stderr
-Log = ${CMSSW_BASE}/src/Analyzers/L1SkimAnalyzer/test/log/reRunL1EmulatorOnData_threshold${threshold}_\$(Cluster)_\$(Process).log
+Output = ${CMSSW_BASE}/src/Analyzers/L1SkimAnalyzer/test/log/reRunL1EmulatorOnData_threshold${threshold}_job${job}_\$(Cluster)_\$(Process).stdout
+Error = ${CMSSW_BASE}/src/Analyzers/L1SkimAnalyzer/test/log/reRunL1EmulatorOnData_threshold${threshold}_job${job}_\$(Cluster)_\$(Process).stderr
+Log = ${CMSSW_BASE}/src/Analyzers/L1SkimAnalyzer/test/log/reRunL1EmulatorOnData_threshold${threshold}_job${job}_\$(Cluster)_\$(Process).log
 notify_user = ${user}@FNAL.GOV
-Arguments = $work_dir $threshold $numevents
+Arguments = $work_dir $threshold $job $numevents $suffix
 Queue 1
 EOF
 
-condor_submit reRunL1EmulatorOnData_${threshold}_condor
-@ threshold = ($threshold + 1)
+condor_submit reRunL1EmulatorOnData_${threshold}_${job}_condor
+
+@ job = ($job + 1)
 
 echo Job submitted. Threshold is $threshold, end is $end 
+
+end
+
+@ threshold = ($threshold + 1)
 
 end
 
