@@ -61,6 +61,11 @@ private:
   void getL1GctJetCands_forJets();
   void getL1GctJetCands_tauJets();
 
+  // L1 Extra Particles
+  void getL1ExtraJetParticles_cenJets();
+  void getL1ExtraJetParticles_tauJets();
+  void getL1ExtraJetParticles_forJets();
+
   // L1 Decision Word
   void getL1DecisionWord();
 
@@ -126,6 +131,10 @@ private:
   edm::InputTag m_l1GctJetCands_cenJets_Tag;
   edm::InputTag m_l1GctJetCands_forJets_Tag;
   edm::InputTag m_l1GctJetCands_tauJets_Tag;
+
+  edm::InputTag m_l1ExtraJetParticles_cenJets_Tag;                                
+  edm::InputTag m_l1ExtraJetParticles_tauJets_Tag;                                
+  edm::InputTag m_l1ExtraJetParticles_forJets_Tag;
 
   edm::InputTag m_l1DecisionWordTag;
 

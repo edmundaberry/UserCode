@@ -2,6 +2,9 @@
 #include "DataFormats/L1CaloTrigger/interface/L1CaloCollections.h"
 #include "DataFormats/L1GlobalCaloTrigger/interface/L1GctCollections.h"
 #include "DataFormats/JetReco/interface/CaloJetCollection.h"
+#include "DataFormats/L1Trigger/interface/L1JetParticleFwd.h"
+#include "DataFormats/L1Trigger/interface/L1JetParticle.h"
+
 
 // Energy scales
 #include "CondFormats/L1TObjects/interface/L1CaloEtScale.h"
@@ -30,6 +33,7 @@
 // Namespaces
 using namespace std; 
 using namespace edm; 
+using namespace l1extra;
 
 //-----------------------------------------------
 // Constructor/destructor
@@ -44,6 +48,15 @@ L1SkimAnalyzer::L1SkimAnalyzer(const edm::ParameterSet& iConfig)
 
   const edm::InputTag dL1CaloEmCandsTag("l1GctHwDigis");
   m_l1CaloEmCandsTag = iConfig.getUntrackedParameter<edm::InputTag>("l1CaloEmCandsTag",dL1CaloEmCandsTag);
+
+  const edm::InputTag dL1ExtraJetParticles_cenJets_Tag("l1extraParticles","Central");
+  m_l1ExtraJetParticles_cenJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>("l1ExtraJetParticlesCenJetsTag",dL1ExtraJetParticles_cenJets_Tag);
+                                   
+  const edm::InputTag dL1ExtraJetParticles_tauJets_Tag("l1extraParticles","Tau");
+  m_l1ExtraJetParticles_tauJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>("l1ExtraJetParticlesTauJetsTag",dL1ExtraJetParticles_tauJets_Tag);
+                                   
+  const edm::InputTag dL1ExtraJetParticles_forJets_Tag("l1extraParticles","Forward");
+  m_l1ExtraJetParticles_forJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>("l1ExtraJetParticlesForJetsTag",dL1ExtraJetParticles_forJets_Tag);
 
   const edm::InputTag dL1GctJetCands_cenJets_Tag("l1GctHwDigis","cenJets");
   m_l1GctJetCands_cenJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>("l1GctJetCandsCenJetsTag",dL1GctJetCands_cenJets_Tag);
@@ -140,6 +153,10 @@ L1SkimAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   getL1GctJetCands_tauJets();
   getL1GctJetCands_forJets();
 
+  getL1ExtraJetParticles_cenJets();
+  getL1ExtraJetParticles_tauJets();
+  getL1ExtraJetParticles_forJets();
+
   getL1GctEtHads();
   getL1DecisionWord();
 
@@ -223,6 +240,148 @@ void L1SkimAnalyzer::getL1CaloEmCandsInfo() {
 
   m_skimTree.nCaloEm = nL1CaloEmCands;
 
+}
+
+void L1SkimAnalyzer::getL1ExtraJetParticles_cenJets(){
+
+  Handle< L1JetParticleCollection > l1JetParticles_cenJets_Handle;
+  bool l1JetParticles_cenJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_cenJets_Tag,l1JetParticles_cenJets_Handle);
+  if (!l1JetParticles_cenJets_exist){
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra CenJets (L1JetParticleCollection)";
+    return;
+  }
+
+  float px, py, pz, pt;
+  float et;
+  float eta, phi;
+
+  int nL1CenJets = 0;
+
+  for( L1JetParticleCollection::const_iterator iL1JetParticle_cenJet = l1JetParticles_cenJets_Handle -> begin();
+       iL1JetParticle_cenJet != l1JetParticles_cenJets_Handle -> end();
+       iL1JetParticle_cenJet++ ){
+
+    px  = (*iL1JetParticle_cenJet).px();
+    py  = (*iL1JetParticle_cenJet).py();
+    pz  = (*iL1JetParticle_cenJet).pz();
+    pt  = (*iL1JetParticle_cenJet).pt();
+
+    et  = (*iL1JetParticle_cenJet).et();
+
+    eta = (*iL1JetParticle_cenJet).eta();
+    phi = (*iL1JetParticle_cenJet).phi();
+
+    m_skimTree.l1CenJet_px [nL1CenJets] = px;
+    m_skimTree.l1CenJet_py [nL1CenJets] = py;
+    m_skimTree.l1CenJet_pz [nL1CenJets] = pz;
+    m_skimTree.l1CenJet_pt [nL1CenJets] = pt;
+
+    m_skimTree.l1CenJet_et [nL1CenJets] = et;
+
+    m_skimTree.l1CenJet_eta[nL1CenJets] = eta;
+    m_skimTree.l1CenJet_phi[nL1CenJets] = phi;
+    
+    nL1CenJets++;
+
+  }
+  
+  m_skimTree.nL1CenJet = nL1CenJets;
+ 
+}
+
+
+void L1SkimAnalyzer::getL1ExtraJetParticles_tauJets(){
+
+  Handle< L1JetParticleCollection > l1JetParticles_tauJets_Handle;
+  bool l1JetParticles_tauJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_tauJets_Tag,l1JetParticles_tauJets_Handle);
+  if (!l1JetParticles_tauJets_exist){
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra TauJets (L1JetParticleCollection)";
+    return;
+  }
+
+  float px, py, pz, pt;
+  float et;
+  float eta, phi;
+
+  int nL1TauJets = 0;
+
+  for( L1JetParticleCollection::const_iterator iL1JetParticle_tauJet = l1JetParticles_tauJets_Handle -> begin();
+       iL1JetParticle_tauJet != l1JetParticles_tauJets_Handle -> end();
+       iL1JetParticle_tauJet++ ){
+
+    px  = (*iL1JetParticle_tauJet).px();
+    py  = (*iL1JetParticle_tauJet).py();
+    pz  = (*iL1JetParticle_tauJet).pz();
+    pt  = (*iL1JetParticle_tauJet).pt();
+
+    et  = (*iL1JetParticle_tauJet).et();
+
+    eta = (*iL1JetParticle_tauJet).eta();
+    phi = (*iL1JetParticle_tauJet).phi();
+
+    m_skimTree.l1TauJet_px [nL1TauJets] = px;
+    m_skimTree.l1TauJet_py [nL1TauJets] = py;
+    m_skimTree.l1TauJet_pz [nL1TauJets] = pz;
+    m_skimTree.l1TauJet_pt [nL1TauJets] = pt;
+
+    m_skimTree.l1TauJet_et [nL1TauJets] = et;
+
+    m_skimTree.l1TauJet_eta[nL1TauJets] = eta;
+    m_skimTree.l1TauJet_phi[nL1TauJets] = phi;
+    
+    nL1TauJets++;
+
+  }
+  
+  m_skimTree.nL1TauJet = nL1TauJets;
+ 
+}
+
+void L1SkimAnalyzer::getL1ExtraJetParticles_forJets(){
+
+  Handle< L1JetParticleCollection > l1JetParticles_forJets_Handle;
+  bool l1JetParticles_forJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_forJets_Tag,l1JetParticles_forJets_Handle);
+  if (!l1JetParticles_forJets_exist){
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra ForJets (L1JetParticleCollection)";
+    return;
+  }
+
+  float px, py, pz, pt;
+  float et;
+  float eta, phi;
+
+  int nL1ForJets = 0;
+
+  for( L1JetParticleCollection::const_iterator iL1JetParticle_forJet = l1JetParticles_forJets_Handle -> begin();
+       iL1JetParticle_forJet != l1JetParticles_forJets_Handle -> end();
+       iL1JetParticle_forJet++ ){
+
+    px  = (*iL1JetParticle_forJet).px();
+    py  = (*iL1JetParticle_forJet).py();
+    pz  = (*iL1JetParticle_forJet).pz();
+    pt  = (*iL1JetParticle_forJet).pt();
+
+    et  = (*iL1JetParticle_forJet).et();
+
+    eta = (*iL1JetParticle_forJet).eta();
+    phi = (*iL1JetParticle_forJet).phi();
+
+    m_skimTree.l1ForJet_px [nL1ForJets] = px;
+    m_skimTree.l1ForJet_py [nL1ForJets] = py;
+    m_skimTree.l1ForJet_pz [nL1ForJets] = pz;
+    m_skimTree.l1ForJet_pt [nL1ForJets] = pt;
+
+    m_skimTree.l1ForJet_et [nL1ForJets] = et;
+
+    m_skimTree.l1ForJet_eta[nL1ForJets] = eta;
+    m_skimTree.l1ForJet_phi[nL1ForJets] = phi;
+    
+    nL1ForJets++;
+
+  }
+  
+  m_skimTree.nL1ForJet = nL1ForJets;
+ 
 }
 
 //-----------------------------------------------

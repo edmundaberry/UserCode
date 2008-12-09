@@ -7,6 +7,8 @@ set job = $3
 set numevents = $4
 set suffix = $5
 
+set run = 68288
+
 set step = 1
 set jobMinusOne = 0
 @ jobMinusOne = $job - $step
@@ -28,55 +30,15 @@ echo    so I will skip ${eventsToSkip}
 
 ## Make the config file and run it
 
-cat > ReRunL1EmulatorOnData_threshold${threshold}GeV_job${job}_${numevents}events_${suffix}_cfg.py<<EOF
-
+cat > ReRunL1EmulatorOnData_threshold${threshold}GeV_job${job}_${numevents}_run${run}_events_${suffix}_cfg.py<<EOF
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("L1ReRun")
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 
-process.load("Analyzers.L1SkimAnalyzer.allCosmics_cff")
+process.load ("Analyzers.L1SkimAnalyzer.run${run}_cff")
+process.source.skipEvents = cms.untracked.uint32(${eventsToSkip})
 
-##process.source = cms.Source(
-##    "PoolSource",
-##    skipEvents = cms.untracked.uint32(${eventsToSkip}),
-##    fileNames = readFiles
-##
-##    ##/RelValQCD_Pt_15_20/CMSSW_2_2_0_pre1_STARTUP_V7_v1/GEN-SIM-DIGI-RAW-HLTDEBUG
-##    ##/RelValQCD_Pt_20_30/CMSSW_2_2_0_pre1_STARTUP_V7_v1/GEN-SIM-DIGI-RAW-HLTDEBUG
-##    ##/RelValQCD_Pt_30_50/CMSSW_2_2_0_pre1_STARTUP_V7_v1/GEN-SIM-DIGI-RAW-HLTDEBUG
-##    ##/RelValQCD_Pt_50_80/CMSSW_2_2_0_pre1_STARTUP_V7_v1/GEN-SIM-DIGI-RAW-HLTDEBUG
-##    ##/RelValQCD_Pt_80_120/CMSSW_2_2_0_pre1_STARTUP_V7_v1/GEN-SIM-DIGI-RAW-HLTDEBUG
-##    ##/RelValQCD_Pt_120_170/CMSSW_2_2_0_pre1_STARTUP_V7_v1/GEN-SIM-DIGI-RAW-HLTDEBUG
-##    ##/RelValQCD_Pt_170_230/CMSSW_2_2_0_pre1_STARTUP_V7_v1/GEN-SIM-DIGI-RAW-HLTDEBUG
-##    
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/00F638CF-29A8-DD11-B764-001D09F2543D.root',
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/06466981-55A8-DD11-B4CF-001617C3B6CC.root',
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/081FC483-40A8-DD11-9EFB-000423D9517C.root',
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/12710773-5CA8-DD11-A526-001D09F28F11.root',
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/18266F3C-3EA8-DD11-AE77-000423D9970C.root',
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/18D08BB8-6EA8-DD11-B90C-000423DD2F34.root',
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/3AB1FA5D-61A8-DD11-8138-001617E30D12.root',
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/46187915-4FA8-DD11-A5F7-001D09F29169.root',
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/A687398B-44A8-DD11-93D7-001D09F290BF.root',
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/E699580C-48A8-DD11-9906-0030487A3232.root',
-##    ##'/store/data/Commissioning08/MinimumBias/RAW/v1/000/068/288/F2973E4F-38A8-DD11-ACC0-000423D98B6C.root'
-##
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/006540F5-32A8-DD11-A0C1-000423D98EC4.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/007F2BE0-51A8-DD11-9B1D-000423D98750.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/00F5DCD0-43A8-DD11-B7FF-000423D98BE8.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0276CF62-55A8-DD11-9535-000423D98868.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0467F071-55A8-DD11-831D-000423D991D4.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/04699363-28A8-DD11-9C97-001D09F23174.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0855BCA1-3FA8-DD11-8408-0019B9F7310E.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/087E67AC-38A8-DD11-A4FC-000423D944FC.root', 
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/08B7E2A3-46A8-DD11-9885-000423D99BF2.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0A208F55-5AA8-DD11-A3F8-0030487A3C9A.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0AA3AC89-44A8-DD11-840C-0030487A3232.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0AAEA350-53A8-DD11-937D-000423D6B2D8.root',
-##    ##'/store/data/Commissioning08/Calo/RAW/v1/000/068/288/0C3C192F-56A8-DD11-A0BD-000423D9989E.root'
-##)
-    
 process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(${numevents})
 )
@@ -111,9 +73,25 @@ process.L1GctConfigProducers.L1CaloJetZeroSuppressionThresholdInGeV = cms.double
 process.myPrefer = cms.ESPrefer("L1GctConfigProducers")
 process.SiPrefer = cms.ESPrefer("SiStripPedestalsFakeESSource")
 
+# Do L1Extra with re-run digis
+process.l1extraParticles = cms.EDProducer("L1ExtraParticlesProd",
+    muonSource = cms.InputTag("simGmtDigis"),
+    etTotalSource = cms.InputTag("simGctDigis"),
+    nonIsolatedEmSource = cms.InputTag("simGctDigis","nonIsoEm"),
+    etMissSource = cms.InputTag("simGctDigis"),
+    produceMuonParticles = cms.bool(True),
+    forwardJetSource = cms.InputTag("simGctDigis","forJets"),
+    centralJetSource = cms.InputTag("simGctDigis","cenJets"),
+    produceCaloParticles = cms.bool(True),
+    tauJetSource = cms.InputTag("simGctDigis","tauJets"),
+    isolatedEmSource = cms.InputTag("simGctDigis","isoEm"),
+    etHadSource = cms.InputTag("simGctDigis"),
+    centralBxOnly = cms.bool(True)
+)
+
 # Load my analyzer
 process.load('Analyzers.L1SkimAnalyzer.l1skimanalyzer_Data_cfi')
-process.l1SkimAnalyzerData.outSuffix = "_L1EmulatorOnData_${threshold}GeV_${numevents}events_${suffix}"
+process.l1SkimAnalyzerData.outSuffix = "_L1EmulatorOnData_${threshold}GeV_job${job}_${numevents}events_${suffix}"
 
 # Set up my path
 process.p = cms.Path(
@@ -124,11 +102,12 @@ process.p = cms.Path(
     *process.muonRPCDigis
     *process.CaloTriggerPrimitives
     *process.SimL1Emulator
+    *process.l1extraParticles
     *process.l1SkimAnalyzerData
 ) 
 
 EOF
 
-cmsRun $work_dir/ReRunL1EmulatorOnData_threshold${threshold}GeV_job${job}_${numevents}events_${suffix}_cfg.py
+cmsRun $work_dir/ReRunL1EmulatorOnData_threshold${threshold}GeV_job${job}_${numevents}_run${run}_events_${suffix}_cfg.py
 
 

@@ -15,6 +15,9 @@ class L1SkimTree
   enum {MAXNGCTCENJET = 12 };
   enum {MAXNGCTFORJET = 12 };
   enum {MAXNGCTTAUJET = 12 };
+  enum {MAXNL1CENJET  = 12 };
+  enum {MAXNL1FORJET  = 12 };
+  enum {MAXNL1TAUJET  = 12 };
 
   L1SkimTree();
   virtual ~L1SkimTree();
@@ -28,6 +31,9 @@ class L1SkimTree
   int   nGctForJet;
   int   nGctTauJet;
   int   nL1GctEtHads;
+  int   nL1CenJet;
+  int   nL1TauJet;
+  int   nL1ForJet;
 	  
   int   l1_HTT100;
   int   l1_HTT200;
@@ -91,6 +97,30 @@ class L1SkimTree
   int   hltJetTower_ieta   [MAXNHLTJETS][MAXNHLTJTOWERS];
   int   hltJetTower_iphi   [MAXNHLTJETS][MAXNHLTJTOWERS];
 
+  float l1CenJet_px        [MAXNL1CENJET];
+  float l1CenJet_py        [MAXNL1CENJET];
+  float l1CenJet_pz        [MAXNL1CENJET];
+  float l1CenJet_pt        [MAXNL1CENJET];
+  float l1CenJet_et        [MAXNL1CENJET];
+  float l1CenJet_eta       [MAXNL1CENJET];
+  float l1CenJet_phi       [MAXNL1CENJET];
+
+  float l1TauJet_px        [MAXNL1TAUJET];
+  float l1TauJet_py        [MAXNL1TAUJET];
+  float l1TauJet_pz        [MAXNL1TAUJET];
+  float l1TauJet_pt        [MAXNL1TAUJET];
+  float l1TauJet_et        [MAXNL1TAUJET];
+  float l1TauJet_eta       [MAXNL1TAUJET];
+  float l1TauJet_phi       [MAXNL1TAUJET];
+
+  float l1ForJet_px        [MAXNL1FORJET];
+  float l1ForJet_py        [MAXNL1FORJET];
+  float l1ForJet_pz        [MAXNL1FORJET];
+  float l1ForJet_pt        [MAXNL1FORJET];
+  float l1ForJet_et        [MAXNL1FORJET];
+  float l1ForJet_eta       [MAXNL1FORJET];
+  float l1ForJet_phi       [MAXNL1FORJET];
+
   float gctCenJet_et       [MAXNGCTCENJET];
   float gctForJet_et       [MAXNGCTFORJET];
   float gctTauJet_et       [MAXNGCTTAUJET];
@@ -113,6 +143,9 @@ class L1SkimTree
     nGctCenJet     = -999;
     nGctTauJet     = -999;
     nHLTJetCands   = -999;
+    nL1CenJet      = -999;
+    nL1TauJet      = -999;
+    nL1ForJet      = -999;
 
     l1_SingleJet15 = -999;
     l1_SingleJet20 = -999;
@@ -124,6 +157,43 @@ class L1SkimTree
     l1_HTT300      = -999;
     l1_HTT400      = -999;
     l1_HTT500      = -999;
+
+    for (int i = 0; i < MAXNL1CENJET; i++){
+
+      l1CenJet_px        [i] = -999.0;
+      l1CenJet_py        [i] = -999.0;
+      l1CenJet_pz        [i] = -999.0;
+      l1CenJet_pt        [i] = -999.0;
+      l1CenJet_et        [i] = -999.0;
+      l1CenJet_eta       [i] = -999.0;
+      l1CenJet_phi       [i] = -999.0;
+      
+    }
+ 
+    for (int i = 0; i < MAXNL1TAUJET; i++){
+
+      l1TauJet_px        [i] = -999.0;
+      l1TauJet_py        [i] = -999.0;
+      l1TauJet_pz        [i] = -999.0;
+      l1TauJet_pt        [i] = -999.0;
+      l1TauJet_et        [i] = -999.0;
+      l1TauJet_eta       [i] = -999.0;
+      l1TauJet_phi       [i] = -999.0;
+      
+    }
+
+    for (int i = 0; i < MAXNL1FORJET; i++){
+
+      l1ForJet_px        [i] = -999.0;
+      l1ForJet_py        [i] = -999.0;
+      l1ForJet_pz        [i] = -999.0;
+      l1ForJet_pt        [i] = -999.0;
+      l1ForJet_et        [i] = -999.0;
+      l1ForJet_eta       [i] = -999.0;
+      l1ForJet_phi       [i] = -999.0;
+      
+    }
+    
 
     for (int i = 0; i < MAXNGCTHT; i++){
 
