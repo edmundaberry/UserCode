@@ -92,7 +92,7 @@ process.l1extraParticles = cms.EDProducer("L1ExtraParticlesProd",
 # Load my analyzer
 process.load('Analyzers.L1SkimAnalyzer.l1skimanalyzer_Data_cfi')
 process.l1SkimAnalyzerData.outSuffix = "_L1EmulatorOnMC_PtBin${ptBin}_${threshold}GeV_job${job}_${numevents}events_${suffix}"
-process.l1SkimAnalyzerData.outPath = "${HOME}/data/"
+process.l1SkimAnalyzerData.outPath = cms.untracked.string("${HOME}/data/")
 
 process.out = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string('test.root'),
