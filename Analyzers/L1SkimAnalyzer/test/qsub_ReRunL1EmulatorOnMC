@@ -30,7 +30,7 @@ else if( $#argv == 7 ) then
     endif
 
 else 
-    echo "Usage: $0 <work_dir> <low_threshold> <high_threshold> <numevents> OR"
+    echo "Usage: $0 <work_dir> <low_threshold> <high_threshold> <ptBin> <njobs> <neventsPerJob> OR"
     echo "If desired work directory is the current one, omit directory argument."
     echo "The script assumes there is a sub-directory called log/ in the designated work dir."
     exit 1

@@ -23,13 +23,14 @@ cd $work_dir
 
 ## Tell the log file what you're going to do
 echo I am going to analyze ${numevents} events
+echo I am looking at PtBin number ${ptBin}
 echo I am using the suffix ${suffix}
-echo This is job ${job}, and I have to do ${numevents}/job
+echo This is job ${job}, and I have to do ${numevents} events/job
 echo    so I will skip ${eventsToSkip}
 
 ## Make the config file and run it
 
-cat > ReRunL1EmulatorOnData_threshold${threshold}GeV_job${job}_${numevents}events_${suffix}_cfg.py<<EOF
+cat > ReRunL1EmulatorOnData_ptBin${ptBin}_threshold${threshold}GeV_job${job}_${numevents}events_${suffix}_cfg.py<<EOF
 
 import FWCore.ParameterSet.Config as cms
 
@@ -91,6 +92,7 @@ process.l1extraParticles = cms.EDProducer("L1ExtraParticlesProd",
 # Load my analyzer
 process.load('Analyzers.L1SkimAnalyzer.l1skimanalyzer_Data_cfi')
 process.l1SkimAnalyzerData.outSuffix = "_L1EmulatorOnMC_PtBin${ptBin}_${threshold}GeV_job${job}_${numevents}events_${suffix}"
+process.l1SkimAnalyzerData.outPath = "${HOME}/data/"
 
 process.out = cms.OutputModule("PoolOutputModule",
     fileName = cms.untracked.string('test.root'),
@@ -114,6 +116,6 @@ process.p = cms.Path(
 
 EOF
 
-cmsRun $work_dir/ReRunL1EmulatorOnData_threshold${threshold}GeV_job${job}_${numevents}events_${suffix}_cfg.py
+cmsRun $work_dir/ReRunL1EmulatorOnData_ptBin${ptBin}_threshold${threshold}GeV_job${job}_${numevents}events_${suffix}_cfg.py
 
 
