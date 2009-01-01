@@ -39,6 +39,9 @@ import FWCore.ParameterSet.Config as cms
 process = cms.Process("L1ReRun")
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 
+process.load("Configuration.StandardSequences.GeometryPilot2_cff")
+process.load("Configuration.StandardSequences.MagneticField_cff")
+
 process.load("Analyzers.L1SkimAnalyzer.qcdDijet${ptBin}_cff")
 process.source.skipEvents = cms.untracked.uint32(${eventsToSkip})
 
@@ -46,17 +49,33 @@ process.maxEvents = cms.untracked.PSet(
     input = cms.untracked.int32(${numevents})
 )
 
-# Include geometry and global tag
+##-------------------------------------------------------------------------------------
+## Include geometry and global tag
+##-------------------------------------------------------------------------------------
+
+## Normal global tag stuff
+
 process.load("Configuration.StandardSequences.Geometry_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_noesprefer_cff")
 process.GlobalTag.globaltag = 'IDEAL_V9::All'
 
+## Make sure that GlobalTag doesn't re-write your Jet calibration function
+## Jet calibration function is where the HT jet threshold is set
+## You need this to do L1 jet threshold studies
+
+process.myPrefer = cms.ESPrefer("L1GctConfigProducers")
+process.SiPrefer = cms.ESPrefer("SiStripPedestalsFakeESSource")
+
+##-------------------------------------------------------------------------------------
+## Unpack raw data
 ##-------------------------------------------------------------------------------------
 
-# Unpack raw data
 process.load("Configuration.StandardSequences.RawToDigi_cff")
 
-# Run trigger primitive generation on unpacked digis.  Then central L1
+##-------------------------------------------------------------------------------------
+## Run trigger primitive generation on unpacked digis
+##-------------------------------------------------------------------------------------
+
 process.load("L1Trigger.Configuration.CaloTriggerPrimitives_cff")
 process.load("L1Trigger.Configuration.SimL1Emulator_cff")
 process.simEcalTriggerPrimitiveDigis.Label = 'ecalDigis'
@@ -67,13 +86,12 @@ process.simCscTriggerPrimitiveDigis.CSCWireDigiProducer = cms.InputTag("muonCSCD
 process.simRpcTriggerDigis.label = 'muonRPCDigis'
 
 ##-------------------------------------------------------------------------------------
+## Run L1Extra particles on the emulator digis
+##-------------------------------------------------------------------------------------
 
 process.load('L1Trigger.Configuration.L1StartupConfig_cff')
 
 process.L1GctConfigProducers.L1CaloJetZeroSuppressionThresholdInGeV = cms.double(${threshold}.0)
-
-process.myPrefer = cms.ESPrefer("L1GctConfigProducers")
-process.SiPrefer = cms.ESPrefer("SiStripPedestalsFakeESSource")
 
 # Do L1Extra with re-run digis
 process.l1extraParticles = cms.EDProducer("L1ExtraParticlesProd",
@@ -91,20 +109,30 @@ process.l1extraParticles = cms.EDProducer("L1ExtraParticlesProd",
     centralBxOnly = cms.bool(True)
 )
 
-# Load my analyzer
+##-------------------------------------------------------------------------------------
+## Load my analyzer
+##-------------------------------------------------------------------------------------
+
 process.load('Analyzers.L1SkimAnalyzer.l1skimanalyzer_Data_cfi')
 process.l1SkimAnalyzerData.outSuffix = "_L1EmulatorOnMC_PtBin${ptBin}_${threshold}GeV_job${job}_${numevents}events_${suffix}"
 process.l1SkimAnalyzerData.outPath = cms.untracked.string("./")
+process.analyze = cms.Path(process.l1SkimAnalyzerData)
+
+##-------------------------------------------------------------------------------------
+## If you need it for debugging, dump everything
+##-------------------------------------------------------------------------------------
 
 ##process.out = cms.OutputModule("PoolOutputModule",
 ##    fileName = cms.untracked.string('test.root'),
 ##    outputCommands = cms.untracked.vstring('keep *')
 ##)
-
 ##process.finalProcess = cms.EndPath(process.out)
 
-# Set up my path
-process.p = cms.Path(
+##-------------------------------------------------------------------------------------
+##Set up my L1 path
+##-------------------------------------------------------------------------------------
+
+process.myL1Path = cms.Path(
     process.ecalDigis
     *process.hcalDigis
     *process.muonDTDigis
@@ -113,8 +141,38 @@ process.p = cms.Path(
     *process.CaloTriggerPrimitives
     *process.SimL1Emulator
     *process.l1extraParticles
-    *process.l1SkimAnalyzerData
 ) 
+
+##-------------------------------------------------------------------------------------
+## Load the official HLT analyzer
+##-------------------------------------------------------------------------------------
+
+process.load("HLTrigger.HLTanalyzers.HLTAnalyser_cfi")
+process.hltAnalyzer = cms.Path( process.hltanalysis )
+
+##-------------------------------------------------------------------------------------
+## HLT stuff
+##-------------------------------------------------------------------------------------
+
+## Needed for HLT
+process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
+
+## Load the typical HLT cfg files
+process.load("HLTrigger.HLTanalyzers.HLTopen_cff")
+from Analyzers.L1SkimAnalyzer import patchToRerunL1Emulator
+
+## Make sure the HLT uses the emulator digis
+patchToRerunL1Emulator.switchToSimGtDigis( process )
+
+##-------------------------------------------------------------------------------------
+## Schedule everything
+##-------------------------------------------------------------------------------------
+
+process.schedule = cms.Schedule()
+
+process.schedule.append(process.myL1Path)
+process.schedule.append(process.DoHLTJets)
+process.schedule.append(process.analyze)
 
 EOF
 

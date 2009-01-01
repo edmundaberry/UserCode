@@ -5,7 +5,6 @@
 #include "DataFormats/L1Trigger/interface/L1JetParticleFwd.h"
 #include "DataFormats/L1Trigger/interface/L1JetParticle.h"
 
-
 // Energy scales
 #include "CondFormats/L1TObjects/interface/L1CaloEtScale.h"
 #include "CondFormats/DataRecord/interface/L1JetEtScaleRcd.h"
@@ -80,7 +79,7 @@ L1SkimAnalyzer::L1SkimAnalyzer(const edm::ParameterSet& iConfig)
   // Do HLT studies?
   //-----------------------------------------------
 
-  m_doHLT = iConfig.getUntrackedParameter<bool>("doHLT",false);
+  m_doHLT = iConfig.getUntrackedParameter<bool>("doHLT",true);
 
   //-----------------------------------------------
   // Where should we save the root tree?
@@ -617,8 +616,8 @@ void L1SkimAnalyzer::getHLTRecoCaloJetCands(){
   //-----------------------------------------------
 
   Handle<reco::CaloJetCollection> hltRecoCaloJetCands_Handle;
-  bool hltRecoCaloJetCAnds_exist = m_event -> getByLabel(m_hltRecoCaloJetCandsTag,hltRecoCaloJetCands_Handle);
-  if (!hltRecoCaloJetCAnds_exist){
+  bool hltRecoCaloJetCands_exist = m_event -> getByLabel(m_hltRecoCaloJetCandsTag,hltRecoCaloJetCands_Handle);
+  if (!hltRecoCaloJetCands_exist){
     LogWarning("L1SkimAnalyzer") << "Could not extract HLT Reco Calo Jet Candidates! (CaloJets)";
     return;
   }

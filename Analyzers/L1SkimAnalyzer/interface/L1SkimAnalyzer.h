@@ -74,6 +74,7 @@ private:
 
   // HLT jets
   void getHLTRecoCaloJetCands();
+  void getHLTCaloJets();
 
   //-----------------------------------------------
   // Strings to say where to save the file
@@ -141,7 +142,6 @@ private:
   edm::InputTag m_l1GctEtHadsTag;
 
   edm::InputTag m_hltRecoCaloJetCandsTag;
-    
 };
 
 
