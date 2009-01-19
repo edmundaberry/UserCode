@@ -7,6 +7,8 @@ set ptBin = 0
 set numjobs = 0
 set numevents = 0
 
+setenv CMSSW_BASE /uscms/home/eberry/CMSSW_2_1_11/
+
 if ($#argv == 6) then
     echo 'Setting working directory to' $PWD
     set begin = $1

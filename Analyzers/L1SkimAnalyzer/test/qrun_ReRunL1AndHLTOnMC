@@ -180,7 +180,7 @@ EOF
 cmsRun ReRunL1EmulatorOnData_ptBin${ptBin}_threshold${threshold}GeV_job${job}_${numevents}events_${suffix}_cfg.py
 
 # MV the analyzer output somewhere safe
-mv L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin${ptBin}_${threshold}GeV_job${job}_${numevents}events_${suffix}.root /uscms/home/eberry/data/
+mv L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin${ptBin}_${threshold}GeV_job${job}_${numevents}events_${suffix}.root /uscms/home/eberry/data/L1AndHLTOnMC_AllJetThresholds/
 
 # Delete the .cfg file
 rm ReRunL1EmulatorOnData_ptBin${ptBin}_threshold${threshold}GeV_job${job}_${numevents}events_${suffix}_cfg.py

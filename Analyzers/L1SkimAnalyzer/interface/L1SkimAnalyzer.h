@@ -56,11 +56,6 @@ private:
   int  getMinHcalIeta(unsigned int etaIndex, bool isForward);
   int  getMaxHcalIeta(unsigned int etaIndex, bool isForward);
 
-  // GCT jets
-  void getL1GctJetCands_cenJets();
-  void getL1GctJetCands_forJets();
-  void getL1GctJetCands_tauJets();
-
   // L1 Extra Particles
   void getL1ExtraJetParticles_cenJets();
   void getL1ExtraJetParticles_tauJets();
@@ -102,8 +97,8 @@ private:
   //-----------------------------------------------
 
   // L1 geometry
-  ESHandle<L1CaloGeometry> m_l1CaloGeometry;
-  
+  ESHandle<L1CaloGeometry> m_l1CaloGeometry_temp;
+
   // Energy scales from the event setup
   ESHandle<L1CaloEtScale> m_jetScale;
   ESHandle<L1CaloEtScale> m_emScale;
@@ -129,10 +124,6 @@ private:
 
   edm::InputTag m_l1CaloEmCandsTag;
   
-  edm::InputTag m_l1GctJetCands_cenJets_Tag;
-  edm::InputTag m_l1GctJetCands_forJets_Tag;
-  edm::InputTag m_l1GctJetCands_tauJets_Tag;
-
   edm::InputTag m_l1ExtraJetParticles_cenJets_Tag;                                
   edm::InputTag m_l1ExtraJetParticles_tauJets_Tag;                                
   edm::InputTag m_l1ExtraJetParticles_forJets_Tag;
