@@ -24,7 +24,6 @@
 // My objects
 #include "Analyzers/L1SkimAnalyzer/interface/L1SkimTree.h"
 #include "Analyzers/L1SkimAnalyzer/interface/FillL1SkimTree.h"
-#include "Analyzers/L1SkimAnalyzer/interface/L1RegionLookup.h"
 
 // Namespaces
 using namespace std; 
@@ -114,9 +113,6 @@ private:
   // Tree
   L1SkimTree     m_skimTree;
   FillL1SkimTree m_fillTree;
-
-  // Region lookup
-  L1RegionLookup m_l1RegionLookup;
   
   //-----------------------------------------------
   // Tags
