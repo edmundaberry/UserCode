@@ -165,6 +165,15 @@ from Analyzers.L1SkimAnalyzer import patchToRerunL1Emulator
 patchToRerunL1Emulator.switchToSimGtDigis( process )
 
 ##-------------------------------------------------------------------------------------
+## Apply jet corrections to the HLT jets
+##-------------------------------------------------------------------------------------
+
+process.load("JetMETCorrections.Configuration.JetPlusTrackCorrections_cff")
+process.load("JetMETCorrections.Configuration.ZSPJetCorrections152_cff")
+
+process.prefer("L2L3JetCorrector")
+
+##-------------------------------------------------------------------------------------
 ## Schedule everything
 ##-------------------------------------------------------------------------------------
 
@@ -172,6 +181,7 @@ process.schedule = cms.Schedule()
 
 process.schedule.append(process.myL1Path)
 process.schedule.append(process.DoHLTJets)
+process.schedule.append(process.
 process.schedule.append(process.analyze)
 
 EOF
