@@ -21,6 +21,7 @@ void FillL1SkimTree:: init(std::string filename, L1SkimTree* treePtr){
   m_tree -> Branch("run"               , &(m_treePtr->run               ), "run/I");
   m_tree -> Branch("event"             , &(m_treePtr->event             ), "event/I");
   
+  m_tree -> Branch("nGenJets"          , &(m_treePtr->nGenJets          ), "nGenJets/I");
   m_tree -> Branch("nL1GctEtHads"      , &(m_treePtr->nL1GctEtHads      ), "nL1GctEtHads/I");
   m_tree -> Branch("nHLTJetCands"      , &(m_treePtr->nHLTJetCands      ), "nHLTJetCands/I");
   m_tree -> Branch("nL1CenJet"         , &(m_treePtr->nL1CenJet         ), "nL1CenJet/I");
@@ -70,6 +71,15 @@ void FillL1SkimTree:: init(std::string filename, L1SkimTree* treePtr){
   m_tree -> Branch("gctHT"             , &(m_treePtr->gctHT             ), "gctHT[nL1GctEtHads]/F");
   m_tree -> Branch("gctHT_UnCorr"      , &(m_treePtr->gctHT_UnCorr      ), "gctHT_UnCorr[nL1GctEtHads]/F");
 
+  m_tree -> Branch("genJet_p"          , &(m_treePtr->genJet_p          ), "genJet_p[nGenJets]/F");
+  m_tree -> Branch("genJet_px"         , &(m_treePtr->genJet_px         ), "genJet_px[nGenJets]/F");
+  m_tree -> Branch("genJet_py"         , &(m_treePtr->genJet_py         ), "genJet_py[nGenJets]/F");
+  m_tree -> Branch("genJet_pz"         , &(m_treePtr->genJet_pz         ), "genJet_pz[nGenJets]/F");
+  m_tree -> Branch("genJet_pt"         , &(m_treePtr->genJet_pt         ), "genJet_pt[nGenJets]/F");
+  m_tree -> Branch("genJet_et"         , &(m_treePtr->genJet_et         ), "genJet_et[nGenJets]/F");
+  m_tree -> Branch("genJet_eta"        , &(m_treePtr->genJet_eta        ), "genJet_eta[nGenJets]/F");
+  m_tree -> Branch("genJet_phi"        , &(m_treePtr->genJet_phi        ), "genJet_phi[nGenJets]/F");
+
   m_tree -> Branch("l1CenJet_etaMin"   , &(m_treePtr->l1CenJet_etaMin   ), "l1CenJet_etaMin[nL1CenJet]/F");  
   m_tree -> Branch("l1CenJet_etaMax"   , &(m_treePtr->l1CenJet_etaMax   ), "l1CenJet_etaMax[nL1CenJet]/F");
   m_tree -> Branch("l1CenJet_phiMin"   , &(m_treePtr->l1CenJet_phiMin   ), "l1CenJet_phiMin[nL1CenJet]/F");
@@ -106,6 +116,7 @@ void FillL1SkimTree:: init(std::string filename, L1SkimTree* treePtr){
   m_tree -> Branch("l1ForJet_eta"      , &(m_treePtr->l1ForJet_eta      ), "l1ForJet_eta[nL1ForJet]/F");
   m_tree -> Branch("l1ForJet_phi"      , &(m_treePtr->l1ForJet_phi      ), "l1ForJet_phi[nL1ForJet]/F");
 
+  m_tree -> Branch("hltHT"             , &(m_treePtr->hltHT             ), "hltHT/F");
   m_tree -> Branch("hltJet_pt"         , &(m_treePtr->hltJet_pt         ), "hltJet_pt[nHLTJetCands]/F");		 
   m_tree -> Branch("hltJet_et"         , &(m_treePtr->hltJet_et         ), "hltJet_et[nHLTJetCands]/F"); 		 
   m_tree -> Branch("hltJet_phi"        , &(m_treePtr->hltJet_phi        ), "hltJet_phi[nHLTJetCands]/F");		 

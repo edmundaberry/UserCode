@@ -79,6 +79,13 @@ private:
   std::string m_rootFile;
 
   //-----------------------------------------------
+  // Global analysis values
+  //-----------------------------------------------
+
+  float m_gctHT;
+  float m_hltJetThreshold;
+
+  //-----------------------------------------------
   // Global bools
   //-----------------------------------------------
   
@@ -129,6 +136,9 @@ private:
   edm::InputTag m_l1GctEtHadsTag;
 
   edm::InputTag m_hltRecoCaloJetCandsTag;
+
+  edm::InputTag m_genJetsTag;
+
 };
 
 

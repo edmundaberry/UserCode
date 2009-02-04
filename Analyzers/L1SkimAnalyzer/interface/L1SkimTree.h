@@ -7,6 +7,7 @@ class L1SkimTree
    public:
       
       enum {MAXNCALOEM    = 200};
+      enum {MAXNGENJETS   = 100};
       enum {MAXNHLTJETS   = 100};
       enum {MAXNHLTJTOWERS= 100};
       enum {MAXNGCTHT     = 12 };
@@ -20,6 +21,7 @@ class L1SkimTree
       int   run;
       int   event;
       
+      int   nGenJets;
       int   nHLTJetCands;					 
       int   nL1GctEtHads;
       int   nL1CenJet;
@@ -35,7 +37,7 @@ class L1SkimTree
       int   l1_SingleJet15;
       int   l1_SingleJet20;
       int   l1_SingleJet30;
-      int   l1_SingleJet50;
+      int   l1_SingleJet50;      
       
       int   l1CenJet_ietaSign  [MAXNL1CENJET];
       int   l1CenJet_etaIndex  [MAXNL1CENJET];
@@ -64,7 +66,16 @@ class L1SkimTree
       int nHLTJetTowers        [MAXNHLTJETS];		 
       int hltJetTower_ieta     [MAXNHLTJETS][MAXNHLTJTOWERS];
       int hltJetTower_iphi     [MAXNHLTJETS][MAXNHLTJTOWERS];
-      
+
+      float genJet_p           [MAXNGENJETS];
+      float genJet_px 	       [MAXNGENJETS];
+      float genJet_py 	       [MAXNGENJETS];
+      float genJet_pz 	       [MAXNGENJETS];
+      float genJet_pt 	       [MAXNGENJETS];
+      float genJet_et 	       [MAXNGENJETS];
+      float genJet_eta	       [MAXNGENJETS];
+      float genJet_phi         [MAXNGENJETS];
+
       float l1CenJet_etaMin    [MAXNL1CENJET];
       float l1CenJet_etaMax    [MAXNL1CENJET];
       float l1CenJet_phiMin    [MAXNL1CENJET];
@@ -88,7 +99,6 @@ class L1SkimTree
       float l1TauJet_et        [MAXNL1TAUJET];
       float l1TauJet_eta       [MAXNL1TAUJET];
       float l1TauJet_phi       [MAXNL1TAUJET];
-      
 
       float l1ForJet_etaMin    [MAXNL1FORJET];
       float l1ForJet_etaMax    [MAXNL1FORJET];
@@ -104,6 +114,8 @@ class L1SkimTree
       
       float gctHT              [MAXNGCTHT];
       float gctHT_UnCorr       [MAXNGCTHT];
+
+      float hltHT;
       
       float hltJet_pt          [MAXNHLTJETS];		 
       float hltJet_et          [MAXNHLTJETS];		 
@@ -115,6 +127,7 @@ class L1SkimTree
 	 run            = -999;
 	 event          = -999;
 	 
+	 nGenJets       = -999;
 	 nL1GctEtHads   = -999;
 	 nHLTJetCands   = -999;
 	 nL1CenJet      = -999;
@@ -131,6 +144,21 @@ class L1SkimTree
 	 l1_HTT300      = -999;
 	 l1_HTT400      = -999;
 	 l1_HTT500      = -999;
+
+	 hltHT          = -999.0;
+
+	 for (int i = 0; i < MAXNGENJETS; i++){
+
+	   genJet_p            [i] = -999.0;
+	   genJet_px           [i] = -999.0;
+	   genJet_py           [i] = -999.0;
+	   genJet_pz           [i] = -999.0;
+	   genJet_pt           [i] = -999.0;
+	   genJet_et           [i] = -999.0;
+	   genJet_eta          [i] = -999.0;
+	   genJet_phi          [i] = -999.0;
+
+	 }
 	 
 	 for (int i = 0; i < MAXNL1CENJET; i++){
 	    
@@ -214,11 +242,11 @@ class L1SkimTree
 	 
 	 for (int i = 0; i < MAXNHLTJETS; i++){
 	    
-	    hltJet_pt      [i] = -999.0;
-	    hltJet_et      [i] = -999.0;
-	    hltJet_phi     [i] = -999.0;
-	    hltJet_eta     [i] = -999.0;
-	    nHLTJetTowers  [i] = -999;
+	    hltJet_pt          [i] = -999.0;
+	    hltJet_et          [i] = -999.0;
+	    hltJet_phi         [i] = -999.0;
+	    hltJet_eta         [i] = -999.0;
+	    nHLTJetTowers      [i] = -999;
 	    
 	    for (int j = 0; j < MAXNHLTJTOWERS; j++){
 	       
