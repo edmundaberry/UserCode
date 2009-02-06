@@ -1,0 +1,129 @@
+#!/bin/tcsh
+
+## Set variables
+
+set work_dir = $1
+set ptBin = $2
+set job = $3
+set numevents = $4
+set suffix = $5
+
+## set work_dir = $PWD
+## set ptBin = 2
+## set job = 1
+## set numevents = 10
+## set suffix = TEST
+
+set step = 1
+set jobMinusOne = 0
+@ jobMinusOne = $job - $step
+
+set eventsToSkip = 0
+@ eventsToSkip = $numevents * $jobMinusOne
+
+## Load CMSSW
+cd $work_dir
+source /uscmst1/prod/sw/cms/cshrc uaf
+eval `scram runtime -csh`
+
+## Go to the scratch directory
+cd ${_CONDOR_SCRATCH_DIR}
+
+## Tell the log file what you're going to do
+echo I am going to analyze ${numevents} events
+echo I am looking at PtBin number ${ptBin}
+echo I am using the suffix ${suffix}
+echo This is job ${job}, and I have to do ${numevents} events/job
+echo    so I will skip ${eventsToSkip}
+
+## Make the config file
+
+cat > FastSim_ptBin${ptBin}_job${job}_${numevents}events_${suffix}_cfg.py<<EOF
+
+import FWCore.ParameterSet.Config as cms
+
+process = cms.Process("L1ReRun")
+process.load("FWCore.MessageLogger.MessageLogger_cfi")
+
+process.load("Configuration.StandardSequences.GeometryPilot2_cff")
+process.load("Configuration.StandardSequences.MagneticField_cff")
+
+process.load("Analyzers.L1SkimAnalyzer.qcdDijet${ptBin}_cff")
+process.source.skipEvents = cms.untracked.uint32(${eventsToSkip})
+
+process.maxEvents = cms.untracked.PSet(
+    input = cms.untracked.int32(${numevents})
+)
+
+##-------------------------------------------------------------------------------------
+## Include geometry and global tag
+##-------------------------------------------------------------------------------------
+
+## Normal global tag stuff
+
+process.load("Configuration.StandardSequences.Geometry_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_noesprefer_cff")
+process.GlobalTag.globaltag = 'IDEAL_V9::All'
+
+##-------------------------------------------------------------------------------------
+## Load my analyzer
+##-------------------------------------------------------------------------------------
+
+process.load('Analyzers.L1SkimAnalyzer.l1skimanalyzer_Data_cfi')
+process.l1SkimAnalyzerData.outSuffix = "_FastSim_PtBin${ptBin}_job${job}_${numevents}events_${suffix}"
+process.l1SkimAnalyzerData.outPath = cms.untracked.string("./")
+process.analyze = cms.Path(process.l1SkimAnalyzerData)
+
+##-------------------------------------------------------------------------------------
+## If you need it for debugging, dump everything
+##-------------------------------------------------------------------------------------
+
+## process.out = cms.OutputModule("PoolOutputModule",
+##     fileName = cms.untracked.string('test.root'),
+##     outputCommands = cms.untracked.vstring('keep *')
+## )
+## process.finalProcess = cms.EndPath(process.out)
+
+##-------------------------------------------------------------------------------------
+## FAMOS stuff. 
+##-------------------------------------------------------------------------------------
+
+process.load("FastSimulation/Configuration/RandomServiceInitialization_cff")
+process.load("FastSimulation/Configuration/CommonInputs_cff")
+process.load('FastSimulation.Configuration.FamosSequences_cff')
+process.load("Configuration.StandardSequences.MagneticField_38T_cff")
+
+process.VolumeBasedMagneticFieldESProducer.useParametrizedTrackerField = True
+process.famosSimHits.SimulateCalorimetry = True
+process.famosSimHits.SimulateTracking = True
+
+#process.famosPrefer = cms.ESPrefer("TkTransientTrackingRecHitBuilderESProducer","WithTrackAngle")
+process.famosWithEverythingPath = cms.Path(process.famosWithEverything)
+
+##-------------------------------------------------------------------------------------
+## Reco Jets
+##-------------------------------------------------------------------------------------
+
+process.load('RecoJets.Configuration.RecoJets_cff')
+process.recoJetsPath = cms.Path(process.recoJets)
+
+##-------------------------------------------------------------------------------------
+## Schedule everything
+##-------------------------------------------------------------------------------------
+
+process.schedule = cms.Schedule()
+
+process.schedule.append(process.famosWithEverythingPath)
+process.schedule.append(process.recoJetsPath)
+process.schedule.append(process.analyze)
+
+EOF
+
+# Run the .cfg file
+cmsRun FastSim_ptBin${ptBin}_job${job}_${numevents}events_${suffix}_cfg.py
+
+# MV the analyzer output somewhere safe
+mv L1SkimAnalyzerOutput_FastSim_PtBin${ptBin}_job${job}_${numevents}events_${suffix}.root /uscms/home/eberry/data/FastSim/
+
+# Delete the .cfg file
+rm FastSim_ptBin${ptBin}_job${job}_${numevents}events_${suffix}_cfg.py

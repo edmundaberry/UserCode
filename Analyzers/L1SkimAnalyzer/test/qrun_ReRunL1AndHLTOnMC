@@ -1,12 +1,20 @@
 #!/bin/tcsh
 
 ## Set variables
+
 set work_dir = $1
 set threshold = $2
 set ptBin = $3
 set job = $4
 set numevents = $5
 set suffix = $6
+
+## set work_dir = $PWD
+## set threshold = 0
+## set ptBin = 2
+## set job = 1
+## set numevents = 2
+## set suffix = TEST
 
 set step = 1
 set jobMinusOne = 0
@@ -64,7 +72,7 @@ process.GlobalTag.globaltag = 'IDEAL_V9::All'
 ## You need this to do L1 jet threshold studies
 
 process.myPrefer = cms.ESPrefer("L1GctConfigProducers")
-process.SiPrefer = cms.ESPrefer("SiStripPedestalsFakeESSource")
+#process.SiPrefer = cms.ESPrefer("SiStripPedestalsFakeESSource")
 
 ##-------------------------------------------------------------------------------------
 ## Unpack raw data
@@ -95,17 +103,17 @@ process.L1GctConfigProducers.L1CaloJetZeroSuppressionThresholdInGeV = cms.double
 
 # Do L1Extra with re-run digis
 process.l1extraParticles = cms.EDProducer("L1ExtraParticlesProd",
-    muonSource = cms.InputTag("simGmtDigis"),
-    etTotalSource = cms.InputTag("simGctDigis"),
-    nonIsolatedEmSource = cms.InputTag("simGctDigis","nonIsoEm"),
-    etMissSource = cms.InputTag("simGctDigis"),
+    muonSource = cms.InputTag("simGmtDigis","","L1ReRun"),
+    etTotalSource = cms.InputTag("simGctDigis","","L1ReRun"),
+    nonIsolatedEmSource = cms.InputTag("simGctDigis","nonIsoEm","L1ReRun"),
+    etMissSource = cms.InputTag("simGctDigis","","L1ReRun"),
     produceMuonParticles = cms.bool(True),
-    forwardJetSource = cms.InputTag("simGctDigis","forJets"),
-    centralJetSource = cms.InputTag("simGctDigis","cenJets"),
+    forwardJetSource = cms.InputTag("simGctDigis","forJets","L1ReRun"),
+    centralJetSource = cms.InputTag("simGctDigis","cenJets","L1ReRun"),
     produceCaloParticles = cms.bool(True),
-    tauJetSource = cms.InputTag("simGctDigis","tauJets"),
-    isolatedEmSource = cms.InputTag("simGctDigis","isoEm"),
-    etHadSource = cms.InputTag("simGctDigis"),
+    tauJetSource = cms.InputTag("simGctDigis","tauJets","L1ReRun"),
+    isolatedEmSource = cms.InputTag("simGctDigis","isoEm","L1ReRun"),
+    etHadSource = cms.InputTag("simGctDigis","","L1ReRun"),
     centralBxOnly = cms.bool(True)
 )
 
@@ -122,11 +130,11 @@ process.analyze = cms.Path(process.l1SkimAnalyzerData)
 ## If you need it for debugging, dump everything
 ##-------------------------------------------------------------------------------------
 
-##process.out = cms.OutputModule("PoolOutputModule",
-##    fileName = cms.untracked.string('test.root'),
-##    outputCommands = cms.untracked.vstring('keep *')
-##)
-##process.finalProcess = cms.EndPath(process.out)
+process.out = cms.OutputModule("PoolOutputModule",
+    fileName = cms.untracked.string('test.root'),
+    outputCommands = cms.untracked.vstring('keep *')
+)
+process.finalProcess = cms.EndPath(process.out)
 
 ##-------------------------------------------------------------------------------------
 ##Set up my L1 path
@@ -162,16 +170,7 @@ process.load("HLTrigger.HLTanalyzers.HLTopen_cff")
 from Analyzers.L1SkimAnalyzer import patchToRerunL1Emulator
 
 ## Make sure the HLT uses the emulator digis
-patchToRerunL1Emulator.switchToSimGtDigis( process )
-
-##-------------------------------------------------------------------------------------
-## Apply jet corrections to the HLT jets
-##-------------------------------------------------------------------------------------
-
-process.load("JetMETCorrections.Configuration.JetPlusTrackCorrections_cff")
-process.load("JetMETCorrections.Configuration.ZSPJetCorrections152_cff")
-
-process.prefer("L2L3JetCorrector")
+## patchToRerunL1Emulator.switchToSimGtDigis( process )
 
 ##-------------------------------------------------------------------------------------
 ## Schedule everything
@@ -181,8 +180,8 @@ process.schedule = cms.Schedule()
 
 process.schedule.append(process.myL1Path)
 process.schedule.append(process.DoHLTJets)
-process.schedule.append(process.
 process.schedule.append(process.analyze)
+process.schedule.append(process.finalProcess)
 
 EOF
 
@@ -190,7 +189,7 @@ EOF
 cmsRun ReRunL1EmulatorOnData_ptBin${ptBin}_threshold${threshold}GeV_job${job}_${numevents}events_${suffix}_cfg.py
 
 # MV the analyzer output somewhere safe
-mv L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin${ptBin}_${threshold}GeV_job${job}_${numevents}events_${suffix}.root /uscms/home/eberry/data/L1AndHLTOnMC_AllJetThresholds/
+mv L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin${ptBin}_${threshold}GeV_job${job}_${numevents}events_${suffix}.root /uscms/home/eberry/3DayLifetime/223_COR/
 
 # Delete the .cfg file
 rm ReRunL1EmulatorOnData_ptBin${ptBin}_threshold${threshold}GeV_job${job}_${numevents}events_${suffix}_cfg.py
