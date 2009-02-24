@@ -13,7 +13,7 @@
 //
 // Original Author:  "Edmund Berry"
 //         Created:  Wed Jun 11 14:17:06 CDT 2008
-// $Id: DijetAnalyzer.cc,v 1.1 2008/08/21 16:27:21 eberry Exp $
+// $Id: DijetAnalyzer.cc,v 1.2 2008/09/12 16:32:42 eberry Exp $
 //
 //
 
@@ -382,13 +382,18 @@ DijetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       
       //-----------------------------------------------------
       // Loop over the towers for each reco jet
+      // Minor changes have been made to run this in CMSSW_2_2_X
+      // (see commented lines)
       //-----------------------------------------------------
       
-      std::vector <CaloTowerRef> jetTowers = (*iJet).getConstituents();
+      //std::vector <CaloTowerRef> jetTowers = (*iJet).getConstituents();
+      std::vector <CaloTowerPtr> jetTowers = (*iJet).getCaloConstituents();
       
       njtower = 0;
       
-      for(std::vector<CaloTowerRef>::iterator iJetTower = jetTowers.begin();
+      
+      //for(std::vector<CaloTowerRef>::iterator iJetTower = jetTowers.begin();
+      for(std::vector<CaloTowerPtr>::iterator iJetTower = jetTowers.begin();
 	  iJetTower != jetTowers.end();
 	  iJetTower++){	   
 
