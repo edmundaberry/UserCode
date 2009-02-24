@@ -389,8 +389,7 @@ DijetAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       //std::vector <CaloTowerRef> jetTowers = (*iJet).getConstituents();
       std::vector <CaloTowerPtr> jetTowers = (*iJet).getCaloConstituents();
       
-      njtower = 0;
-      
+      njtower = 0;       
       
       //for(std::vector<CaloTowerRef>::iterator iJetTower = jetTowers.begin();
       for(std::vector<CaloTowerPtr>::iterator iJetTower = jetTowers.begin();
