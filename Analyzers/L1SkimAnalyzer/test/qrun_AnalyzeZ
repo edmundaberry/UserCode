@@ -1,0 +1,145 @@
+#!/bin/tcsh
+
+## Set release base and version
+set MY_RELEASE_BASE = /uscms/home/eberry
+set CMSSW_VERSION = CMSSW_2_2_3
+
+## Set variables
+## set job = 1
+## set numevents = 2
+## set suffix = TEST
+
+set job = $1
+set numevents = $2
+set suffix = $3
+
+## Set file names
+set tarFile = ${MY_RELEASE_BASE}/${CMSSW_VERSION}/src/Analyzers.tar
+set cfgFile = AnalyzeZ_job${job}_${numevents}events_${suffix}_cfg.py
+
+## Figure out how many events to skip
+set step = 1
+set jobMinusOne = 0
+@ jobMinusOne = $job - $step
+set eventsToSkip = 0
+@ eventsToSkip = $numevents * $jobMinusOne
+
+## Go to the scratch directory
+cd ${_CONDOR_SCRATCH_DIR}
+
+## Load the environment
+source /uscmst1/prod/sw/cms/cshrc uaf
+
+## Download, compile, and initialize CMSSW
+scram p CMSSW ${CMSSW_VERSION}
+cd ${CMSSW_VERSION}/src
+eval `scram runtime -csh`
+
+## Untar the tar ball containing the analysis framework
+tar -xvf ${tarFile}
+
+## Remove the old .pyc files and recompile
+find -name "*.pyc" -print | xargs rm
+scram b
+
+## Go back to the scratch directory
+cd ${_CONDOR_SCRATCH_DIR}
+
+## Tell the log file what you're going to do
+echo I am going to re-run the L1 Emulator on these RelVal Z+Jets
+echo I am using CMSSW version: ${CMSSW_VERSION}
+echo I am making python cfg file: ${cfgFile}
+echo I am going to analyze ${numevents} events
+echo I am using the suffix ${suffix}
+echo This is job ${job}, and I have to do ${numevents} events/job
+echo    so I will skip ${eventsToSkip}
+
+## Make the config file
+
+cat > ${cfgFile}<<EOF
+
+import FWCore.ParameterSet.Config as cms
+
+process = cms.Process("AnalyzeZ")
+process.load("FWCore.MessageLogger.MessageLogger_cfi")
+
+process.load("Configuration.StandardSequences.GeometryPilot2_cff")
+process.load("Configuration.StandardSequences.MagneticField_cff")
+
+process.load("Analyzers.L1SkimAnalyzer.zmumuJetRelVal_223_cff")
+process.source.skipEvents = cms.untracked.uint32(${eventsToSkip})
+
+process.maxEvents = cms.untracked.PSet(
+    input = cms.untracked.int32(${numevents})
+)
+
+##-------------------------------------------------------------------------------------
+## Include geometry and global tag
+##-------------------------------------------------------------------------------------
+
+## Normal global tag stuff
+
+process.load("Configuration.StandardSequences.Geometry_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.GlobalTag.globaltag = 'IDEAL_V9::All'
+
+##-------------------------------------------------------------------------------------
+## Do L1 Extra
+##-------------------------------------------------------------------------------------
+
+process.load('L1Trigger.Configuration.L1StartupConfig_cff')
+
+# Do L1Extra with re-run digis
+process.l1extraParticles = cms.EDProducer("L1ExtraParticlesProd",
+    muonSource = cms.InputTag("hltGtDigis",""),
+    etTotalSource = cms.InputTag("hltGctDigis",""),
+    nonIsolatedEmSource = cms.InputTag("hltGctDigis","nonIsoEm"),
+    etMissSource = cms.InputTag("hltGctDigis",""),
+    produceMuonParticles = cms.bool(True),
+    forwardJetSource = cms.InputTag("hltGctDigis","forJets"),
+    centralJetSource = cms.InputTag("hltGctDigis","cenJets"),
+    produceCaloParticles = cms.bool(True),
+    tauJetSource = cms.InputTag("hltGctDigis","tauJets"),
+    isolatedEmSource = cms.InputTag("hltGctDigis","isoEm"),
+    etHadSource = cms.InputTag("hltGctDigis",""),
+    centralBxOnly = cms.bool(True)
+)
+
+process.l1extra = cms.Path(process.l1extraParticles)
+
+##-------------------------------------------------------------------------------------
+## Load my analyzer
+##-------------------------------------------------------------------------------------
+
+process.load('Analyzers.L1SkimAnalyzer.l1skimanalyzer_Data_HLTExtra_cfi')
+process.l1SkimAnalyzerData.outSuffix = "_AnalyzeZ_job${job}_${numevents}events_${suffix}"
+process.l1SkimAnalyzerData.outPath = cms.untracked.string("./")
+process.analyze = cms.Path(process.l1SkimAnalyzerData)
+
+##-------------------------------------------------------------------------------------
+## If you need it for debugging, dump everything
+##-------------------------------------------------------------------------------------
+
+## process.out = cms.OutputModule("PoolOutputModule",
+##     fileName = cms.untracked.string('zjets_with${CMSSW_VERSION}_job${job}.root'),
+##     outputCommands = cms.untracked.vstring('keep *')
+## )
+## process.finalProcess = cms.EndPath(process.out)
+
+##-------------------------------------------------------------------------------------
+## Schedule everything
+##-------------------------------------------------------------------------------------
+
+process.schedule = cms.Schedule()
+process.schedule.append(process.l1extra)
+process.schedule.append(process.analyze)
+## process.schedule.append(process.finalProcess)
+EOF
+
+## Run the .cfg file
+cmsRun ${cfgFile}
+
+## Remove the .cfg file and the CMSSW build
+rm ${cfgFile} 
+rm -rf ${CMSSW_VERSION}
+
