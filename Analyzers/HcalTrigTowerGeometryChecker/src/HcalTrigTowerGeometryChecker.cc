@@ -13,7 +13,7 @@
 //
 // Original Author:  "Edmund Berry"
 //         Created:  Thu Mar 19 16:42:49 CDT 2009
-// $Id$
+// $Id: HcalTrigTowerGeometryChecker.cc,v 1.1 2009/03/20 21:34:11 eberry Exp $
 //
 
 
@@ -69,13 +69,16 @@ private:
   HcalTrigTowerDetIdCountMap hcalTrigTowerDetIdCountMap;
   
 
-  typedef multimap<HcalDetId, int, less<HcalDetId> > HcalDetIdCountMap;
-  typedef multimap<HcalDetId, int, less<HcalDetId> >::value_type HcalDetIdCount;
+  typedef multimap<HcalDetId, HcalTrigTowerDetId, less<HcalDetId> > HcalDetIdCountMap;
+  typedef multimap<HcalDetId, HcalTrigTowerDetId, less<HcalDetId> >::value_type HcalDetIdCount;
   HcalDetIdCountMap hcalDetIdCountMap;
 
   int valid_unassigned_detids;
   int valid_multicount_detids;
-  int valid_ok_detids;
+  int valid_doublecount_detids;
+  int valid_doublecount_ok_detids;
+  int valid_singlecount_detids;
+  int valid_singlecount_ok_detids;
   int valid_total_detids;
 
   bool verbose;
@@ -115,10 +118,13 @@ HcalTrigTowerGeometryChecker::~HcalTrigTowerGeometryChecker() {}
 
 void HcalTrigTowerGeometryChecker::setup(){
 
-  valid_unassigned_detids = 0;
-  valid_multicount_detids = 0;
-  valid_ok_detids         = 0;
-  valid_total_detids      = 0;
+  valid_unassigned_detids     = 0;
+  valid_multicount_detids     = 0;
+  valid_doublecount_detids    = 0;
+  valid_doublecount_ok_detids = 0;
+  valid_singlecount_detids    = 0;
+  valid_singlecount_ok_detids = 0;
+  valid_total_detids          = 0;
 
 }
 
@@ -177,11 +183,29 @@ void HcalTrigTowerGeometryChecker::checkForDoubleCounting (std::vector<DetId> de
 
     HcalDetId hcalDetId = HcalDetId(*detId_iter);
     
+    std::vector<HcalTrigTowerDetId> trigTowerDetIds = theTrigTowerGeometry.towerIds(hcalDetId);
+
     entries = hcalDetIdCountMap.count(hcalDetId);
     
     if      (entries == 0)  valid_unassigned_detids++;
-    else if (entries == 1)  valid_ok_detids++;
-    else if (entries >  1){
+    else if (entries == 1){
+
+      if (entries == (int) trigTowerDetIds.size()) valid_singlecount_ok_detids++;
+      
+      valid_singlecount_detids++;
+      
+    }
+    
+    else if (entries == 2){
+      
+      // This is ok, if each of these HcalDetId's can be mapped back to 2 HcalTrigTowerDetId's
+      if (entries == (int) trigTowerDetIds.size()) valid_doublecount_ok_detids++;
+
+      valid_doublecount_detids++;
+
+    }
+
+    else if (entries > 2){
 
       cell_ieta   = (int) hcalDetId.ieta();
       cell_iphi   = (int) hcalDetId.iphi();
@@ -198,6 +222,14 @@ void HcalTrigTowerGeometryChecker::checkForDoubleCounting (std::vector<DetId> de
 	     << ", ieta  = "  << cell_ieta 
 	     << ", iphi = "   << cell_iphi 
 	     << ", depth = "  << cell_depth  << endl;
+	cout << "  It was mapped to HcalTrigTowerDetId's at:" << endl;
+	HcalDetIdCountMap::const_iterator hcalDetIdCountMap_iter =  hcalDetIdCountMap.begin();
+	for (; hcalDetIdCountMap_iter != hcalDetIdCountMap.end(); ++hcalDetIdCountMap_iter){
+	  HcalDetId          detId          = hcalDetIdCountMap_iter -> first;
+	  HcalTrigTowerDetId trigTowerDetId = hcalDetIdCountMap_iter -> second;
+	  if (detId == hcalDetId)
+	    cout << "    ieta = " << trigTowerDetId.ieta() << ", iphi = " << trigTowerDetId.iphi() << endl;
+	}
       }
     }
     else cout << "Entries = " << entries << endl;
@@ -208,7 +240,7 @@ void HcalTrigTowerGeometryChecker::checkForDoubleCounting (std::vector<DetId> de
 
 void HcalTrigTowerGeometryChecker::fillCountingMap(std::vector<HcalTrigTowerDetId> trigTowerDetIds){
 
-  int entries;
+  //int entries;
 
   std::vector<HcalTrigTowerDetId>::iterator trigTowerDetId_iter = trigTowerDetIds.begin();
 
@@ -220,9 +252,10 @@ void HcalTrigTowerGeometryChecker::fillCountingMap(std::vector<HcalTrigTowerDetI
     
     for (; hcalDetId_mapped_iter != hcalDetIds_mapped.end(); ++hcalDetId_mapped_iter){
       
-      entries = hcalDetIdCountMap.count(*hcalDetId_mapped_iter);
+      //entries = hcalDetIdCountMap.count(*hcalDetId_mapped_iter);
       
-      hcalDetIdCountMap.insert(HcalDetIdCount(*hcalDetId_mapped_iter, entries + 1));
+      //hcalDetIdCountMap.insert(HcalDetIdCount(*hcalDetId_mapped_iter, entries + 1));
+      hcalDetIdCountMap.insert(HcalDetIdCount(*hcalDetId_mapped_iter, *trigTowerDetId_iter));
 
     }
     
@@ -254,7 +287,7 @@ void HcalTrigTowerGeometryChecker::checkForMapDisagreement(std::vector<DetId> de
       for (;  hcalDetId_mapped_iter != hcalDetIds_mapped.end(); ++hcalDetId_mapped_iter)
 	mapping_successful |= (*hcalDetId_mapped_iter == hcalDetId_original);
 
-      if (!mapping_successful) {
+      if (!mapping_successful ){
 	cout << "-----------------------------------" << endl;
 	cout << "Original HCAL Det ID:" << endl 
 	     << "  subdet = " << hcalDetId_original.subdet() 
@@ -344,13 +377,15 @@ void HcalTrigTowerGeometryChecker::analyze(const edm::Event& iEvent, const edm::
   cout << endl;
   cout << "There were a total of " << trigTowerDetIds.size() << " unique trigger towers " << endl;   
   cout << "Out of " << valid_total_detids       << " total valid HcalDetId's" << endl;
-  cout << "  "      << valid_unassigned_detids  << " are not assigned to an HcalTrigTower" << endl;
-  cout << "  "      << valid_ok_detids          << " are assigned to one HcalTrigTower" << endl;
-  cout << "  "      << valid_multicount_detids  << " are assigned to multiple HcalTrigTowers" << endl;
-  if (check_he_doublecount){
-    cout << "We expect " << 1440 << " instances of double-counting."  << endl;
-    cout << "This is due to HE cells with |ieta| between 21 and 29 "  << endl;
-  }
+  cout << "  "      << valid_unassigned_detids  << " are not assigned to an HcalTrigTower by the detIds function" << endl;
+  cout << "  "      << valid_singlecount_detids << " are assigned to one HcalTrigTower by the detIds function" << endl;
+  cout << "     "   << "of these, " << valid_singlecount_ok_detids << " are assigned to one HcalTrigTower by the towerIds function" << endl;
+  cout << "     "   << "these are OK" << endl;
+  cout << "  "      << valid_doublecount_detids << " are assigned to two HcalTrigTowers by the detIds function" << endl;
+  cout << "     "   << "of these, " << valid_doublecount_ok_detids << " are assigned to two HcalTrigTowers by the towerIds function" << endl;
+  cout << "     "   << "these are OK" << endl;
+  cout << "  "      << valid_multicount_detids  << " are assigned to more than two HcalTrigTowers by the detIds function" << endl;
+
 }
 
 void HcalTrigTowerGeometryChecker::beginJob(const edm::EventSetup&) {}
