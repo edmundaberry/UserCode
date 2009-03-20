@@ -47,8 +47,8 @@ HcalTrigTowerGeometry::detIds(const HcalTrigTowerDetId & hcalTrigTowerDetId) con
 
   // HE 
 
-  if (abs(cell_ieta) >= theTopology.firstHERing() &&
-      abs(cell_ieta) <= theTopology.lastHERing()){
+  if (abs(cell_ieta) >= theTopology.firstHERing() && // >= 16
+      abs(cell_ieta) <  theTopology.lastHERing()){   // <= 29
 
     theTopology.depthBinInformation(HcalEndcap, abs(tower_ieta), n_depths, min_depth);
     
@@ -58,7 +58,7 @@ HcalTrigTowerGeometry::detIds(const HcalTrigTowerDetId & hcalTrigTowerDetId) con
     
     for (int cell_depth = min_depth; cell_depth <= min_depth + n_depths - 1; cell_depth++)
       retval.push_back(HcalDetId(HcalEndcap, cell_ieta, cell_iphi, cell_depth));
-
+    
     // Special for split-eta cells
     if (abs(tower_ieta) == 28){
       theTopology.depthBinInformation(HcalEndcap, abs(tower_ieta)+1, n_depths, min_depth);
@@ -72,7 +72,7 @@ HcalTrigTowerGeometry::detIds(const HcalTrigTowerDetId & hcalTrigTowerDetId) con
     
   // HF 
   
-  if (abs(cell_ieta) >= theTopology.firstHFRing()){  // |tower_ieta| = 28
+  if (abs(cell_ieta) >= theTopology.firstHFRing()){  
     
     int HfTowerPhiSize     = 72 / nPhiBins(tower_ieta);
     int HfTowerEtaSize     = hfTowerEtaSize(tower_ieta);
