@@ -47,8 +47,8 @@ HcalTrigTowerGeometry::detIds(const HcalTrigTowerDetId & hcalTrigTowerDetId) con
 
   // HE 
 
-  if (abs(cell_ieta) >= theTopology.firstHERing() && // >= 16
-      abs(cell_ieta) <  theTopology.lastHERing()){   // <= 29
+  if (abs(cell_ieta) >= theTopology.firstHERing() && 
+      abs(cell_ieta) <  theTopology.lastHERing()){   
 
     theTopology.depthBinInformation(HcalEndcap, abs(tower_ieta), n_depths, min_depth);
     
