@@ -36,6 +36,7 @@
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "DataFormats/HcalDigi/interface/HcalQIESample.h"
 #include "DataFormats/HcalDetId/interface/HcalTrigTowerDetId.h"
+#include "DataFormats/CaloTowers/interface/CaloTowerCollection.h"
 
 #include "CalibFormats/HcalObjects/interface/HcalTPGRecord.h"
 #include "CalibFormats/HcalObjects/interface/HcalTPGCoder.h"
@@ -46,9 +47,12 @@
 #include "CalibFormats/CaloTPG/interface/HcalTPGCompressor.h"
 #include "CalibFormats/CaloTPG/interface/CaloTPGRecord.h"
 #include "CalibFormats/CaloObjects/interface/IntegerCaloSamples.h"
+
 #include "CalibCalorimetry/HcalTPGAlgos/interface/HcaluLUTTPGCoder.h"
 #include "CalibCalorimetry/HcalAlgos/interface/HcalPulseContainmentCorrection.h"
+#include "CalibCalorimetry/HcalAlgos/interface/HcalTimeSlew.h"
 
+#include "Geometry/CaloTopology/interface/HcalTopology.h"
 #include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
 #include "Geometry/HcalTowerAlgo/src/HcalHardcodeGeometryData.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
@@ -56,7 +60,7 @@
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 
 #include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
-#include "SimDataFormats/HepMCProduct/interface/HepMCProduct.h"
+#include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "SimDataFormats/CrossingFrame/interface/CrossingFrame.h"
 #include "SimDataFormats/CrossingFrame/interface/MixCollection.h"
 #include "SimCalorimetry/HcalSimAlgos/interface/HcalSimParameterMap.h"
@@ -74,6 +78,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 //-----------------------------------------------------
 // This is a purposely hardcoded value.
@@ -93,11 +98,15 @@ class HcalDigiAnalyzer : public edm::EDAnalyzer {
 
   virtual void beginJob(const edm::EventSetup&) ;
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
-  virtual void endJob();
+  virtual void endJob();      
   
-  void printTrigPrimError(HcalTrigTowerDetId trigTowerDetId, HcalDetId cell,
-			  int nTrigTowerDetIds, int ntrigprim);
+  template <class Digi>
+  void analyzeThisDigi(Digi& digi, 
+		       const HcalCoder& coder, const HcalCalibrations& calibrations,
+		       const HcalPulseContainmentCorrection *corr, int count);
   
+  float getThreshold(HcalDetId &id);
+  void  readEventList();
 
   //-----------------------------------------------------
   // Root tree objects
@@ -105,7 +114,14 @@ class HcalDigiAnalyzer : public edm::EDAnalyzer {
 
   DigiTree     m_digiTree;
   FillDigiTree m_fillDigi;
+
+  //-----------------------------------------------------
+  // Event list
+  //-----------------------------------------------------
     
+  std::string      eventListFile_;
+  std::vector<int> eventList_;
+
   //-----------------------------------------------------
   // Out file info
   //-----------------------------------------------------
@@ -113,7 +129,7 @@ class HcalDigiAnalyzer : public edm::EDAnalyzer {
   std::string outPath_;
   std::string outSuffix_;
   std::string subdetName_;
-  std::string rootFile_;
+  std::string rootFile_;  
 
   //-----------------------------------------------------
   // edm::InputTags 
@@ -121,6 +137,21 @@ class HcalDigiAnalyzer : public edm::EDAnalyzer {
 
   edm::InputTag hcalTrigPrimTag_;
   edm::InputTag hcalDigiTag_;
+  edm::InputTag caloTowerTag_;
+
+  //-----------------------------------------------------
+  // edm::ESHandles
+  //-----------------------------------------------------
+
+  edm::ESHandle<HcalTopology> hcalTopology_;
+  edm::ESHandle<HcalDbService> conditions_;
+
+  //-----------------------------------------------------
+  // edm::Handles
+  //-----------------------------------------------------
+
+  edm::Handle <T> hcalDigiCol_;  
+  edm::Handle <CaloTowerCollection> caloTowerCol_;
 
   //-----------------------------------------------------
   // Output flags
@@ -129,7 +160,23 @@ class HcalDigiAnalyzer : public edm::EDAnalyzer {
   bool doRHPulseCorrect_;
   bool scanForSpikes_;
   bool verbose_;  
+  bool useEventList_;
   int subdet_;
+
+  //-----------------------------------------------------
+  // Scheme B CaloTower creation thresholds
+  //-----------------------------------------------------
+
+  float theHOthreshold0     ;
+  float theHOthresholdPlus1 ;
+  float theHOthresholdMinus1;
+  float theHOthresholdPlus2 ;
+  float theHOthresholdMinus2;
+  float theHBthreshold      ;
+  float theHF1threshold     ;
+  float theHF2threshold     ;
+  float theHESthreshold     ;
+  float theHEDthreshold     ;
 
   //-----------------------------------------------------
   // Pulse corrections 
@@ -161,34 +208,73 @@ HcalDigiAnalyzer<T>::HcalDigiAnalyzer(const edm::ParameterSet& iConfig)
   verbose_          = iConfig.getUntrackedParameter<bool>         ("verbose",false);
   doRHPulseCorrect_ = iConfig.getUntrackedParameter<bool>         ("doRecHitPulseCorrection",true);
   scanForSpikes_    = iConfig.getUntrackedParameter<bool>         ("scanForSpikes",false);
+  useEventList_     = iConfig.getUntrackedParameter<bool>         ("useEventList",false);
   hcalTrigPrimTag_  = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag");
   hcalDigiTag_      = iConfig.getUntrackedParameter<edm::InputTag>("hcalDigiTag"); 
-  outPath_          = iConfig.getUntrackedParameter<std::string>  ("outPath","/uscms/home/eberry/CMSSW_2_0_8/src/Analyzers/HcalDigiAnalyzer");
+  caloTowerTag_     = iConfig.getUntrackedParameter<edm::InputTag>("caloTowerTag");
+  outPath_          = iConfig.getUntrackedParameter<std::string>  ("outPath","/uscms/home/eberry/3DayLifetime/");
   outSuffix_        = iConfig.getUntrackedParameter<std::string>  ("outSuffix","");
   subdetName_       = iConfig.getUntrackedParameter<std::string>  ("subdetName","NO");
+  eventListFile_    = iConfig.getUntrackedParameter<std::string>  ("eventList","/uscms/home/eberry/HcalNoiseData/CRAFT_on_QCD_NewHcal_v4a_evlist.txt");
 
   //-----------------------------------------------------
   // Determine the subdetector from the .cfg file entry
   //-----------------------------------------------------
   
-  if (subdetName_ == "HB") { subdet_ = 1; }
-  if (subdetName_ == "HE") { subdet_ = 2; }
-  if (subdetName_ == "HO") { subdet_ = 3; }
-  if (subdetName_ == "HF") { subdet_ = 4; }
+  if (subdetName_ == "HB") { 
+    subdet_         = 1; 
+    phaseNS_        = 13.0;
+    firstRHSample_  = 4;
+    rhSamplesToAdd_ = 4;
+  }
+  
+  if (subdetName_ == "HE") { 
+    subdet_         = 2; 
+    phaseNS_        = 13.0;
+    firstRHSample_  = 4;
+    rhSamplesToAdd_ = 4;
+  }
+  
+  if (subdetName_ == "HO"){
+    subdet_         = 3;
+    phaseNS_        = 13.0;
+    firstRHSample_  = 4;
+    rhSamplesToAdd_ = 4;
+  }
+
+  if (subdetName_ == "HF") { 
+    subdet_         = 4; 
+    phaseNS_        = 13.0;
+    firstRHSample_  = 3;
+    rhSamplesToAdd_ = 1;
+  }
+  
   if (subdetName_ == "NO") { 
     printf("Please pick a subdetector\n");
      exit(0);
   }
 
   //-----------------------------------------------------
-  // Set up pulse correction
+  // CaloTower Scheme B creation thresholds
   //-----------------------------------------------------
 
-  firstRHSample_          = 4;      // Configured for HBHE for now, may have user input later 
-  rhSamplesToAdd_         = 4;      // Configured for HBHE for now, may have user input later
-  phaseNS_                = 13.0;   // Configured for HBHE for now, may have user input later
+  theHOthreshold0      = 1.1;
+  theHOthresholdPlus1  = 1.1;
+  theHOthresholdMinus1 = 1.1;
+  theHOthresholdPlus2  = 1.1;
+  theHOthresholdMinus2 = 1.1;
+  theHBthreshold       = 0.9;
+  theHF1threshold      = 1.2;
+  theHF2threshold      = 1.8;
+  theHESthreshold      = 1.4;
+  theHEDthreshold      = 1.4;
   
-  pulseCorrectionPtr = std::auto_ptr<HcalPulseContainmentCorrection>(new HcalPulseContainmentCorrection(rhSamplesToAdd_,phaseNS_,MaximumFractionalError_));
+  //-----------------------------------------------------
+  // Set up pulse correction
+  //-----------------------------------------------------
+  
+  if (doRHPulseCorrect_)
+    pulseCorrectionPtr = std::auto_ptr<HcalPulseContainmentCorrection>(new HcalPulseContainmentCorrection(rhSamplesToAdd_,phaseNS_,MaximumFractionalError_));
   
   //-----------------------------------------------------
   // Determine the path for the output
@@ -221,18 +307,38 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
   using namespace std; 
   
   //-----------------------------------------------------
-  // Initialize the Tree values
-  //-----------------------------------------------------
-  
-  m_digiTree.init();
-
-  //-----------------------------------------------------
   // Fill the run and event number information
   //-----------------------------------------------------
 
   int run   = iEvent.id().run();
   int event = iEvent.id().event();  
 
+  //-----------------------------------------------------
+  // If using an event list, only proceed if this event
+  // is on the list
+  //-----------------------------------------------------
+  
+  if (useEventList_){
+    vector<int>::iterator eventItr;
+    eventItr = find(eventList_.begin(),eventList_.end(),event);
+    
+    cout << "Run = " << run << endl;
+
+    if (eventItr == eventList_.end()) {
+      cout << "We DID NOT find " << event << " in our event list" << endl;
+      return;
+    }
+
+    else {
+      cout << "We found " << event << " in our event list!" << endl;
+    }
+  }
+
+  //-----------------------------------------------------
+  // Initialize the Tree values
+  //-----------------------------------------------------
+  
+  m_digiTree.init();
   m_digiTree.run   = run;
   m_digiTree.event = event;
 
@@ -243,327 +349,80 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
   // Get setup information
   //-----------------------------------------------------
   
-  ESHandle<HcalTPGCoder> inputCoder;
-  ESHandle<CaloGeometry> geometry ;
-  ESHandle<HcalDbService> conditions;
-  
-  iSetup.get<HcalTPGRecord>().get(inputCoder);
-  iSetup.get<HcalDbRecord>().get(conditions);
-  iSetup.get<IdealGeometryRecord>().get(geometry);
+  iSetup.get<IdealGeometryRecord>().get(hcalTopology_);
+  iSetup.get<HcalDbRecord>().get(conditions_);
 
   const HcalPulseContainmentCorrection* pulseCorrection = pulseCorrectionPtr.get();
-  const HcalQIEShape* shape = conditions->getHcalShape();
-  CaloSamples tool;
+  const HcalQIEShape* shape = conditions_->getHcalShape();
 
   //-----------------------------------------------------
-  // Declare important values
-  //-----------------------------------------------------
-  
-  char subdetName[5];
-
-  if (subdet_ == 1) sprintf(subdetName,"HB");
-  if (subdet_ == 2) sprintf(subdetName,"HE");
-  if (subdet_ == 3) sprintf(subdetName,"HO");
-  if (subdet_ == 4) sprintf(subdetName,"HF");
-
-  HcalTrigTowerGeometry theTrigTowerGeometry;
-
-  vector<HcalTrigTowerDetId> trigTowerDetIds;
-  HcalTrigTowerDetId trigTowerDetId;
-
-  vector<int> detIdMap;
-
-  int ndigis= 0;
-  int count = 0;
-  int ntptsample;
-  int ntrigprim;
-  int id;
-
-  float fC_amp, GeV_amp, temp_amp;
-  float correction;
-
-  int ieta, iphi, depth;
-
-  int nTrigTowerDetIds;
-  int trigPrimDigiSize;
-  int compressedEt;
-
-  bool foundSpike;
-  bool digiExists;				
-  bool foundDigiBit;
-  
-  typename T::const_iterator ihcal;
-
-  //-----------------------------------------------------
-  // Get handles of digis and trig prims
+  // Loop over calo tower collection
   //-----------------------------------------------------
 
-  Handle < T > hcalDigiCol;  
-  bool hcalDigiTagExists = iEvent.getByLabel(hcalDigiTag_,hcalDigiCol);
-  if (!hcalDigiTagExists){
-    LogWarning("HcalDigiAnalyzer") << "Could not extract HCAL digis!";
-    return;
-  }
-  
-  Handle<HcalTrigPrimDigiCollection> HCALTrigPrimDigis;
-  bool hcalTrigPrimDigiTagExists = iEvent.getByLabel(hcalTrigPrimTag_,HCALTrigPrimDigis);
-  if (!hcalTrigPrimDigiTagExists){
-    LogWarning("HcalDigiAnalyzer") << "Could not extract trigger primitives!";
-    return;
+  int ieta, iphi;
+  int nct = 0;
+
+  bool caloTowerTagExists = iEvent.getByLabel(caloTowerTag_,caloTowerCol_);
+  if (!caloTowerTagExists){
+    LogWarning("HcalDigiAnalyzer") << "Could not extract CaloTowers!";
+  } else {
+    
+    for (CaloTowerCollection::const_iterator ictow  = caloTowerCol_ -> begin();
+	 ictow != caloTowerCol_ -> end();
+	 ictow++){
+      
+      ieta = (int) (*ictow).id().ieta();
+      iphi = (int) (*ictow).id().iphi();
+      
+      m_digiTree.ct_ieta[nct] = ieta;
+      m_digiTree.ct_iphi[nct] = iphi;
+
+      nct++;
+      
+    }
+    
   }
 
+  m_digiTree.nct = nct;
+  
   //-----------------------------------------------------
   // Loop over the digi collections
   //-----------------------------------------------------
 
-  for (ihcal  = hcalDigiCol->begin();
-       ihcal != hcalDigiCol->end();
-       ihcal ++){
+  int ndigis= 0;
+  int count = 0;
 
-    //-----------------------------------------------------
-    // Count the number of digis in this collection
-    //-----------------------------------------------------
+  CaloSamples tool;  
+  typename T::const_iterator ihcal;
+ 
+  bool hcalDigiTagExists = iEvent.getByLabel(hcalDigiTag_,hcalDigiCol_);
+  if (!hcalDigiTagExists){
+    LogWarning("HcalDigiAnalyzer") << "Could not extract HCAL digis!";
+  } else {
 
-    count++;
-
-    //-----------------------------------------------------
-    // Get the detector ID.  We'll need this to get cell
-    // location information.
-    //-----------------------------------------------------
-    
-    HcalDetId cell(ihcal->id()); 
-
-    //-----------------------------------------------------
-    // Make sure this is the right subdetector
-    //-----------------------------------------------------
-
-    if(cell.subdet() == subdet_) {
-
-      ndigis++;
+    for (ihcal  = hcalDigiCol_->begin();
+	 ihcal != hcalDigiCol_->end();
+	 ihcal ++){
             
-      //-----------------------------------------------------
-      // Get cell location information (do not sort)
-      //-----------------------------------------------------
-      
-      id = (int)(*ihcal).id();
-
-      ieta  = cell.ieta();
-      iphi  = cell.iphi();
-      depth = cell.depth();
-
-      m_digiTree.h_depth[count-1] = cell.depth();
-      m_digiTree.h_ieta [count-1] = cell.ieta();
-      m_digiTree.h_iphi [count-1] = cell.iphi();
-      m_digiTree.h_id   [count-1] = (int) id;
-
-      //-----------------------------------------------------
-      // Get digi size information (number of [pre]samples)
-      //-----------------------------------------------------
-      
-      m_digiTree.h_psam [ieta+41][iphi][depth] = (*ihcal).presamples();
-      m_digiTree.h_size [ieta+41][iphi][depth] = (*ihcal).size();
-      
-      //-----------------------------------------------------
-      // Now comes the coding...
-      //-----------------------------------------------------
-      
-      const HcalCalibrations& calibrations = conditions->getHcalCalibrations(cell);
-      const HcalQIECoder* channelCoder = conditions->getHcalCoder(cell);
-      HcalCoderDb coder (*channelCoder, *shape); 
-      coder.adc2fC(*ihcal,tool);
-      
-      //-----------------------------------------------------
-      // Loop over the time samples from this hit
-      //-----------------------------------------------------
-      
-      foundSpike = false;
-
-      fC_amp = 0.0;
-      GeV_amp = 0.0;
-
-      for( int ii=0; ii<tool.size(); ii++ ) { 
-
-	int capid    = (*ihcal)[ii].capid();
-	float ped    = calibrations.pedestal(capid);	
-	float gain   = calibrations.rawgain(capid);  
-	float rcgain = calibrations.respcorrgain(capid);
+      HcalDetId cell(ihcal->id()); 
+            
+      if(cell.subdet() == subdet_) {
+	
+	const HcalCalibrations& calibrations = conditions_->getHcalCalibrations(cell);
+	const HcalQIECoder* channelCoder = conditions_->getHcalCoder(cell);
+	HcalCoderDb coder (*channelCoder, *shape); 
 		
-	//-----------------------------------------------------
-	// Get rec hit amplitude in GeV 
-	// (should agree with rec hit energy)
-	//-----------------------------------------------------
-
-	if ( ii >= firstRHSample_ &&                 
-	     ii <  firstRHSample_ + rhSamplesToAdd_ ){  
-	  
-	  // Subtract fC pedestal from digi
-	  temp_amp = tool[ii] - ped;
-	  
-	  // Store the fC amplitude
-	  fC_amp  += temp_amp;
-
-	  // Convert the fC amplitude to GeV
-	  temp_amp *= rcgain;
-	  
-	  // Store the GeV amplitude
-	  GeV_amp += temp_amp;
-	  
-	}
-
-	m_digiTree.h_adc   [ieta+41][iphi][depth][ii] = (*ihcal)[ii].adc(); 
-	m_digiTree.h_fC    [ieta+41][iphi][depth][ii] = tool[ii];	  
-	m_digiTree.h_ped   [ieta+41][iphi][depth][ii] = ped;
-	m_digiTree.h_gain  [ieta+41][iphi][depth][ii] = gain;
-	m_digiTree.h_rcgain[ieta+41][iphi][depth][ii] = rcgain;
-	m_digiTree.h_capid [ieta+41][iphi][depth][ii] = capid;
-	m_digiTree.h_fiber [ieta+41][iphi][depth][ii] = (*ihcal)[ii].fiber();
-	m_digiTree.h_fchan [ieta+41][iphi][depth][ii] = (*ihcal)[ii].fiberChan();	
-
-	//-----------------------------------------------------
-	// Check for spikes and print out warnings
-	// (must set verbose to 'true' in .cfg file
-	//-----------------------------------------------------
+	analyzeThisDigi(*ihcal, coder, calibrations, pulseCorrection,ndigis);
 	
-	if (scanForSpikes_){	
-	  
-	  if ( (tool[ii] > 25.0 && subdet_ == 4) || 
-	       (tool[ii] > 10.0 && subdet_ == 1) ){
-	    
-	    foundSpike = true;
-	    
-	    if (verbose_){
-	      
-	      printf("%s SPIKE?: %f\n",subdetName,tool[ii]);
-	      printf("  run = %d, event = %d\n",run,event);
-	      printf("  ieta = %d, iphi = %d, depth = %d, ts = %d\n",ieta,iphi,depth,ii);
-	      
-	      if (tool[ii] > 100.0){		
-		
-		printf("%s SPIKE!!!: %f\n",subdetName,tool[ii]);
-		printf("  run = %d, event = %d\n",run,event);
-		printf("  ieta = %d, iphi = %d, depth = %d\n",ieta,iphi,depth);
-	      }	
-	    }
-	  }	    
-	}
-      }
-      
-      //-----------------------------------------------------
-      // Correct for RH amplitude for phase
-      // Store both fC and GeV amplitudes
-      //-----------------------------------------------------
-
-      if (pulseCorrection != 0){
-	correction = pulseCorrection -> getCorrection(fC_amp);
-	GeV_amp *= correction;
-      }
-      else correction = 0.0;
-      
-      m_digiTree.h_correction [ieta+41][iphi][depth] = correction;
-      m_digiTree.h_rh_GeV_amp [ieta+41][iphi][depth] = GeV_amp;
-      m_digiTree.h_rh_fC_amp  [ieta+41][iphi][depth] = fC_amp;
-      
-      //-----------------------------------------------------
-      // Done looping over the time samples...
-      //
-      // If you DID find a spike, get the trigger primitives
-      //-----------------------------------------------------
-      
-      if (foundSpike){
-
-	//-----------------------------------------------------
-	// According to Jeremy Mans, you have to use the
-	// trigger tower geometry to get trig tower det ids.
-	//
-	// There should be no more than 2 trig tower det ids
-	// per HcalDetId (usually only 1, never less than 1)
-	//-----------------------------------------------------
-
-	trigTowerDetIds  = theTrigTowerGeometry.towerIds(cell);
-	nTrigTowerDetIds = trigTowerDetIds.size();
-
-	assert(nTrigTowerDetIds == 1 || nTrigTowerDetIds == 2 );
-
-	//-----------------------------------------------------
-	// Loop over the trigger primitive det id(s) we found
-	//-----------------------------------------------------
-
-	ntrigprim = 0;
-
-	for (int iTrigTowerDetId = 0; iTrigTowerDetId < nTrigTowerDetIds; iTrigTowerDetId++){
-
-	  //-----------------------------------------------------
-	  // Get the trigger primitive id
-	  //-----------------------------------------------------
-
-	  trigTowerDetId = trigTowerDetIds[iTrigTowerDetId];
-
-	  HcalTrigPrimDigiCollection::const_iterator iTrigPrimDigi = (*HCALTrigPrimDigis).find(trigTowerDetId);
-
-	  //-----------------------------------------------------
-	  // Did we find the trig prim digi?
-	  // SortedCollections return end() if they can't find
-	  // the item you're looking for...
-	  //-----------------------------------------------------
-
-	  digiExists = true;
-	  if (iTrigPrimDigi == (*HCALTrigPrimDigis).end()) digiExists = false;
-
-	  //-----------------------------------------------------
-	  // If the trig prim digi exists (and it should), 
-	  // loop over the time samples
-	  //-----------------------------------------------------
-
-	  ntptsample = 0;
-	  
-	  if (digiExists){
-	    
-	    foundDigiBit = 1;
-	    
-	    trigPrimDigiSize = (int) (*iTrigPrimDigi).size();
-	    
-	    m_digiTree.t_size  [ieta+41][iphi][depth][ntrigprim] = trigPrimDigiSize;  
-	    m_digiTree.t_psam  [ieta+41][iphi][depth][ntrigprim] = (*iTrigPrimDigi).presamples();
-	    m_digiTree.t_ieta  [ieta+41][iphi][depth][ntrigprim] = (int) trigTowerDetId.ieta();
-	    m_digiTree.t_iphi  [ieta+41][iphi][depth][ntrigprim] = (int) trigTowerDetId.iphi();
-	    m_digiTree.t_subdet[ieta+41][iphi][depth][ntrigprim] = (int) trigTowerDetId.subdet();	    
-	    
-	    for (int iTrigPrimSample = 0; iTrigPrimSample < trigPrimDigiSize; iTrigPrimSample++){
-	      
-	      HcalTriggerPrimitiveSample trigPrimSample = (*iTrigPrimDigi)[iTrigPrimSample];
-	      
-	      compressedEt = (int) trigPrimSample.compressedEt();
-	      
-	      m_digiTree.t_cET[ieta+41][iphi][depth][ntrigprim][ntptsample] = (int) compressedEt;
-	      
-	      ntptsample++;
-	      
-	    }
-	  }
-
-	  if (!digiExists){
-	    foundDigiBit = 0;
-	    printTrigPrimError(trigTowerDetId,cell,nTrigTowerDetIds,ntrigprim);
-	  }
-	  
-	  m_digiTree.t_found [ieta+41][iphi][depth][ntrigprim] = foundDigiBit;		
-	  m_digiTree.t_ntpts [ieta+41][iphi][depth][ntrigprim] = ntptsample;
-	  ntrigprim++;
-
-	}
-	
-	m_digiTree.t_spike[ieta+41][iphi][depth] = 1;
-	m_digiTree.t_ntp  [ieta+41][iphi][depth] = ntrigprim;
+	ndigis++;
 	
       }
       
-      else {
-	m_digiTree.t_spike[ieta+41][iphi][depth] = 0;
-	m_digiTree.t_ntp  [ieta+41][iphi][depth] = 0;
-      }
+      count++;
+      
     }
   }
-    
+  
   m_digiTree.nchn = count;
   m_digiTree.nhit = ndigis;
   
@@ -571,34 +430,193 @@ void HcalDigiAnalyzer<T>::analyze(const edm::Event& iEvent, const edm::EventSetu
 
 }
 
-template < typename T >
-void HcalDigiAnalyzer<T>::printTrigPrimError
-(HcalTrigTowerDetId trigTowerDetId,HcalDetId cell, int nTrigTowerDetIds, int ntrigprim){
+template <typename T>
+template <class Digi>
+void HcalDigiAnalyzer<T>::analyzeThisDigi(Digi& digi, 
+						 const HcalCoder& coder, const HcalCalibrations& calibrations,
+						 const HcalPulseContainmentCorrection *corr, int count
+						 ){  
 
-  printf("***NO TRIG PRIM DIGI FOUND!!!***\n");
-  printf("  We expected %d digis.\n",nTrigTowerDetIds);
-  printf("  We did not find digi #%d\n",ntrigprim+1);
-  printf("-----------------------------------------\n");
-  printf("  Trig prim id had:\n");
-  printf("    subdet = %d\n",trigTowerDetId.subdet());
-  printf("    zside  = %d\n",trigTowerDetId.zside());
-  printf("    ieta   = %d\n",trigTowerDetId.ieta());
-  printf("    |ieta| = %d\n",trigTowerDetId.ietaAbs());
-  printf("    iphi   = %d\n",trigTowerDetId.iphi());
-  printf("-----------------------------------------\n");
-  printf("  Hcal det id had:\n");
-  printf("    subdet = %d\n",cell.subdet());
-  printf("    zside  = %d\n",cell.zside());
-  printf("    ieta   = %d\n",cell.ieta());
-  printf("    |ieta| = %d\n",cell.ietaAbs());
-  printf("    iphi   = %d\n",cell.iphi());
-  printf("-----------------------------------------\n");
+  //-----------------------------------------------------
+  // Declare useful values
+  //-----------------------------------------------------
   
+  float signal;
+  float amplitudeInFC  = 0.0;
+  float amplitudeInGeV = 0.0;
+  float correction;
+  
+  //-----------------------------------------------------
+  // Get cell location information (do not sort)
+  //-----------------------------------------------------
+  
+  HcalDetId cell(digi.id());
+  
+  int id    = (int) digi.id();    
+  int ieta  = (int) cell.ieta();
+  int iphi  = (int) cell.iphi();
+  int depth = (int) cell.depth();
+
+  m_digiTree.h_depth[count] = depth;
+  m_digiTree.h_ieta [count] = ieta;
+  m_digiTree.h_iphi [count] = iphi;
+  m_digiTree.h_id   [count] = id;
+  
+  bool validID = HcalDetId::validDetId((HcalSubdetector)(subdet_),ieta,iphi,depth);
+  if (!validID) {
+    std::cout << "Invalid HCAL detector ID: subdetector = " << subdet_ << ", ieta = " << ieta << ", iphi = " << iphi << ", depth = " << depth << std::endl;
+  }
+  
+  //-----------------------------------------------------
+  // Declare a CaloSamples object (fC time samples),
+  // and fill it
+  //-----------------------------------------------------
+  
+  CaloSamples tool;
+  coder.adc2fC(digi,tool);
+
+  //-----------------------------------------------------
+  // Get digi size information (number of [pre]samples)
+  //-----------------------------------------------------
+      
+  m_digiTree.h_psam [ieta+41][iphi][depth] = digi.presamples();
+  m_digiTree.h_size [ieta+41][iphi][depth] = digi.size();
+  
+  //-----------------------------------------------------
+  // Loop over the time samples from this CaloSample
+  //-----------------------------------------------------
+  
+  for( int ii=0; ii<tool.size(); ii++ ) { 
+    
+    int   capid  = (int)   digi[ii].capid();
+    float ped    = (float) calibrations.pedestal(capid);	
+    float gain   = (float) calibrations.rawgain(capid);  
+    float rcgain = (float) calibrations.respcorrgain(capid);
+    float fC     = (float) tool[ii];
+    int   adc    = (int)   digi[ii].adc();
+
+    m_digiTree.h_adc   [ieta+41][iphi][depth][ii] = adc;
+    m_digiTree.h_fC    [ieta+41][iphi][depth][ii] = fC;
+    m_digiTree.h_ped   [ieta+41][iphi][depth][ii] = ped;
+    m_digiTree.h_gain  [ieta+41][iphi][depth][ii] = gain;
+    m_digiTree.h_rcgain[ieta+41][iphi][depth][ii] = rcgain;
+    m_digiTree.h_capid [ieta+41][iphi][depth][ii] = capid;
+    m_digiTree.h_fiber [ieta+41][iphi][depth][ii] = digi[ii].fiber();
+    m_digiTree.h_fchan [ieta+41][iphi][depth][ii] = digi[ii].fiberChan();	
+    
+    //-----------------------------------------------------
+    // Calculate the amplitude for this digi
+    //-----------------------------------------------------
+
+    if ( ii >= firstRHSample_ && ii < firstRHSample_ + rhSamplesToAdd_){
+      signal          = fC - ped; // Pedestal subtraction
+      amplitudeInFC  += signal;   // Calculate fC amplitude
+      signal         *= rcgain;   // Convert from fC to GeV
+      amplitudeInGeV += signal;   // Calculate GeV amplitude
+    }            
+  } // end loop over time samples 
+  
+  if (corr!=0 && doRHPulseCorrect_) {
+    correction = corr->getCorrection(amplitudeInFC);
+    amplitudeInGeV *= correction;
+  }
+  else correction = 0.0;
+
+  float threshold = getThreshold(cell); 
+  if (threshold == -999){
+    std::cout << "WARNING: Could not extract a threshold for this tower" << std::endl;
+  }
+
+  m_digiTree.h_correction [ieta+41][iphi][depth] = correction;
+  m_digiTree.h_rh_GeV_amp [ieta+41][iphi][depth] = amplitudeInGeV;
+  m_digiTree.h_rh_fC_amp  [ieta+41][iphi][depth] = amplitudeInFC;
+  m_digiTree.h_threshold  [ieta+41][iphi][depth] = threshold;
+  
+}
+
+template < typename T >
+float HcalDigiAnalyzer<T>::getThreshold(HcalDetId & hcalDetId){
+    
+  float threshold = -999;
+
+  HcalSubdetector subdet = hcalDetId.subdet();
+  
+  if(subdet == HcalBarrel) {
+    threshold = theHBthreshold;
+  }
+  
+  else if(subdet == HcalEndcap) {
+    // check if it's single or double tower
+    if(hcalDetId.ietaAbs() < hcalTopology_->firstHEDoublePhiRing()) {
+      threshold = theHESthreshold;
+    }
+    else {
+      threshold = theHEDthreshold;
+    }
+  }
+  
+  else if(subdet == HcalOuter) {
+    //check if it's ring 0 or +1 or +2 or -1 or -2
+    if(hcalDetId.ietaAbs() <= 4) threshold = theHOthreshold0;
+    else if(hcalDetId.ieta() < 0) {
+      // set threshold for ring -1 or -2
+      threshold = (hcalDetId.ietaAbs() <= 10) ?  theHOthresholdMinus1 : theHOthresholdMinus2;
+    } else {
+      // set threshold for ring +1 or +2
+      threshold = (hcalDetId.ietaAbs() <= 10) ?  theHOthresholdPlus1 : theHOthresholdPlus2;
+    }
+  } 
+  
+  else if(subdet == HcalForward) {
+    if(hcalDetId.depth() == 1) {
+      threshold = theHF1threshold;
+    } else {
+      threshold = theHF2threshold;
+    }
+  }
+  
+  return threshold;
+  
+}
+
+template < typename T >
+void HcalDigiAnalyzer<T>::readEventList(){
+
+  FILE *file;
+
+  const char *eventListFile = eventListFile_.c_str();
+
+  file = fopen(eventListFile,"r");
+  
+  if (file == NULL){
+    std::cout << "There is not file with the name: " << std::endl;
+    std::cout << eventListFile_ << std::endl;
+    exit(0);
+  }
+  
+  int  rowNumber, run, event;
+  char runString  [100];
+  char eventString[100];
+  
+  while (true){
+
+    int output = fscanf(file,"%d %s %d %s %d",&rowNumber,runString,&run, eventString, &event);    
+    if (output == EOF) break;   
+    
+    eventList_.push_back(event);
+
+  }
+  
+  fclose (file);
 
 }
 
 template < typename T >
-void HcalDigiAnalyzer<T>::beginJob(const edm::EventSetup&){}
+void HcalDigiAnalyzer<T>::beginJob(const edm::EventSetup&){
+  
+  if (useEventList_) readEventList();
+
+}
 
 template < typename T >
 void HcalDigiAnalyzer<T>::endJob() 

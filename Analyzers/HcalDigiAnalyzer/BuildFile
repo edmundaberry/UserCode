@@ -16,7 +16,6 @@
 <export>
    <lib name=AnalyzersHcalDigiAnalyzer> 
    <use name=FWCore/Framework>
-   <use name=Foundation/PluginManager>
    <use name=FWCore/ParameterSet>
    <use name=Geometry/CaloEventSetup>
    <use name=CalibFormats/HcalObjects>

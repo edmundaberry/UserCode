@@ -12,6 +12,7 @@ class DigiTree
       enum { MAX_IETA  = 83   };
       enum { MAX_IPHI  = 73   };
       enum { MAX_DEPTH = 4    };
+      enum { MAX_NCT   = 5000 };
 
       DigiTree();
       virtual ~DigiTree();
@@ -19,11 +20,12 @@ class DigiTree
       // Public member data
       int run;
       int event;
-      int nint;
 
       // Information about digi hits
       int   nchn;
       int   nhit;
+      int   nct;
+
       int   h_id    [MAXNHITS];
       int   h_depth [MAXNHITS];
       int   h_iphi  [MAXNHITS];
@@ -34,6 +36,7 @@ class DigiTree
       float h_rh_GeV_amp [MAX_IETA][MAX_IPHI][MAX_DEPTH];
       float h_rh_fC_amp  [MAX_IETA][MAX_IPHI][MAX_DEPTH];
       float h_correction [MAX_IETA][MAX_IPHI][MAX_DEPTH];
+      float h_threshold  [MAX_IETA][MAX_IPHI][MAX_DEPTH];
       int   h_adc   [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
       float h_fC    [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
       float h_ped   [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
@@ -54,14 +57,22 @@ class DigiTree
       int   t_psam  [MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP];
       int   t_ntpts [MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP];
       int   t_cET   [MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP][NQIE];
+      
+      int   ct_ieta [MAX_NCT];
+      int   ct_iphi [MAX_NCT];
 
       void init(){
 
 	run   = -999;
 	event = -999;
-	nint  = -999;
 	nchn  = -999;
 	nhit  = -999;
+	nct   = -999;
+
+	for (int i = 0; i < MAX_NCT; i++){
+	  ct_ieta[i] = -999;
+	  ct_iphi[i] = -999;
+	}
 	
 	for (int i = 0; i < MAXNHITS; i++){
 
@@ -76,6 +87,7 @@ class DigiTree
 	  for (int iphi = 0; iphi < MAX_IPHI; iphi++){
 	    for (int depth = 0; depth < MAX_DEPTH; depth++){
 	      
+	      h_threshold  [ieta][iphi][depth] = -999.0;
 	      h_correction [ieta][iphi][depth] = -999.0;
 	      h_rh_GeV_amp [ieta][iphi][depth] = -999.0;
 	      h_rh_fC_amp  [ieta][iphi][depth] = -999.0;

@@ -15,7 +15,6 @@
    <use name=SimDataFormats/CrossingFrame>
    <use name=SimCalorimetry/HcalSimAlgos>
    <use name=FWCore/Framework>
-   <use name=Foundation/PluginManager>
    <use name=FWCore/ParameterSet>
    <use name=CalibFormats/HcalObjects>
 </library>

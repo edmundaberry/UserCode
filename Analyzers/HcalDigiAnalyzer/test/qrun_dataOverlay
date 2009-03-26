@@ -95,24 +95,11 @@ process OVERLAY = {
 
 	include "FWCore/MessageService/data/MessageLogger.cfi"
 
-	include "Configuration/StandardSequences/data/Services.cff"
-	include "Configuration/StandardSequences/data/Geometry.cff"
-	include "Configuration/StandardSequences/data/MagneticField.cff"
-	include "Configuration/StandardSequences/data/Generator.cff"
-	include "Configuration/StandardSequences/data/Simulation.cff"
-        include "Configuration/StandardSequences/data/L1Emulator.cff" 
-	include "Configuration/StandardSequences/data/DigiToRaw.cff"
-	include "Configuration/StandardSequences/data/VtxSmearedBetafuncEarlyCollision.cff"
-	include "Configuration/StandardSequences/data/Reconstruction.cff"      
-	include "Configuration/StandardSequences/data/FakeConditions.cff"
-        include "Configuration/StandardSequences/data/MixingNoPileUp.cff" 
-	include "Configuration/Generator/data/PythiaUESettings.cfi"
-
 	##-----------------------------------------------------------
 	## Latest HCAL configuration file
 	##-----------------------------------------------------------
 	
-	include "Analyzers/DijetAnalyzer/data/RecommendedHcalConditions.cff"
+	
 	
 	##-----------------------------------------------------------
 	## Set random seeds

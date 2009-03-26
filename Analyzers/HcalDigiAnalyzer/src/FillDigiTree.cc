@@ -20,9 +20,12 @@ FillDigiTree::init(std::string filename, DigiTree* treePtr) {
    
    m_tree->Branch("run",        &(m_treePtr->run),        "run/I");
    m_tree->Branch("event",      &(m_treePtr->event),      "event/I");
-   m_tree->Branch("nint",       &(m_treePtr->nint),       "nint/I");
    m_tree->Branch("nchn",       &(m_treePtr->nchn),       "nchn/I");
    m_tree->Branch("nhit",       &(m_treePtr->nhit),       "nhit/I");
+   m_tree->Branch("nct",        &(m_treePtr->nct),        "nct/I");
+
+   m_tree->Branch("ct_ieta",     &(m_treePtr->ct_ieta),    "ct_ieta[nct]/I");
+   m_tree->Branch("ct_iphi",     &(m_treePtr->ct_iphi),    "ct_iphi[nct]/I");
 
    m_tree->Branch("h_id",       &(m_treePtr->h_id),       "h_id    [nhit]/I");
    m_tree->Branch("h_depth",    &(m_treePtr->h_depth),    "h_depth [nhit]/I");
@@ -41,6 +44,7 @@ FillDigiTree::init(std::string filename, DigiTree* treePtr) {
    m_tree->Branch("h_gain",     &(m_treePtr->h_gain),     "h_gain  [83][73][4][10]/F");
    m_tree->Branch("h_rcgain",   &(m_treePtr->h_rcgain),   "h_rcgain[83][73][4][10]/F");
 
+   m_tree->Branch("h_threshold", &(m_treePtr->h_threshold), "h_threshold[83][73][4]/F");
    m_tree->Branch("h_correction",&(m_treePtr->h_correction),"h_correction[83][73][4]/F");
    m_tree->Branch("h_rh_GeV_amp",&(m_treePtr->h_rh_GeV_amp),"h_rh_GeV_amp[83][73][4]/F");
    m_tree->Branch("h_rh_fC_amp", &(m_treePtr->h_rh_fC_amp), "h_rh_fC_amp[83][73][4]/F");
