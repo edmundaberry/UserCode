@@ -7,7 +7,7 @@
 #include "SimCalorimetry/CaloSimAlgos/interface/CaloShapeIntegrator.h"
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
-#include "Geometry/Records/interface/IdealGeometryRecord.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "CalibFormats/HcalObjects/interface/HcalDbService.h"
 #include "CalibFormats/HcalObjects/interface/HcalDbRecord.h"
 #include "SimDataFormats/CrossingFrame/interface/CrossingFrame.h"
@@ -31,6 +31,9 @@ HcalDigiProducer::HcalDigiProducer(const edm::ParameterSet& ps) :
   theHFResponse(new CaloHitResponse(theParameterMap, theHFIntegratedShape)),
   theZDCResponse(new CaloHitResponse(theParameterMap, theZDCIntegratedShape)),
   theAmplifier(0),
+  theHBHEHitFilter(),
+  theHFHitFilter(true),
+  theHOHitFilter(),
   theCoderFactory(0),
   theElectronicsSim(0),
   theHitCorrection(0),
@@ -145,11 +148,11 @@ void HcalDigiProducer::produce(edm::Event& e, const edm::EventSetup& eventSetup)
   
   // get the correct geometry
   checkGeometry(eventSetup);
-  
+
   // Step A: Get Inputs
   edm::Handle<CrossingFrame<PCaloHit> > cf, zdccf;
-  e.getByLabel("mix", "HcalHits",cf);
-  e.getByLabel("mix", "ZDCHITS", zdccf);
+  e.getByLabel("mix", "g4SimHitsHcalHits",cf);
+  e.getByLabel("mix", "g4SimHitsZDCHITS", zdccf);
 
   // test access to SimHits for HcalHits and ZDC hits
   std::auto_ptr<MixCollection<PCaloHit> > col(new MixCollection<PCaloHit>(cf.product()));
@@ -191,7 +194,7 @@ void HcalDigiProducer::produce(edm::Event& e, const edm::EventSetup& eventSetup)
     theHFDigitizer->run(*col, *hfResult);
     if(doZDC) {
       //theZDCDigitizer->run(*colzdc, *zdcResult);
-    }
+     }
   }
     
   edm::LogInfo("HcalDigiProducer") << "HCAL HBHE digis : " << hbheResult->size();
@@ -210,8 +213,9 @@ void HcalDigiProducer::produce(edm::Event& e, const edm::EventSetup& eventSetup)
 
 void HcalDigiProducer::checkGeometry(const edm::EventSetup & eventSetup) {
   // TODO find a way to avoid doing this every event
+
   edm::ESHandle<CaloGeometry> geometry;
-  eventSetup.get<IdealGeometryRecord>().get(geometry);
+  eventSetup.get<CaloGeometryRecord>().get(geometry);
   theHBHEResponse->setGeometry(&*geometry);
   theHOResponse->setGeometry(&*geometry);
   theHFResponse->setGeometry(&*geometry);

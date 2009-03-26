@@ -13,7 +13,8 @@
 #include "TChain.h"
 #include "TDirectory.h"
 #include "TROOT.h"
- 
+
+#include <math.h>
 #include<iostream>
 
 HcalAmplifier::HcalAmplifier(const CaloVSimParameterMap * parameters, bool addNoise):
@@ -69,6 +70,10 @@ void HcalAmplifier::readTree(){
 
   const int maxNumChannels   = 2592; // Number of channels   in HB/HE (more than HF)
   const int maxNumTimeSlices = 10;   // Number of timeslices in HB/HE (more than HF)
+  const int maxNumIetaValues = 83;
+  const int maxNumIphiValues = 73;		
+  const int maxNumDepthValues = 4;
+  
 
   for (int iSubdet = 1; iSubdet < 5; iSubdet++){
     for (int tempIeta = 0; tempIeta < 83; tempIeta++){
@@ -77,12 +82,12 @@ void HcalAmplifier::readTree(){
 	  haveDataForThisChannel_[iSubdet][tempIeta][tempIphi][tempDepth] = false;
 	}}}}
   
-  float h_fC   [maxNumChannels][maxNumTimeSlices];
+  float h_fC   [maxNumIetaValues][maxNumIphiValues][maxNumDepthValues][maxNumTimeSlices];
   int   h_ieta [maxNumChannels];
   int   h_iphi [maxNumChannels];
   int   h_depth[maxNumChannels];  
   int   nhit;
-  
+
   float tempNoise;
   int tempIeta, tempIphi, tempDepth,  nEvent;
 
@@ -92,12 +97,12 @@ void HcalAmplifier::readTree(){
 
   TChain chainArray[5];
   char fileNameArray[5][200];
-  
+
   TString hbTString = TString(hbFile_); sprintf(fileNameArray[1],"%s/dqmtree",hbTString.Data());
   TString heTString = TString(heFile_);	sprintf(fileNameArray[2],"%s/dqmtree",heTString.Data());
   TString hoTString = TString(hoFile_);	sprintf(fileNameArray[3],"%s/dqmtree",hoTString.Data());
   TString hfTString = TString(hfFile_);	sprintf(fileNameArray[4],"%s/dqmtree",hfTString.Data());
-			
+  
   for (int iSubdet = 1; iSubdet < 5; iSubdet++)
     chainArray[iSubdet].Add(fileNameArray[iSubdet]);
   
@@ -139,17 +144,16 @@ void HcalAmplifier::readTree(){
     //------------------------------------------------------
 
     for (int iCHN = 0; iCHN < nhit; iCHN++){
-	
+
       tempIeta  =  h_ieta [iCHN];
       tempIeta  += 41;
       tempIphi  =  h_iphi [iCHN];
       tempDepth =  h_depth[iCHN];
 
       haveDataForThisChannel_[iSubdet][tempIeta][tempIphi][tempDepth] = true;
-      
       for (int iTS = 0; iTS < 10; iTS++){
 	
-	tempNoise =  h_fC[iCHN][iTS];
+	tempNoise =  h_fC[tempIeta][tempIphi][tempDepth][iTS];
 	noiseArray_[iSubdet][tempIeta][tempIphi][tempDepth][iTS] = tempNoise;
 	
       } 
@@ -206,22 +210,29 @@ void HcalAmplifier::amplify(CaloSamples & frame) const {
   const CaloSimParameters & parameters = theParameterMap->simParameters(frame.id());
   assert(theDbService != 0);
   HcalGenericDetId hcalGenDetId(frame.id());
-  const HcalPedestal* peds = theDbService->getPedestal(hcalGenDetId);
-  const HcalPedestalWidth* pwidths = theDbService->getPedestalWidth(hcalGenDetId);
-  if (!peds || !pwidths )
-  {
+  //const HcalPedestal* peds = theDbService->getPedestal(hcalGenDetId);
+  //const HcalPedestalWidth* pwidths = theDbService->getPedestalWidth(hcalGenDetId);
+  
+  const HcalCalibrationWidths& calibWidths = theDbService->getHcalCalibrationWidths(hcalGenDetId);
+  const HcalCalibrations& calibs = theDbService->getHcalCalibrations(hcalGenDetId);
+
+  /*
+  if (!peds || !pwidths ) {
     edm::LogError("HcalAmplifier") << "Could not fetch HCAL conditions for channel " << hcalGenDetId;
   }
+  */
 
   double gauss [32]; //big enough
   double noise [32]; //big enough
   double fCperPE = parameters.photoelectronsToAnalog(frame.id());
 
   for (int i = 0; i < frame.size(); i++) gauss[i] = theRandGaussQ->fire(0., 1.);
-  pwidths->makeNoise (frame.size(), gauss, noise);
+  
+  makeNoise (calibWidths, frame.size() , gauss, noise);
+  
   for(int tbin = 0; tbin < frame.size(); ++tbin) {
     int capId = (theStartingCapId + tbin)%4;
-    double pedestal = peds->getValue (capId);
+    double pedestal = calibs.pedestal(capId);
     if(addNoise_) {
       pedestal += noise [tbin];
     }
@@ -231,5 +242,35 @@ void HcalAmplifier::amplify(CaloSamples & frame) const {
   LogDebug("HcalAmplifier") << frame;
 }
 
+void HcalAmplifier::makeNoise (const HcalCalibrationWidths& width, int fFrames, double* fGauss, double* fNoise) const {
+
+  // This is a simplified noise generation scheme using only the diagonal elements
+  // (proposed by Salavat Abduline).
+  // This is direct adaptation of the code in HcalPedestalWidth.cc
+  
+  // average over capId's
+  double s_xx_mean =  0.25 * (width.pedestal(0)*width.pedestal(0) + 
+                              width.pedestal(1)*width.pedestal(1) + 
+                              width.pedestal(2)*width.pedestal(2) + 
+                              width.pedestal(3)*width.pedestal(3));
+
+
+  // Off-diagonal element approximation
+  // In principle should come from averaging the values of elements (0.1), (1,2), (2,3), (3,0)
+  // For now use the definition below (but keep structure of the code structure for development) 
+  double s_xy_mean = -0.5 * s_xx_mean;
+
+  double term  = s_xx_mean*s_xx_mean - 2.*s_xy_mean*s_xy_mean;
+
+  if (term < 0.) term = 1.e-50 ;
+  double sigma = sqrt (0.5 * (s_xx_mean + sqrt(term)));
+  double corr = sigma == 0. ? 0. : 0.5*s_xy_mean / sigma;
+
+  for (int i = 0; i < fFrames; i++) {
+    fNoise [i] = fGauss[i]*sigma;
+    if (i > 0) fNoise [i] += fGauss[i-1]*corr;
+    if (i < fFrames-1) fNoise [i] += fGauss[i+1]*corr;
+  }
+}
 
 

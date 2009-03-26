@@ -1,6 +1,7 @@
 #ifndef HcalSimAlgos_HcalAmplifier_h
 #define HcalSimAlgos_HcalAmplifier_h
-  
+
+#include "CalibFormats/HcalObjects/interface/HcalCalibrationWidths.h"
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "CalibFormats/CaloObjects/interface/CaloSamples.h"
 #include "SimCalorimetry/CaloSimAlgos/interface/CaloVSimParameterMap.h"
@@ -32,7 +33,9 @@ public:
   void setRandomEngine(CLHEP::HepRandomEngine & engine);
   
   virtual void amplify(CaloSamples & linearFrame) const;
-  
+
+  void makeNoise (const HcalCalibrationWidths& width, int fFrames, double* fGauss, double* fNoise) const;
+
 
   void setStartingCapId(int capId) {theStartingCapId = capId;}
 
