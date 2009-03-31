@@ -56,11 +56,12 @@
 #include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
 #include "Geometry/HcalTowerAlgo/src/HcalHardcodeGeometryData.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "Geometry/Records/interface/IdealGeometryRecord.h"
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 
 #include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
-#include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
+//#include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "SimDataFormats/CrossingFrame/interface/CrossingFrame.h"
 #include "SimDataFormats/CrossingFrame/interface/MixCollection.h"
 #include "SimCalorimetry/HcalSimAlgos/interface/HcalSimParameterMap.h"
@@ -461,12 +462,7 @@ void HcalDigiAnalyzer<T>::analyzeThisDigi(Digi& digi,
   m_digiTree.h_ieta [count] = ieta;
   m_digiTree.h_iphi [count] = iphi;
   m_digiTree.h_id   [count] = id;
-  
-  bool validID = HcalDetId::validDetId((HcalSubdetector)(subdet_),ieta,iphi,depth);
-  if (!validID) {
-    std::cout << "Invalid HCAL detector ID: subdetector = " << subdet_ << ", ieta = " << ieta << ", iphi = " << iphi << ", depth = " << depth << std::endl;
-  }
-  
+    
   //-----------------------------------------------------
   // Declare a CaloSamples object (fC time samples),
   // and fill it
@@ -513,7 +509,7 @@ void HcalDigiAnalyzer<T>::analyzeThisDigi(Digi& digi,
       amplitudeInFC  += signal;   // Calculate fC amplitude
       signal         *= rcgain;   // Convert from fC to GeV
       amplitudeInGeV += signal;   // Calculate GeV amplitude
-    }            
+    } 
   } // end loop over time samples 
   
   if (corr!=0 && doRHPulseCorrect_) {

@@ -11,7 +11,7 @@ class DigiTree
       enum { NQIE      = 10   };
       enum { MAX_IETA  = 83   };
       enum { MAX_IPHI  = 73   };
-      enum { MAX_DEPTH = 4    };
+      enum { MAX_DEPTH = 6    };
       enum { MAX_NCT   = 5000 };
 
       DigiTree();
