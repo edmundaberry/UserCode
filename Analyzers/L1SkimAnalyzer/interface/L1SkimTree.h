@@ -6,14 +6,18 @@ class L1SkimTree
       
    public:
       
-      enum {MAXNCALOEM    = 200};
-      enum {MAXNGENJETS   = 100};
-      enum {MAXNHLTJETS   = 100};
-      enum {MAXNHLTJTOWERS= 100};
-      enum {MAXNGCTHT     = 12 };
-      enum {MAXNL1CENJET  = 12 };
-      enum {MAXNL1FORJET  = 12 }; 
-      enum {MAXNL1TAUJET  = 12 };
+      enum {MAXNCALOEM      = 200};
+      enum {MAXNGENJETS     = 100};
+      enum {MAXNHLTJETS     = 100};
+      enum {MAXNHLTCORJETS  = 100};
+      enum {MAXNHLTJTOWERS  = 100};
+      enum {MAXNHLTCJTOWERS = 100};
+      enum {MAXNRECOJETS    = 100};
+      enum {MAXNRECOJTOWERS = 100};
+      enum {MAXNGCTHT       = 12 };
+      enum {MAXNL1CENJET    = 12 };
+      enum {MAXNL1FORJET    = 12 }; 
+      enum {MAXNL1TAUJET    = 12 };
       
       L1SkimTree();
       virtual ~L1SkimTree();
@@ -23,6 +27,8 @@ class L1SkimTree
       
       int   nGenJets;
       int   nHLTJetCands;					 
+      int   nHLTCorJetCands;					 
+      int   nRecoJetCands;					 
       int   nL1GctEtHads;
       int   nL1CenJet;
       int   nL1TauJet;
@@ -61,11 +67,19 @@ class L1SkimTree
       int   l1ForJet_capBlock  [MAXNL1FORJET];
       int   l1ForJet_capIndex  [MAXNL1FORJET];
       int   l1ForJet_bx        [MAXNL1FORJET];
-      int   l1ForJet_rank      [MAXNL1FORJET];
-      
+      int   l1ForJet_rank      [MAXNL1FORJET];      
+
+      int nRecoJetTowers       [MAXNRECOJETS];		 
+      int recoJetTower_ieta    [MAXNRECOJETS][MAXNRECOJTOWERS];
+      int recoJetTower_iphi    [MAXNRECOJETS][MAXNRECOJTOWERS];
+
       int nHLTJetTowers        [MAXNHLTJETS];		 
       int hltJetTower_ieta     [MAXNHLTJETS][MAXNHLTJTOWERS];
       int hltJetTower_iphi     [MAXNHLTJETS][MAXNHLTJTOWERS];
+      
+      int nHLTCorJetTowers     [MAXNHLTCORJETS];		 
+      int hltCorJetTower_ieta  [MAXNHLTCORJETS][MAXNHLTCJTOWERS];
+      int hltCorJetTower_iphi  [MAXNHLTCORJETS][MAXNHLTCJTOWERS];
 
       float genJet_p           [MAXNGENJETS];
       float genJet_px 	       [MAXNGENJETS];
@@ -121,31 +135,46 @@ class L1SkimTree
       float hltJet_et          [MAXNHLTJETS];		 
       float hltJet_phi         [MAXNHLTJETS];		 
       float hltJet_eta         [MAXNHLTJETS];		 	                                               
+
+      float hltCorHT;
+      
+      float hltCorJet_pt       [MAXNHLTCORJETS];		 
+      float hltCorJet_et       [MAXNHLTCORJETS];		 
+      float hltCorJet_phi      [MAXNHLTCORJETS];		 
+      float hltCorJet_eta      [MAXNHLTCORJETS];		 	                                               
+
+      float recoHT;
+
+      float recoJet_pt         [MAXNRECOJETS];		 
+      float recoJet_et         [MAXNRECOJETS];		 
+      float recoJet_phi        [MAXNRECOJETS];		 
+      float recoJet_eta        [MAXNRECOJETS];		 	                                               
       
       void init (){
 	 
-	 run            = -999;
-	 event          = -999;
-	 
-	 nGenJets       = -999;
-	 nL1GctEtHads   = -999;
-	 nHLTJetCands   = -999;
-	 nL1CenJet      = -999;
-	 nL1TauJet      = -999;
-	 nL1ForJet      = -999;
-	 
-	 l1_SingleJet15 = -999;
-	 l1_SingleJet20 = -999;
-	 l1_SingleJet30 = -999;
-	 l1_SingleJet50 = -999;
-	 
-	 l1_HTT100      = -999;
-	 l1_HTT200      = -999;
-	 l1_HTT300      = -999;
-	 l1_HTT400      = -999;
-	 l1_HTT500      = -999;
-
-	 hltHT          = -999.0;
+	 run             = -999;
+	 event           = -999;
+	 		 
+	 nGenJets        = -999;
+	 nL1GctEtHads    = -999;
+	 nHLTJetCands    = -999;
+	 nHLTCorJetCands = -999;
+	 nL1CenJet       = -999;
+	 nL1TauJet       = -999;
+	 nL1ForJet       = -999;
+	 		 
+	 l1_SingleJet15  = -999;
+	 l1_SingleJet20  = -999;
+	 l1_SingleJet30  = -999;
+	 l1_SingleJet50  = -999;
+	 		 
+	 l1_HTT100       = -999;
+	 l1_HTT200       = -999;
+	 l1_HTT300       = -999;
+	 l1_HTT400       = -999;
+	 l1_HTT500       = -999;
+			 
+	 hltHT           = -999.0;
 
 	 for (int i = 0; i < MAXNGENJETS; i++){
 
@@ -252,6 +281,39 @@ class L1SkimTree
 	       
 	       hltJetTower_ieta [i][j] = -999;  
 	       hltJetTower_iphi [i][j] = -999;
+	
+	    }
+	 }
+
+	 for (int i = 0; i < MAXNRECOJETS; i++){
+	    
+	    recoJet_pt          [i] = -999.0;
+	    recoJet_et          [i] = -999.0;
+	    recoJet_phi         [i] = -999.0;
+	    recoJet_eta         [i] = -999.0;
+	    nRecoJetTowers      [i] = -999;
+	    
+	    for (int j = 0; j < MAXNRECOJTOWERS; j++){
+	       
+	       recoJetTower_ieta [i][j] = -999;  
+	       recoJetTower_iphi [i][j] = -999;
+	
+	    }
+	 }
+
+
+	 for (int i = 0; i < MAXNHLTCORJETS; i++){
+	    
+	    hltCorJet_pt       [i] = -999.0;
+	    hltCorJet_et       [i] = -999.0;
+	    hltCorJet_phi      [i] = -999.0;
+	    hltCorJet_eta      [i] = -999.0;
+	    nHLTCorJetTowers   [i] = -999;
+	    
+	    for (int j = 0; j < MAXNHLTCJTOWERS; j++){
+	       
+	       hltCorJetTower_ieta [i][j] = -999;  
+	       hltCorJetTower_iphi [i][j] = -999;
 	
 	    }
 	 }

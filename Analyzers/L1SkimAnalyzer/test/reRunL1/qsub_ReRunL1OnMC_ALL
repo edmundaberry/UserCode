@@ -1,0 +1,27 @@
+#!/bin/tcsh
+
+set njobs           = 20
+set nevents         = 10000
+set minPtBin        = 1
+set maxPtBin        = 13
+set minJetThreshold = 20
+set maxJetThreshold = 20
+
+set ptBin = $minPtBin
+set jetThreshold = $minJetThreshold
+
+while ($ptBin <= $maxPtBin)
+
+	set jetThreshold = $minJetThreshold
+
+	while ($jetThreshold <= $maxJetThreshold)
+
+		./qsub_ReRunL1OnMC_FAST 1 ${njobs} ${nevents} ${jetThreshold} ${ptBin} withCorJets
+	
+		@ jetThreshold = $jetThreshold + 1 
+
+	end
+
+	@ ptBin = $ptBin + 1
+
+end

@@ -54,6 +54,12 @@ L1SkimAnalyzer::L1SkimAnalyzer(const edm::ParameterSet& iConfig){
   const edm::InputTag dHLTRecoCaloJetCandsTag("hltIterativeCone5CaloJets");
   m_hltRecoCaloJetCandsTag = iConfig.getUntrackedParameter<edm::InputTag>("hltRecoCaloJetCandsTag",dHLTRecoCaloJetCandsTag);
 
+  const edm::InputTag dRecoCaloJetCandsTag("iterativeCone5CaloJets");
+  m_recoCaloJetCandsTag = iConfig.getUntrackedParameter<edm::InputTag>("recoCaloJetCandsTag",dRecoCaloJetCandsTag);
+
+  const edm::InputTag dHLTRecoCaloCorJetCandsTag("hltMCJetCorJetIcone5");
+  m_hltRecoCaloCorJetCandsTag = iConfig.getUntrackedParameter<edm::InputTag>("hltRecoCaloCorJetCandsTag",dHLTRecoCaloCorJetCandsTag);
+
   const edm::InputTag dL1GctEtHadsTag("l1GctHwDigis");
   m_l1GctEtHadsTag = iConfig.getUntrackedParameter<edm::InputTag>("l1GctEtHadsTag",dL1GctEtHadsTag);
 
@@ -174,7 +180,7 @@ void L1SkimAnalyzer::getL1ExtraJetParticles_cenJets(){
   Handle< L1JetParticleCollection > l1JetParticles_cenJets_Handle;
   bool l1JetParticles_cenJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_cenJets_Tag,l1JetParticles_cenJets_Handle);
   if (!l1JetParticles_cenJets_exist){
-    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra CenJets (L1JetParticleCollection)";
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra CenJets (L1JetParticleCollection) with tag " << m_l1ExtraJetParticles_cenJets_Tag;
     return;
   }
 
@@ -263,7 +269,7 @@ void L1SkimAnalyzer::getL1ExtraJetParticles_tauJets(){
   Handle< L1JetParticleCollection > l1JetParticles_tauJets_Handle;
   bool l1JetParticles_tauJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_tauJets_Tag,l1JetParticles_tauJets_Handle);
   if (!l1JetParticles_tauJets_exist){
-    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra TauJets (L1JetParticleCollection)";
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra TauJets (L1JetParticleCollection) with tag " << m_l1ExtraJetParticles_tauJets_Tag << endl;
     return;
   }
 
@@ -350,7 +356,7 @@ void L1SkimAnalyzer::getL1ExtraJetParticles_forJets(){
   Handle< L1JetParticleCollection > l1JetParticles_forJets_Handle;
   bool l1JetParticles_forJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_forJets_Tag,l1JetParticles_forJets_Handle);
   if (!l1JetParticles_forJets_exist){
-    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra ForJets (L1JetParticleCollection)";
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra ForJets (L1JetParticleCollection) with tag " << m_l1ExtraJetParticles_forJets_Tag;
     return;
   }
 
@@ -451,13 +457,25 @@ void L1SkimAnalyzer::getHLTRecoCaloJetCands(){
   Handle<reco::CaloJetCollection> hltRecoCaloJetCands_Handle;
   bool hltRecoCaloJetCands_exist = m_event -> getByLabel(m_hltRecoCaloJetCandsTag,hltRecoCaloJetCands_Handle);
   if (!hltRecoCaloJetCands_exist){
-    LogWarning("L1SkimAnalyzer") << "Could not extract HLT Reco Calo Jet Candidates! (CaloJets)";
+     LogWarning("L1SkimAnalyzer") << "Could not extract HLT Reco Calo Jet Candidates (CaloJets) with tag " << m_hltRecoCaloJetCandsTag;
+  }
+  
+  Handle<reco::CaloJetCollection> hltRecoCaloCorJetCands_Handle;
+  bool hltRecoCaloCorJetCands_exist = m_event -> getByLabel(m_hltRecoCaloCorJetCandsTag,hltRecoCaloCorJetCands_Handle);
+  if (!hltRecoCaloCorJetCands_exist){
+     LogWarning("L1SkimAnalyzer") << "Could not extract Corrected HLT Reco Calo Jet Candidates (CaloJets) with tag " << m_hltRecoCaloCorJetCandsTag;
+  }
+  
+  Handle<reco::CaloJetCollection> recoCaloJetCands_Handle;
+  bool recoCaloJetCands_exist = m_event -> getByLabel(m_recoCaloJetCandsTag,recoCaloJetCands_Handle);
+  if (!recoCaloJetCands_exist){
+     LogWarning("L1SkimAnalyzer") << "Could not extract Reco Calo Jet Candidates (CaloJets) with tag " << m_recoCaloJetCandsTag << endl;
   }
 
   Handle<reco::GenJetCollection> genJets_handle;
   bool genJets_exist =  m_event->getByLabel(m_genJetsTag,genJets_handle);
   if (!genJets_exist) {
-    LogWarning("Z") << "Could not extract generated jets! ";
+     LogWarning("L1SkimAnalyzer") << "Could not extract generated jets (GenJets) with tag " << m_genJetsTag;
   }
 
   //-----------------------------------------------
@@ -498,11 +516,11 @@ void L1SkimAnalyzer::getHLTRecoCaloJetCands(){
   m_skimTree.nGenJets = nGenJets;
 
   //-----------------------------------------------
-  // Loop over the reco jet candidates
+  // Loop over the Uncorrected HLT jet candidates
   //-----------------------------------------------
   
-  int nHLTRecoCaloJets = 0;
-  int nJetTowers = 0;
+  int nHLTCaloJets = 0;
+  int nHltJetTowers = 0;
   
   if (hltRecoCaloJetCands_exist){
 
@@ -512,25 +530,150 @@ void L1SkimAnalyzer::getHLTRecoCaloJetCands(){
     
     float hltHT = 0.0;
         
-    for (reco::CaloJetCollection::const_iterator iHLTRecoCaloJetCand = hltRecoCaloJetCands_Handle -> begin();
-	 iHLTRecoCaloJetCand != hltRecoCaloJetCands_Handle -> end();
-	 iHLTRecoCaloJetCand++){
+    for (reco::CaloJetCollection::const_iterator iHLTCaloJetCand = hltRecoCaloJetCands_Handle -> begin();
+	 iHLTCaloJetCand != hltRecoCaloJetCands_Handle -> end();
+	 iHLTCaloJetCand++){
       
-      pt  = (float) (*iHLTRecoCaloJetCand).pt();
-      et  = (float) (*iHLTRecoCaloJetCand).et();
-      phi = (float) (*iHLTRecoCaloJetCand).phi();
-      eta = (float) (*iHLTRecoCaloJetCand).eta(); 
+      pt  = (float) (*iHLTCaloJetCand).pt();
+      et  = (float) (*iHLTCaloJetCand).et();
+      phi = (float) (*iHLTCaloJetCand).phi();
+      eta = (float) (*iHLTCaloJetCand).eta(); 
       
       if (pt > m_hltJetThreshold) hltHT += pt;
 
-      m_skimTree.hltJet_pt [nHLTRecoCaloJets] = pt;
-      m_skimTree.hltJet_et [nHLTRecoCaloJets] = et;
-      m_skimTree.hltJet_phi[nHLTRecoCaloJets] = phi;
-      m_skimTree.hltJet_eta[nHLTRecoCaloJets] = eta;
+      m_skimTree.hltJet_pt [nHLTCaloJets] = pt;
+      m_skimTree.hltJet_et [nHLTCaloJets] = et;
+      m_skimTree.hltJet_phi[nHLTCaloJets] = phi;
+      m_skimTree.hltJet_eta[nHLTCaloJets] = eta;
       
-      std::vector <CaloTowerPtr> jetTowers = (*iHLTRecoCaloJetCand).getCaloConstituents();
+      std::vector <CaloTowerPtr> hltJetTowers = (*iHLTCaloJetCand).getCaloConstituents();
       
-      nJetTowers = 0;
+      nHltJetTowers = 0;
+      
+      //-----------------------------------------------
+      // Loop over the jet towers
+      //-----------------------------------------------
+      
+      for (std::vector<CaloTowerPtr>::iterator iJetTower = hltJetTowers.begin();
+	   iJetTower != hltJetTowers.end();
+	   iJetTower++){
+	
+	ieta = (int) (**iJetTower).id().ieta();
+	iphi = (int) (**iJetTower).id().iphi();
+	
+	m_skimTree.hltJetTower_ieta[nHLTCaloJets][nHltJetTowers] = ieta;
+	m_skimTree.hltJetTower_iphi[nHLTCaloJets][nHltJetTowers] = iphi;
+	
+	nHltJetTowers++;
+      }
+      
+      m_skimTree.hltHT = hltHT;
+      m_skimTree.nHLTJetTowers[nHLTCaloJets] = nHltJetTowers;
+      
+      nHLTCaloJets++;
+      
+    }
+  }
+
+  m_skimTree.nHLTJetCands = nHLTCaloJets;
+
+
+  //-----------------------------------------------
+  // Loop over the Corrected HLT jet candidates
+  //-----------------------------------------------
+  
+  int nHLTCaloCorJets = 0;
+  int nHltCorJetTowers = 0;
+  
+  if (hltRecoCaloCorJetCands_exist){
+
+    float pt, et;
+    float phi, eta;
+    int   ieta, iphi;
+    
+    float hltCorHT = 0.0;
+        
+    for (reco::CaloJetCollection::const_iterator iHLTCaloCorJetCand = hltRecoCaloCorJetCands_Handle -> begin();
+	 iHLTCaloCorJetCand != hltRecoCaloCorJetCands_Handle -> end();
+	 iHLTCaloCorJetCand++){
+      
+      pt  = (float) (*iHLTCaloCorJetCand).pt();
+      et  = (float) (*iHLTCaloCorJetCand).et();
+      phi = (float) (*iHLTCaloCorJetCand).phi();
+      eta = (float) (*iHLTCaloCorJetCand).eta(); 
+      
+      if (pt > m_hltJetThreshold) hltCorHT += pt;
+
+      m_skimTree.hltCorJet_pt [nHLTCaloCorJets] = pt;
+      m_skimTree.hltCorJet_et [nHLTCaloCorJets] = et;
+      m_skimTree.hltCorJet_phi[nHLTCaloCorJets] = phi;
+      m_skimTree.hltCorJet_eta[nHLTCaloCorJets] = eta;
+      
+      std::vector <CaloTowerPtr> hltJetTowers = (*iHLTCaloCorJetCand).getCaloConstituents();
+      
+      nHltJetTowers = 0;
+      
+      //-----------------------------------------------
+      // Loop over the jet towers
+      //-----------------------------------------------
+      
+      for (std::vector<CaloTowerPtr>::iterator iJetTower = hltJetTowers.begin();
+	   iJetTower != hltJetTowers.end();
+	   iJetTower++){
+	
+	ieta = (int) (**iJetTower).id().ieta();
+	iphi = (int) (**iJetTower).id().iphi();
+	
+	m_skimTree.hltCorJetTower_ieta[nHLTCaloCorJets][nHltCorJetTowers] = ieta;
+	m_skimTree.hltCorJetTower_iphi[nHLTCaloCorJets][nHltCorJetTowers] = iphi;
+	
+	nHltCorJetTowers++;
+      }
+      
+      m_skimTree.hltCorHT = hltCorHT;
+      m_skimTree.nHLTCorJetTowers[nHLTCaloCorJets] = nHltCorJetTowers;
+      
+      nHLTCaloCorJets++;
+      
+    }
+  }
+
+  m_skimTree.nHLTCorJetCands = nHLTCaloCorJets;
+
+  //-----------------------------------------------
+  // Loop over the Reco jet candidates
+  //-----------------------------------------------
+  
+  int nRecoCaloJets = 0;
+  int nRecoJetTowers = 0;
+  
+  if (recoCaloJetCands_exist){
+
+    float pt, et;
+    float phi, eta;
+    int   ieta, iphi;
+    
+    float recoHT = 0.0;
+        
+    for (reco::CaloJetCollection::const_iterator iRecoCaloJetCand = recoCaloJetCands_Handle -> begin();
+	 iRecoCaloJetCand != recoCaloJetCands_Handle -> end();
+	 iRecoCaloJetCand++){
+      
+      pt  = (float) (*iRecoCaloJetCand).pt();
+      et  = (float) (*iRecoCaloJetCand).et();
+      phi = (float) (*iRecoCaloJetCand).phi();
+      eta = (float) (*iRecoCaloJetCand).eta(); 
+      
+      if (pt > m_hltJetThreshold) recoHT += pt;
+
+      m_skimTree.recoJet_pt [nRecoCaloJets] = pt;
+      m_skimTree.recoJet_et [nRecoCaloJets] = et;
+      m_skimTree.recoJet_phi[nRecoCaloJets] = phi;
+      m_skimTree.recoJet_eta[nRecoCaloJets] = eta;
+      
+      std::vector <CaloTowerPtr> jetTowers = (*iRecoCaloJetCand).getCaloConstituents();
+      
+      nRecoJetTowers = 0;
       
       //-----------------------------------------------
       // Loop over the jet towers
@@ -543,21 +686,21 @@ void L1SkimAnalyzer::getHLTRecoCaloJetCands(){
 	ieta = (int) (**iJetTower).id().ieta();
 	iphi = (int) (**iJetTower).id().iphi();
 	
-	m_skimTree.hltJetTower_ieta[nHLTRecoCaloJets][nJetTowers] = ieta;
-	m_skimTree.hltJetTower_iphi[nHLTRecoCaloJets][nJetTowers] = iphi;
+	m_skimTree.recoJetTower_ieta[nRecoCaloJets][nRecoJetTowers] = ieta;
+	m_skimTree.recoJetTower_iphi[nRecoCaloJets][nRecoJetTowers] = iphi;
 	
-	nJetTowers++;
+	nRecoJetTowers++;
       }
       
-      m_skimTree.hltHT = hltHT;
-      m_skimTree.nHLTJetTowers[nHLTRecoCaloJets] = nJetTowers;
+      m_skimTree.recoHT = recoHT;
+      m_skimTree.nRecoJetTowers[nRecoCaloJets] = nRecoJetTowers;
       
-      nHLTRecoCaloJets++;
+      nRecoCaloJets++;
       
     }
   }
   
-  m_skimTree.nHLTJetCands = nHLTRecoCaloJets;
+  m_skimTree.nRecoJetCands = nRecoCaloJets;
 }
 
 void L1SkimAnalyzer::getL1GctEtHads(){
@@ -565,7 +708,7 @@ void L1SkimAnalyzer::getL1GctEtHads(){
   Handle<L1GctEtHadCollection> l1GctEtHads_Handle;
   bool l1GctEtHads_exist = m_event -> getByLabel(m_l1GctEtHadsTag,l1GctEtHads_Handle);
   if (!l1GctEtHads_exist){
-    LogWarning("L1SkimAnalyzer") << "Could not extract L1 GCT hadronic E_T sum (l1GctEtHads)";
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 GCT hadronic E_T sum (l1GctEtHads) with tag " << m_l1GctEtHadsTag;
     return;
   }
 
@@ -608,7 +751,7 @@ void L1SkimAnalyzer::getL1DecisionWord(){
   Handle<L1GlobalTriggerReadoutRecord> l1GtReadoutRecord_Handle;
   bool l1GtReadoutRecord_exists = m_event -> getByLabel(m_l1DecisionWordTag,l1GtReadoutRecord_Handle);
   if (!l1GtReadoutRecord_exists){
-    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Global Trigger Readout Record (L1 Decision Word)";
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Global Trigger Readout Record (L1 Decision Word) with tag " << m_l1DecisionWordTag ;
     return;      
   }
 
