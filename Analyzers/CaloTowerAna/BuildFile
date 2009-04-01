@@ -1,0 +1,16 @@
+<use name=FWCore/Framework>
+<use name=FWCore/PluginManager>
+<use name=FWCore/ParameterSet>
+<use name=DataFormats/Candidate>
+<use name=DataFormats/HcalDetId>
+<use name=DataFormats/CaloTowers>
+<use name=DataFormats/JetReco>
+<use name=CalibFormats/HcalObjects>
+<use name=CondFormats/HcalObjects>
+<flags EDM_PLUGIN=1>
+<export>
+   <lib name=AnalyzersCaloTowerAna>
+   <use name=FWCore/Framework>
+   <use name=FWCore/PluginManager>
+   <use name=FWCore/ParameterSet>   
+</export>
