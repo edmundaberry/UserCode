@@ -155,13 +155,13 @@ class L1SkimTree
 	 run             = -999;
 	 event           = -999;
 	 		 
-	 nGenJets        = -999;
-	 nL1GctEtHads    = -999;
-	 nHLTJetCands    = -999;
-	 nHLTCorJetCands = -999;
-	 nL1CenJet       = -999;
-	 nL1TauJet       = -999;
-	 nL1ForJet       = -999;
+	 nGenJets        = 1;
+	 nL1GctEtHads    = 1;
+	 nHLTJetCands    = 1;
+	 nHLTCorJetCands = 1;
+	 nL1CenJet       = 1;
+	 nL1TauJet       = 1;
+	 nL1ForJet       = 1;
 	 		 
 	 l1_SingleJet15  = -999;
 	 l1_SingleJet20  = -999;
@@ -275,7 +275,7 @@ class L1SkimTree
 	    hltJet_et          [i] = -999.0;
 	    hltJet_phi         [i] = -999.0;
 	    hltJet_eta         [i] = -999.0;
-	    nHLTJetTowers      [i] = -999;
+	    nHLTJetTowers      [i] = 1;
 	    
 	    for (int j = 0; j < MAXNHLTJTOWERS; j++){
 	       
@@ -291,7 +291,7 @@ class L1SkimTree
 	    recoJet_et          [i] = -999.0;
 	    recoJet_phi         [i] = -999.0;
 	    recoJet_eta         [i] = -999.0;
-	    nRecoJetTowers      [i] = -999;
+	    nRecoJetTowers      [i] = 1;
 	    
 	    for (int j = 0; j < MAXNRECOJTOWERS; j++){
 	       
@@ -308,7 +308,7 @@ class L1SkimTree
 	    hltCorJet_et       [i] = -999.0;
 	    hltCorJet_phi      [i] = -999.0;
 	    hltCorJet_eta      [i] = -999.0;
-	    nHLTCorJetTowers   [i] = -999;
+	    nHLTCorJetTowers   [i] = 1;
 	    
 	    for (int j = 0; j < MAXNHLTCJTOWERS; j++){
 	       

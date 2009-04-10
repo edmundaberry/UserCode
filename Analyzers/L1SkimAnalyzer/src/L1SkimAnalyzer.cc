@@ -5,6 +5,8 @@
 #include "DataFormats/JetReco/interface/CaloJetCollection.h"
 #include "DataFormats/L1Trigger/interface/L1JetParticleFwd.h"
 #include "DataFormats/L1Trigger/interface/L1JetParticle.h"
+#include "DataFormats/L1Trigger/interface/L1EtMissParticleFwd.h"
+#include "DataFormats/L1Trigger/interface/L1EtMissParticle.h"
 
 // Energy scales
 #include "CondFormats/L1TObjects/interface/L1CaloEtScale.h"
@@ -42,14 +44,14 @@ L1SkimAnalyzer::L1SkimAnalyzer(const edm::ParameterSet& iConfig){
   // Declare tags
   //-----------------------------------------------
 
-  const edm::InputTag dL1ExtraJetParticles_cenJets_Tag("l1extraParticles","Central");
-  m_l1ExtraJetParticles_cenJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>("l1ExtraJetParticlesCenJetsTag",dL1ExtraJetParticles_cenJets_Tag);
+  const edm::InputTag dL1ExtraJetParticles_cenJetsTag("l1extraParticles","Central");
+  m_l1ExtraJetParticles_cenJetsTag = iConfig.getUntrackedParameter<edm::InputTag>("l1ExtraJetParticlesCenJetsTag",dL1ExtraJetParticles_cenJetsTag);
                                    
-  const edm::InputTag dL1ExtraJetParticles_tauJets_Tag("l1extraParticles","Tau");
-  m_l1ExtraJetParticles_tauJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>("l1ExtraJetParticlesTauJetsTag",dL1ExtraJetParticles_tauJets_Tag);
+  const edm::InputTag dL1ExtraJetParticles_tauJetsTag("l1extraParticles","Tau");
+  m_l1ExtraJetParticles_tauJetsTag = iConfig.getUntrackedParameter<edm::InputTag>("l1ExtraJetParticlesTauJetsTag",dL1ExtraJetParticles_tauJetsTag);
                                    
-  const edm::InputTag dL1ExtraJetParticles_forJets_Tag("l1extraParticles","Forward");
-  m_l1ExtraJetParticles_forJets_Tag = iConfig.getUntrackedParameter<edm::InputTag>("l1ExtraJetParticlesForJetsTag",dL1ExtraJetParticles_forJets_Tag);
+  const edm::InputTag dL1ExtraJetParticles_forJetsTag("l1extraParticles","Forward");
+  m_l1ExtraJetParticles_forJetsTag = iConfig.getUntrackedParameter<edm::InputTag>("l1ExtraJetParticlesForJetsTag",dL1ExtraJetParticles_forJetsTag);
  
   const edm::InputTag dHLTRecoCaloJetCandsTag("hltIterativeCone5CaloJets");
   m_hltRecoCaloJetCandsTag = iConfig.getUntrackedParameter<edm::InputTag>("hltRecoCaloJetCandsTag",dHLTRecoCaloJetCandsTag);
@@ -68,6 +70,9 @@ L1SkimAnalyzer::L1SkimAnalyzer(const edm::ParameterSet& iConfig){
 
   const edm::InputTag dGenJetsTag("iterativeCone5GenJets");
   m_genJetsTag = iConfig.getUntrackedParameter<edm::InputTag>("genJetsTag",dGenJetsTag);
+
+  const edm::InputTag dL1EtMissParticlesTag("l1extraParticles");
+  m_l1EtMissParticlesTag = iConfig.getUntrackedParameter<edm::InputTag>("l1EtMissParticlesTag",dL1EtMissParticlesTag);
 
   //-----------------------------------------------
   // Do HLT studies?
@@ -148,6 +153,8 @@ L1SkimAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   getL1ExtraJetParticles_forJets();
 
   getL1GctEtHads();
+
+  getL1ExtraGctHT();
   
   getL1DecisionWord();
 
@@ -158,7 +165,7 @@ L1SkimAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   //-----------------------------------------------
   
   m_fillTree.fill();
-  
+
   return;
 }
 
@@ -178,10 +185,9 @@ void L1SkimAnalyzer::endJob(){
 void L1SkimAnalyzer::getL1ExtraJetParticles_cenJets(){
 
   Handle< L1JetParticleCollection > l1JetParticles_cenJets_Handle;
-  bool l1JetParticles_cenJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_cenJets_Tag,l1JetParticles_cenJets_Handle);
+  bool l1JetParticles_cenJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_cenJetsTag,l1JetParticles_cenJets_Handle);
   if (!l1JetParticles_cenJets_exist){
-    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra CenJets (L1JetParticleCollection) with tag " << m_l1ExtraJetParticles_cenJets_Tag;
-    return;
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra CenJets (L1JetParticleCollection) with tag " << m_l1ExtraJetParticles_cenJetsTag;
   }
 
   const L1CaloGeometry* l1CaloGeometry_const = &(*m_l1CaloGeometry_temp);
@@ -263,14 +269,41 @@ void L1SkimAnalyzer::getL1ExtraJetParticles_cenJets(){
   
 }
 
+void L1SkimAnalyzer::getL1ExtraGctHT(){
+
+  Handle<L1EtMissParticleCollection> l1EtMissParticles_Handle;
+  bool l1EtMissParticles_exist = m_event -> getByLabel(m_l1EtMissParticlesTag, l1EtMissParticles_Handle);
+  if (!l1EtMissParticles_exist){
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra TauJets (L1JetParticleCollection) with tag " << m_l1ExtraJetParticles_tauJetsTag << endl;
+  }
+
+  float l1ExtraGctHT;
+  int nL1ExtraHT = 0;
+
+  if (l1EtMissParticles_exist){
+
+    for (L1EtMissParticleCollection::const_iterator iL1EtMissParticle = l1EtMissParticles_Handle -> begin();
+	 iL1EtMissParticle != l1EtMissParticles_Handle -> end();
+	 iL1EtMissParticle++){
+
+      l1ExtraGctHT = (float) (*iL1EtMissParticle).etHad();      
+
+      nL1ExtraHT++;
+    }
+
+    std::cout << "l1extra gctHT = " << l1ExtraGctHT << std::endl;
+
+  }
+  
+}
+
 
 void L1SkimAnalyzer::getL1ExtraJetParticles_tauJets(){
 
   Handle< L1JetParticleCollection > l1JetParticles_tauJets_Handle;
-  bool l1JetParticles_tauJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_tauJets_Tag,l1JetParticles_tauJets_Handle);
+  bool l1JetParticles_tauJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_tauJetsTag,l1JetParticles_tauJets_Handle);
   if (!l1JetParticles_tauJets_exist){
-    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra TauJets (L1JetParticleCollection) with tag " << m_l1ExtraJetParticles_tauJets_Tag << endl;
-    return;
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra TauJets (L1JetParticleCollection) with tag " << m_l1ExtraJetParticles_tauJetsTag << endl;
   }
 
   const L1CaloGeometry* l1CaloGeometry_const = &(*m_l1CaloGeometry_temp);
@@ -354,10 +387,9 @@ void L1SkimAnalyzer::getL1ExtraJetParticles_tauJets(){
 void L1SkimAnalyzer::getL1ExtraJetParticles_forJets(){
 
   Handle< L1JetParticleCollection > l1JetParticles_forJets_Handle;
-  bool l1JetParticles_forJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_forJets_Tag,l1JetParticles_forJets_Handle);
+  bool l1JetParticles_forJets_exist = m_event -> getByLabel(m_l1ExtraJetParticles_forJetsTag,l1JetParticles_forJets_Handle);
   if (!l1JetParticles_forJets_exist){
-    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra ForJets (L1JetParticleCollection) with tag " << m_l1ExtraJetParticles_forJets_Tag;
-    return;
+    LogWarning("L1SkimAnalyzer") << "Could not extract L1 Extra ForJets (L1JetParticleCollection) with tag " << m_l1ExtraJetParticles_forJetsTag;
   }
 
   const L1CaloGeometry* l1CaloGeometry_const = &(*m_l1CaloGeometry_temp);
@@ -709,7 +741,6 @@ void L1SkimAnalyzer::getL1GctEtHads(){
   bool l1GctEtHads_exist = m_event -> getByLabel(m_l1GctEtHadsTag,l1GctEtHads_Handle);
   if (!l1GctEtHads_exist){
     LogWarning("L1SkimAnalyzer") << "Could not extract L1 GCT hadronic E_T sum (l1GctEtHads) with tag " << m_l1GctEtHadsTag;
-    return;
   }
 
   float ht, htUncorr;
@@ -734,6 +765,8 @@ void L1SkimAnalyzer::getL1GctEtHads(){
 		   ( float ) L1GctEtHad::kEtHadMaxValue :
 		   ( float ) (*iL1GctEtHad).et() ) + 1.e-6 ;
       
+      std::cout << "gctHT = " << ht << std::endl;
+
       m_skimTree.gctHT[nL1GctEtHad] = ht;
       m_skimTree.gctHT_UnCorr[nL1GctEtHad] = htUncorr;
       
@@ -773,12 +806,18 @@ void L1SkimAnalyzer::getL1DecisionWord(){
   m_skimTree.l1_SingleJet20 = 0; if (l1_SingleJet20) m_skimTree.l1_SingleJet20 = 1;
   m_skimTree.l1_SingleJet30 = 0; if (l1_SingleJet30) m_skimTree.l1_SingleJet30 = 1;
   m_skimTree.l1_SingleJet50 = 0; if (l1_SingleJet50) m_skimTree.l1_SingleJet50 = 1;
-
+  
   m_skimTree.l1_HTT100      = 0; if (l1_HTT100     ) m_skimTree.l1_HTT100      = 1;
   m_skimTree.l1_HTT200      = 0; if (l1_HTT200     ) m_skimTree.l1_HTT200      = 1;
   m_skimTree.l1_HTT300      = 0; if (l1_HTT300     ) m_skimTree.l1_HTT300      = 1;
   m_skimTree.l1_HTT400      = 0; if (l1_HTT400     ) m_skimTree.l1_HTT400      = 1;
   m_skimTree.l1_HTT500      = 0; if (l1_HTT500     ) m_skimTree.l1_HTT500      = 1;
+
+  std::cout << "l1_HTT100 = " << m_skimTree.l1_HTT100 << std::endl;
+  std::cout << "l1_HTT200 = " << m_skimTree.l1_HTT200 << std::endl;
+  std::cout << "l1_HTT300 = " << m_skimTree.l1_HTT300 << std::endl;
+  std::cout << "l1_HTT400 = " << m_skimTree.l1_HTT400 << std::endl;
+  std::cout << "l1_HTT500 = " << m_skimTree.l1_HTT500 << std::endl;
 
 } 
 

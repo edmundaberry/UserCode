@@ -1,13 +1,16 @@
 #!/bin/tcsh
 
+## Is this a test?
+set test = true
+
 ## Setup CMSSW environment variables
 eval `scram runtime -csh`
 
 ## User sets these run variables
-set package     = Analyzers/L1SkimAnalyzer/test
+set package     = Analyzers/L1SkimAnalyzer/test/reRunL1
 set exec_name   = ReRunL1AndHLTOnMC_FAST
-set base_dir    = /uscmst1b_scratch/lpc1/3DayLifetime/${user}/tmp/
-set type        = Analyzer
+set base_dir    = /uscmst1b_scratch/lpc1/3DayLifetime/${user}/
+set type        = L1Analyzer
 set num_args    = 6
 
 ## Let the script set these
@@ -15,6 +18,8 @@ set condor_dir  = ${base_dir}/${type}/condor
 set log_dir     = ${base_dir}/${type}/log
 set output_dir  = ${base_dir}/${type}/output
 set exec_path   = ${CMSSW_BASE}/src/${package}/qrun_${exec_name}
+
+if ($test != true) then
 
 # These variables have to be here
 set jobNumBegin = $1
@@ -26,11 +31,27 @@ set l1JetThreshold = $4
 set ptBin = $5
 set suffix = $6
 
-## If input doesn't make sense, print the usage and bail
 if ($#argv != $num_args) then
     echo "USAGE: ./qsub_ReRunL1AndHLTOnMC_FAST <min_njob> <max_njob> <num_events> <l1JetThreshold> <ptBin> <suffix>"
     exit 1
 endif 
+
+
+else 
+
+# These variables have to be here
+set jobNumBegin = 1
+set jobNumEnd   = 1
+set jobNEvents  = 10
+
+## Here is where you would set any other variables you might have
+set l1JetThreshold = 15
+set ptBin = 4
+set suffix = TEST
+
+endif
+
+## If input doesn't make sense, print the usage and bail
 
 ## Check to make sure all of the executables and directories are where they should be
 if (! -e ${condor_dir}) then 
@@ -93,7 +114,15 @@ while ($job <= $jobNumEnd)
   
 EOF
 
-    condor_submit ${condor_dir}/${condor_file}
+    if (-e /uscms/home/eberry/3DayLifetime/L1Analyzer/output/L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin${ptBin}_${l1JetThreshold}GeV_job${job}_${jobNEvents}events_withCorJets.root) then
+
+	echo "File Already exists"
+
+    else 
+
+	condor_submit ${condor_dir}/${condor_file}
+
+    endif
 
     @ job = $job + 1
     

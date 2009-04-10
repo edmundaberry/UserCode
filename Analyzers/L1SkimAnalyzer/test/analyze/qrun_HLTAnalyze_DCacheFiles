@@ -3,7 +3,7 @@
 ## Set release base and version
 set MY_RELEASE_BASE = /uscms/home/eberry
 set CMSSW_VERSION = CMSSW_2_2_3
-set TEST = true
+set TEST = false
 set PROCESS_NAME = HLTAnalysis
 
 ## Set variables
@@ -13,7 +13,7 @@ set job = $1
 set numevents = $2
 set ptBin = $3
 set suffix = $4
-else then 
+else 
 set job = 1
 set numevents = 2
 set ptBin = 5
@@ -34,16 +34,15 @@ set eventsToSkip = 0
 ## Go to the scratch directory
 if ($TEST != true) then 
 cd ${_CONDOR_SCRATCH_DIR}
-endif
 
 ## Load the environment
 source /uscmst1/prod/sw/cms/cshrc uaf
 
 ## Download, compile, and initialize CMSSW
-if ($TEST != true) then
 scram p CMSSW ${CMSSW_VERSION}
 cd ${CMSSW_VERSION}/src
 endif
+
 eval `scram runtime -csh`
 
 if ($TEST != true) then
@@ -71,12 +70,9 @@ echo    so I will skip ${eventsToSkip}
 cat > ${cfgFile}<<EOF
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("ANALYSIS")
+process = cms.Process("${PROCESS_NAME}")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
-## process.options = cms.untracked.PSet(
-##     wantSummary = cms.untracked.bool(True)
-## )
 
 process.source = cms.Source("PoolSource",
      fileNames = cms.untracked.vstring( 
@@ -103,7 +99,7 @@ process.source = cms.Source("PoolSource",
      )
 )
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32( -1 )
+    input = cms.untracked.int32( ${numevents} )
 )
 
 process.load("Configuration.StandardSequences.GeometryPilot2_cff")
@@ -112,23 +108,34 @@ process.load("Configuration.StandardSequences.MagneticField_cff")
 # Conditions: fake or frontier
 # process.load("Configuration.StandardSequences.FakeConditions_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-##process.GlobalTag.globaltag = 'IDEAL_V9::All'
 process.GlobalTag.globaltag = 'STARTUP_V9::All'
 
-process.load("Configuration.StandardSequences.L1Emulator_cff")
+# process.load("Configuration.StandardSequences.L1Emulator_cff")
 # Choose a menu/prescale/mask from one of the choices
 # in L1TriggerConfig.L1GtConfigProducers.Luminosity
-#process.load("Configuration.StandardSequences.L1TriggerDefaultMenu_cff")
+process.load("Configuration.StandardSequences.L1TriggerDefaultMenu_cff")
 
 # Run HLT
 process.load("HLTrigger.HLTanalyzers.HLTopen_cff")
 
 # Define the analyzer modules
 process.load("HLTrigger.HLTanalyzers.HLTAnalyser_cfi")
+process.hltanalysis.RunParameters.HistogramFile = cms.untracked.string('openhlt_RelValQCD_withReRunL1_ptBin${ptBin}_${numevents}events_job${job}.root')
 process.analyzeThis = cms.Path( process.hltanalysis )
 
 # Schedule the whole thing
 process.schedule = cms.Schedule( 
+    # Schedule the whole thing
+     process.DoHltMuon, 
+     process.DoHLTJets,
+     process.DoHLTPhoton, 
+     process.DoHLTElectron, 
+     process.DoHLTElectronStartUpWindows, 
+     process.DoHLTElectronLargeWindows, 
+     process.DoHLTTau, 
+     process.DoHLTBTag,
+     process.DoHLTAlCaECALPhiSym,
+     process.DoHLTAlCaPi0,
      process.analyzeThis 
 )
  

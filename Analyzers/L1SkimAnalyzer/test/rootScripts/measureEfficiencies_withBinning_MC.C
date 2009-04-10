@@ -9,7 +9,7 @@ const int nPtBins = 13;
 const int jetThreshold = 10;
 
 const int minPtBin = 1;
-const int maxPtBin = 13;
+const int maxPtBin = 1;
 
 const int maxHltJets = 100;
 
@@ -123,9 +123,8 @@ void measureEfficiencies_withBinning_MC(){
 
     for (int iJob = 1; iJob <= nJobsPerThreshold; iJob++){
 
-      sprintf(tempFileName,
-	      //"/uscms/home/eberry/data/L1AndHLTOnMC/L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin%d_%dGeV_job%d_%devents_withHLT.root",
-	      "/uscms/home/eberry/data/L1AndHLTOnMC_AllJetThresholds/L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin%d_%dGeV_job%d_%devents_withHLT.root",
+      sprintf(tempFileName,      
+	      "/uscmst1b_scratch/lpc1/3DayLifetime/eberry/L1Analyzer/output/L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin%d_%dGeV_job%d_%devents_withCorJets_CMSSW223.root",
 	      iPtBin,
 	      jetThreshold,
 	      iJob,
@@ -168,7 +167,7 @@ void measureEfficiencies_withBinning_MC(){
     
     tree[iPtBin].SetBranchAddress("gctHT"    , l1_gctHT[iPtBin]);
     tree[iPtBin].SetBranchAddress("nHLTJetCands" , &nHltJets [iPtBin]);
-    tree[iPtBin].SetBranchAddress("hltJet_pt",  hltJet_pt[iPtBin]);
+    tree[iPtBin].SetBranchAddress("hltCorJet_pt",  hltJet_pt[iPtBin]);
     
     //--------------------------------------------------
     // Zero-out arrays
@@ -216,7 +215,7 @@ void measureEfficiencies_withBinning_MC(){
       
       for (int iHltJet = 0; iHltJet < nHltJets[iPtBin]; iHltJet++){
 	hltJetPt = hltJet_pt[iPtBin][iHltJet];
-	if (hltJetPt > jetThreshold) hltHT += hltJetPt;
+	if (hltJetPt > 20) hltHT += hltJetPt;
       }
       
       if (hltHT > 20.0){
@@ -270,7 +269,7 @@ void measureEfficiencies_withBinning_MC(){
       //--------------------------------------------------
       
       sprintf(rateFileName,
-	      "/uscms/home/eberry/CMSSW_2_1_11/src/Analyzers/L1SkimAnalyzer/test/txt/effiFile_MC_PtBin%d_HtBin%d_threshold%dGeV.txt",
+	      "txt/effiFile_MC_PtBin%d_HtBin%d_threshold%dGeV.txt",
 	      iPtBin,iHtBin,jetThreshold);
       
       rateFile[iPtBin][iHtBin] = fopen(rateFileName,"w");
@@ -295,13 +294,14 @@ void measureEfficiencies_withBinning_MC(){
       
       for (int iHltTrigger = 1; iHltTrigger <= nHltTriggers; iHltTrigger++){
 	
+	/*
 	if (passL1AndHLT[iPtBin][iHtBin][5][iHltTrigger] != 
 	    passL1AndHLT[iPtBin][iHtBin][6][iHltTrigger] 	  ){
 	  cout << "DIFF: PtBin = " << iPtBin << ", HtBin = " << iHtBin << ", iHltTrigger = " << iHltTrigger << endl;
 	  cout << "L1 = 5: " << passL1AndHLT[iPtBin][iHtBin][5][iHltTrigger] << endl;
 	  cout << "L1 = 6: " << passL1AndHLT[iPtBin][iHtBin][6][iHltTrigger] << endl;
 	}
-
+	*/
 	
 	fprintf(rateFile[iPtBin][iHtBin],"%d ", hltTriggerValues[iHltTrigger]);
 	

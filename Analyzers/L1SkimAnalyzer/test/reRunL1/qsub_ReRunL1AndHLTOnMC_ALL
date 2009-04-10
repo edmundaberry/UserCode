@@ -4,8 +4,8 @@ set njobs           = 10
 set nevents         = 10000
 set minPtBin        = 1
 set maxPtBin        = 13
-set minJetThreshold = 20
-set maxJetThreshold = 20
+set minJetThreshold = 3
+set maxJetThreshold = 30
 
 set ptBin = $minPtBin
 set jetThreshold = $minJetThreshold

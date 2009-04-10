@@ -32,8 +32,7 @@ void measureRates_MC(int tempMinPtBin, int tempMaxPtBin,
       for (int iJob = 1; iJob <= nJobsPerThreshold; iJob++){
 
 	sprintf(tempFileName,
-		//"/uscms/home/eberry/3DayLifetime/tmp/Analyzer/output/L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin%d_%dGeV_job%d_%devents_withCorJets.root",
-		"/uscms/home/eberry/3DayLifetime/tmp/Analyzer/output/
+		"/uscmst1b_scratch/lpc1/3DayLifetime/eberry/L1Analyzer/output/L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin%d_%dGeV_job%d_%devents_withCorJets_CMSSW223.root",
 		iPtBin,
 		iL1JetThreshold,
 		iJob,
@@ -46,6 +45,7 @@ void measureRates_MC(int tempMinPtBin, int tempMaxPtBin,
       }
     }
   }
+
 
   cout << "Done adding files" << endl;
 
@@ -109,7 +109,7 @@ void measureRates_MC(int tempMinPtBin, int tempMaxPtBin,
       tree[iPtBin][iL1JetThreshold] -> SetBranchAddress("l1_HTT300", &l1_HTT300[iPtBin][iL1JetThreshold]);
       tree[iPtBin][iL1JetThreshold] -> SetBranchAddress("l1_HTT400", &l1_HTT400[iPtBin][iL1JetThreshold]);
       tree[iPtBin][iL1JetThreshold] -> SetBranchAddress("l1_HTT500", &l1_HTT500[iPtBin][iL1JetThreshold]);
-      tree[iPtBin][iL1JetThreshold] -> SetBranchAddress("gctHT"    , &l1_gctHT  [iPtBin][iL1JetThreshold]);
+      tree[iPtBin][iL1JetThreshold] -> SetBranchAddress("gctHT"    , l1_gctHT  [iPtBin][iL1JetThreshold]);
 
       //--------------------------------------------------
       // Loop over events
@@ -117,18 +117,31 @@ void measureRates_MC(int tempMinPtBin, int tempMaxPtBin,
       
       nEvents = tree[iPtBin][iL1JetThreshold] -> GetEntries();
       cout << nEvents << endl;
+      int nError = 0;
       
       for (int iEvent = 1; iEvent <= nEvents; iEvent ++){      
 	
 	event[iPtBin][iL1JetThreshold]++;
-      
-	tree[iPtBin][iL1JetThreshold] -> GetEntry(iEvent);
 	
-	gctHT = l1_gctHT[iPtBin][iL1JetThreshold][1] ;//* (1.0 / gctLSB);
+	tree[iPtBin][iL1JetThreshold] -> GetEntry(iEvent);
 
-	if (l1_HTT500[iPtBin][iL1JetThreshold] == 1 && gctHT < 100 ||
-	    l1_HTT500[iPtBin][iL1JetThreshold] == 0 && gctHT > 100 ) cout << "ERROR" << endl;
-				
+	gctHT = l1_gctHT[iPtBin][iL1JetThreshold][1] * 4.0;
+	
+	if (l1_HTT100[iPtBin][iL1JetThreshold] == 1 && gctHT < 100 || l1_HTT100[iPtBin][iL1JetThreshold] == 0 && gctHT > 100 || 
+	    l1_HTT200[iPtBin][iL1JetThreshold] == 1 && gctHT < 200 || l1_HTT200[iPtBin][iL1JetThreshold] == 0 && gctHT > 200 || 
+	    l1_HTT300[iPtBin][iL1JetThreshold] == 1 && gctHT < 300 || l1_HTT300[iPtBin][iL1JetThreshold] == 0 && gctHT > 300 || 
+	    l1_HTT400[iPtBin][iL1JetThreshold] == 1 && gctHT < 400 || l1_HTT400[iPtBin][iL1JetThreshold] == 0 && gctHT > 400 || 
+	    l1_HTT500[iPtBin][iL1JetThreshold] == 1 && gctHT < 500 || l1_HTT500[iPtBin][iL1JetThreshold] == 0 && gctHT > 500   ) {
+	  nError++;
+	  cout << "ERROR(" << nError << ") , gctHT = " << gctHT << endl;
+	  cout << "  " << "l1_HTT100 = " << l1_HTT100[iPtBin][iL1JetThreshold] << endl;
+	  cout << "  " << "l1_HTT200 = " << l1_HTT200[iPtBin][iL1JetThreshold] << endl;
+	  cout << "  " << "l1_HTT300 = " << l1_HTT300[iPtBin][iL1JetThreshold] << endl;
+	  cout << "  " << "l1_HTT400 = " << l1_HTT400[iPtBin][iL1JetThreshold] << endl;
+	  cout << "  " << "l1_HTT500 = " << l1_HTT500[iPtBin][iL1JetThreshold] << endl;
+	}
+		
+	
 
 	if (iEvent%10000==0) cout << "Pt Bin = " << iPtBin << ", Threshold = " << iL1JetThreshold << ", Processing Event " << iEvent << endl;
 

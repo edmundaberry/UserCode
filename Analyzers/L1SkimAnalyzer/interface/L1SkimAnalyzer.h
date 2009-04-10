@@ -65,6 +65,7 @@ class L1SkimAnalyzer : public edm::EDAnalyzer {
       
       // L1 HT output 
       void getL1GctEtHads();
+      void getL1ExtraGctHT();
       
       // HLT jets
       void getHLTRecoCaloJetCands();
@@ -127,13 +128,14 @@ class L1SkimAnalyzer : public edm::EDAnalyzer {
       
       edm::InputTag m_l1CaloEmCandsTag;
       
-      edm::InputTag m_l1ExtraJetParticles_cenJets_Tag;                                
-      edm::InputTag m_l1ExtraJetParticles_tauJets_Tag;                                
-      edm::InputTag m_l1ExtraJetParticles_forJets_Tag;
+      edm::InputTag m_l1ExtraJetParticles_cenJetsTag;                                
+      edm::InputTag m_l1ExtraJetParticles_tauJetsTag;                                
+      edm::InputTag m_l1ExtraJetParticles_forJetsTag;
       
       edm::InputTag m_l1DecisionWordTag;
       
       edm::InputTag m_l1GctEtHadsTag;
+      edm::InputTag m_l1EtMissParticlesTag;
       
       edm::InputTag m_hltRecoCaloCorJetCandsTag;
       edm::InputTag m_hltRecoCaloJetCandsTag;
