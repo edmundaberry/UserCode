@@ -114,17 +114,7 @@ while ($job <= $jobNumEnd)
   
 EOF
 
-    if (-e /uscms/home/eberry/3DayLifetime/L1Analyzer/output/L1SkimAnalyzerOutput_L1EmulatorOnMC_PtBin${ptBin}_${l1JetThreshold}GeV_job${job}_${jobNEvents}events_withCorJets.root) then
-
-	echo "File Already exists"
-
-    else 
-
-	condor_submit ${condor_dir}/${condor_file}
-
-    endif
-
-    @ job = $job + 1
+condor_submit ${condor_dir}/${condor_file}
     
 end
 
