@@ -114,7 +114,10 @@ while ($job <= $jobNumEnd)
   
 EOF
 
+    @ job = $job + 1
+
 condor_submit ${condor_dir}/${condor_file}
-    
+
+
 end
 
