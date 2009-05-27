@@ -14,6 +14,7 @@
 
 // Geometry
 #include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
+#include "Geometry/CaloTopology/interface/EcalTrigTowerConstituentsMap.h"
 #include "Geometry/CaloTopology/interface/CaloTowerConstituentsMap.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
@@ -34,7 +35,9 @@ class CaloIdCompiler {
   // User-accessible functions
   //----------------------------------------------
 
-  void setGeometry( const CaloGeometry *geometry, const CaloTowerConstituentsMap *caloTowerConstituentsMap);
+  void setGeometry( const CaloGeometry *geometry, 
+		    const CaloTowerConstituentsMap *caloTowerConstituentsMap,
+		    const EcalTrigTowerConstituentsMap *ecalTrigTowerConstituentsMap  );
 
   vector<HcalTrigTowerDetId> getAllHcalTrigTowerDetIds();
   vector<EcalTrigTowerDetId> getAllEcalTrigTowerDetIds();
@@ -46,9 +49,10 @@ class CaloIdCompiler {
   // Internal functions
   //----------------------------------------------
 
-  void getHcalTrigTowerDetIds_fromSubdet(std::vector<DetId> cellIds, std::vector<HcalTrigTowerDetId> & towerIds);
-  void getEcalTrigTowerDetIds_fromSubdet(std::vector<DetId> cellIds, std::vector<EcalTrigTowerDetId> & towerIds);
-  void getCaloTowerDetIds_fromSubdet    (std::vector<DetId> cellIds, std::vector<CaloTowerDetId>     & towerIds);
+  template < class EcalDetId > 
+  void getEcalTrigTowerDetIds_fromSubdet(vector<DetId> cellIds, vector<EcalTrigTowerDetId> &towerIds);  
+  void getHcalTrigTowerDetIds_fromSubdet(vector<DetId> cellIds, vector<HcalTrigTowerDetId> &towerIds);
+  void getCaloTowerDetIds_fromSubdet    (vector<DetId> cellIds, vector<CaloTowerDetId>     &towerIds);
   
   //----------------------------------------------
   // HcalDetId's
@@ -58,6 +62,10 @@ class CaloIdCompiler {
   vector<DetId> m_heCells;
   vector<DetId> m_hoCells;
   vector<DetId> m_hfCells;
+
+  vector<DetId> m_ebCells;
+  vector<DetId> m_eeCells;
+  vector<DetId> m_esCells;
 
   //----------------------------------------------
   // Calorimeter trigger geometries
@@ -70,8 +78,9 @@ class CaloIdCompiler {
   // User-set data
   //----------------------------------------------
 
-  ESHandle<CaloGeometry>           m_geometry;
-  const CaloTowerConstituentsMap * m_caloTowerConstituentsMap;
+  const CaloGeometry                 * m_geometry;
+  const EcalTrigTowerConstituentsMap * m_ecalTrigTowerConstituentsMap;
+  const CaloTowerConstituentsMap     * m_caloTowerConstituentsMap;
 
   //----------------------------------------------
   // Internal mapping tools
@@ -80,6 +89,10 @@ class CaloIdCompiler {
   typedef multimap<HcalTrigTowerDetId, int, less<HcalTrigTowerDetId> > HcalTrigTowerDetIdCountMap;
   typedef multimap<HcalTrigTowerDetId, int, less<HcalTrigTowerDetId> >::value_type HcalTrigTowerDetIdCount;
   HcalTrigTowerDetIdCountMap m_hcalTrigTowerDetIdCountMap;
+
+  typedef multimap<EcalTrigTowerDetId, int, less<EcalTrigTowerDetId> > EcalTrigTowerDetIdCountMap;
+  typedef multimap<EcalTrigTowerDetId, int, less<EcalTrigTowerDetId> >::value_type EcalTrigTowerDetIdCount;
+  EcalTrigTowerDetIdCountMap m_ecalTrigTowerDetIdCountMap;
   
   typedef multimap<CaloTowerDetId, int, less<CaloTowerDetId> > CaloTowerDetIdCountMap;
   typedef multimap<CaloTowerDetId, int, less<CaloTowerDetId> >::value_type CaloTowerDetIdCount;

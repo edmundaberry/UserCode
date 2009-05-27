@@ -8,8 +8,11 @@ CaloIdCompiler::CaloIdCompiler(){}
 
 CaloIdCompiler::~CaloIdCompiler(){}
 
-void CaloIdCompiler::setGeometry( const CaloGeometry *geometry, const CaloTowerConstituentsMap *caloTowerConstituentsMap){
+void CaloIdCompiler::setGeometry( const CaloGeometry *geometry, 
+				  const CaloTowerConstituentsMap *caloTowerConstituentsMap,
+				  const EcalTrigTowerConstituentsMap * ecalTrigTowerConstituentsMap ){
 
+  m_ecalTrigTowerConstituentsMap = ecalTrigTowerConstituentsMap;
   m_caloTowerConstituentsMap = caloTowerConstituentsMap;
   m_geometry = geometry;
 
@@ -17,6 +20,11 @@ void CaloIdCompiler::setGeometry( const CaloGeometry *geometry, const CaloTowerC
   m_heCells = m_geometry -> getValidDetIds(DetId::Hcal, HcalEndcap );
   m_hoCells = m_geometry -> getValidDetIds(DetId::Hcal, HcalOuter  );
   m_hoCells = m_geometry -> getValidDetIds(DetId::Hcal, HcalForward);  
+
+  m_ebCells = m_geometry -> getValidDetIds(DetId::Ecal, EcalBarrel);
+  m_eeCells = m_geometry -> getValidDetIds(DetId::Ecal, EcalEndcap);
+  m_esCells = m_geometry -> getValidDetIds(DetId::Ecal, EcalPreshower);
+
 
 }
 
@@ -29,8 +37,8 @@ void CaloIdCompiler::getHcalTrigTowerDetIds_fromSubdet(std::vector<DetId> cellId
   
   for (; cellId_iter != cellIds.end(); ++cellId_iter){
     HcalDetId hcalDetId = HcalDetId(*cellId_iter);
-    std::vector<HcalTrigTowerDetId> temp = m_hcalTrigTowerGeometry.towerIds(*cellId_iter);
-    std::vector<HcalTrigTowerDetId>::iterator temp_iter = temp.begin();
+    vector<HcalTrigTowerDetId> temp = m_hcalTrigTowerGeometry.towerIds(*cellId_iter);
+    vector<HcalTrigTowerDetId>::iterator temp_iter = temp.begin();
     for (; temp_iter != temp.end(); ++temp_iter){
       
       entries = m_hcalTrigTowerDetIdCountMap.count(*temp_iter);
@@ -41,6 +49,28 @@ void CaloIdCompiler::getHcalTrigTowerDetIds_fromSubdet(std::vector<DetId> cellId
     }
   }
 }
+
+template < class EcalDetId > 
+void CaloIdCompiler::getEcalTrigTowerDetIds_fromSubdet (std::vector<DetId> cellIds, 
+							std::vector<EcalTrigTowerDetId> & towerIds){
+  
+  
+  
+  int entries;
+  std::vector<DetId>::iterator cellId_iter = cellIds.begin();
+  for (; cellId_iter != cellIds.end(); ++cellId_iter){
+    
+    EcalDetId ecalDetId = EcalDetId(*cellId_iter);
+    EcalTrigTowerDetId temp = m_ecalTrigTowerConstituentsMap -> towerOf(ecalDetId);
+  
+    entries = m_ecalTrigTowerDetIdCountMap.count(temp);
+
+    if (entries == 0) towerIds.push_back(temp);
+
+    m_ecalTrigTowerDetIdCountMap.insert(EcalTrigTowerDetIdCount(temp,entries+1));
+  }
+}
+
 
 void CaloIdCompiler::getCaloTowerDetIds_fromSubdet(std::vector<DetId> cellIds, 
 								 std::vector<CaloTowerDetId> & towerIds){
@@ -80,9 +110,12 @@ vector<HcalTrigTowerDetId> CaloIdCompiler::getAllHcalTrigTowerDetIds(){
 vector<EcalTrigTowerDetId> CaloIdCompiler::getAllEcalTrigTowerDetIds(){
 
   vector <EcalTrigTowerDetId> retval;
-  cout << "Not yet implimented!" << endl;
-  return retval;
 
+  getEcalTrigTowerDetIds_fromSubdet<EBDetId>(m_ebCells, retval);
+  getEcalTrigTowerDetIds_fromSubdet<EEDetId>(m_eeCells, retval);
+  getEcalTrigTowerDetIds_fromSubdet<ESDetId>(m_esCells, retval);
+  
+  return retval;
 }
 
 vector<CaloTowerDetId>     CaloIdCompiler::getAllCaloTowerDetIds(){

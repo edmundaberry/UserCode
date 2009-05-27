@@ -22,10 +22,19 @@
 #include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
 #include "Geometry/CaloTopology/interface/CaloTowerConstituentsMap.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
+#include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
 
+// TPG transcoder info
+#include "CalibFormats/CaloTPG/interface/CaloTPGTranscoder.h"
+#include "CalibFormats/CaloTPG/interface/CaloTPGRecord.h"
+#include "CalibCalorimetry/EcalTPGTools/interface/EcalTPGScale.h"
+
 // Mapping object
-#include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTrigTowerMapBuilder.h"
+#include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTrigTowerMap.h"
+
+// Algorithm
+#include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTowersFromTrigPrimsAlgo.h"
 
 using namespace edm;
 using namespace std;
@@ -51,35 +60,40 @@ private:
   //------------------------------------------------------
   
   InputTag m_hcalTrigPrimTag;
+  InputTag m_hoTrigPrimTag;
   InputTag m_ecalTrigPrimTag;
 
   //------------------------------------------------------
   // ESHandles
   //------------------------------------------------------
 
-  ESHandle<CaloTowerConstituentsMap> m_caloTowerConstituentsMap;
-  ESHandle<CaloGeometry> m_geometry;
+  EcalTPGScale m_ecalTPGScale ;
+
+  ESHandle<CaloTPGTranscoder>            m_caloTPGTranscoder;
+  ESHandle<EcalTrigTowerConstituentsMap> m_ecalTrigTowerConstituentsMap;
+  ESHandle<CaloTowerConstituentsMap>     m_caloTowerConstituentsMap;
+  ESHandle<CaloGeometry>                 m_geometry;
+  ESHandle<CaloSubdetectorGeometry>      m_ecalBarrelGeometry;
+  ESHandle<CaloSubdetectorGeometry>      m_ecalEndcapGeometry;
+
 
   //------------------------------------------------------
-  // My helper objects
+  // Mapping from trig towers to calo towers
   //------------------------------------------------------
 
-  CaloIdCompiler          *m_caloIdCompiler;
-  CaloTrigTowerMapBuilder *m_caloTrigTowerMapBuilder;
+  CaloTrigTowerMap *m_caloTrigTowerMap;
 
   //------------------------------------------------------
   // Geometry
   //------------------------------------------------------
-  
+
   HcalTrigTowerGeometry    m_trigTowerGeometry;
 
   //------------------------------------------------------
-  // typedefs from CaloTrigTowerMapBuilder header file
-  // Do I really need to be re-doing these?
+  // Algorithm
   //------------------------------------------------------
-  
-  typedef CaloTrigTowerMapBuilder::CaloToTrigTowerMap CaloToTrigTowerMap;
-  typedef CaloTrigTowerMapBuilder::TrigToCaloTowerMap TrigToCaloTowerMap;
+
+  CaloTowersFromTrigPrimsAlgo m_caloTowersFromTrigPrimsAlgo;
 
 };
 
@@ -88,14 +102,19 @@ private:
 //   and instruction bools here.
 //------------------------------------------------------
 
-CaloTowersFromTrigPrimsCreator::CaloTowersFromTrigPrimsCreator(const ParameterSet& iConfig){
+CaloTowersFromTrigPrimsCreator::CaloTowersFromTrigPrimsCreator(const ParameterSet& iConfig) :
+m_caloTowersFromTrigPrimsAlgo()
+{
 
-  InputTag d_hcalTrigPrimTag("hcalDigis");
+  InputTag d_hcalTrigPrimTag("simHcalTriggerPrimitiveDigis");
   m_hcalTrigPrimTag = iConfig.getUntrackedParameter<InputTag>("hcalTrigPrimTag",d_hcalTrigPrimTag);
 
-  InputTag d_ecalTrigPrimTag("ecalDigis","EcalTriggerPrimitives");
+  InputTag d_ecalTrigPrimTag("simEcalTriggerPrimitiveDigis");
   m_ecalTrigPrimTag = iConfig.getUntrackedParameter<InputTag>("ecalTrigPrimTag",d_ecalTrigPrimTag);
   
+  InputTag d_hoTrigPrimTag("");
+  m_hoTrigPrimTag = iConfig.getUntrackedParameter<InputTag>("hoTrigPrimTag",d_hoTrigPrimTag);
+
   bool d_verbose = true;
   m_verbose = iConfig.getUntrackedParameter("verbose",d_verbose);
 
@@ -117,46 +136,39 @@ void CaloTowersFromTrigPrimsCreator::produce(Event& iEvent, const EventSetup& iS
   // Get all of your ESHandles
   //-----------------------------------------------------
 
-  iSetup.get<CaloGeometryRecord>().get(m_geometry);
-  iSetup.get<IdealGeometryRecord>().get(m_caloTowerConstituentsMap);
-  
+  iSetup.get<CaloGeometryRecord>      ().get(m_geometry                        );
+  iSetup.get<IdealGeometryRecord>     ().get(m_caloTowerConstituentsMap        );
+  iSetup.get<IdealGeometryRecord>     ().get(m_ecalTrigTowerConstituentsMap    );
+  iSetup.get<CaloTPGRecord>           ().get(m_caloTPGTranscoder               );
+  iSetup.get<EcalBarrelGeometryRecord>().get("EcalBarrel", m_ecalBarrelGeometry);
+  iSetup.get<EcalEndcapGeometryRecord>().get("EcalEndcap", m_ecalEndcapGeometry);
+
+  m_ecalTPGScale.setEventSetup(iSetup);
+
   //-----------------------------------------------------
   // Set up the mapping objects and give them geometries
   //-----------------------------------------------------
 
-  m_caloIdCompiler          = new CaloIdCompiler();
-  m_caloTrigTowerMapBuilder = new CaloTrigTowerMapBuilder();
-  m_caloIdCompiler          -> setGeometry(m_geometry.product(),m_caloTowerConstituentsMap.product());
-  m_caloTrigTowerMapBuilder -> setGeometry(m_geometry.product(),m_caloTowerConstituentsMap.product());
-  
-  m_caloTrigTowerMapBuilder -> buildMap();
-				 
-  //-----------------------------------------------------
-  // Retrieve maps
-  //-----------------------------------------------------
+  m_caloTrigTowerMap = new CaloTrigTowerMap();
 
-  CaloToTrigTowerMap caloToTrigTowerMap = m_caloTrigTowerMapBuilder -> getCaloToTrigTowerMap();
-  TrigToCaloTowerMap trigToCaloTowerMap = m_caloTrigTowerMapBuilder -> getTrigToCaloTowerMap();
+  m_caloTrigTowerMap -> setGeometry(m_geometry.product(),
+				    m_caloTowerConstituentsMap.product(), 
+				    m_ecalTrigTowerConstituentsMap.product());
   
-  //-----------------------------------------------------
-  // Get vectors of all valid TrigTowerDetId's
-  //----------------------------------------------------- 
+  m_caloTowersFromTrigPrimsAlgo.setGeometry(m_geometry.product(),
+					    m_caloTowerConstituentsMap.product(), 
+					    m_ecalTrigTowerConstituentsMap.product(),
+					    m_ecalBarrelGeometry.product(),
+					    m_ecalEndcapGeometry.product() 	       );
   
-  vector<HcalTrigTowerDetId> trigTowerDetIds = m_caloIdCompiler -> getAllHcalTrigTowerDetIds();
-  vector<CaloTowerDetId>     caloTowerDetIds = m_caloIdCompiler -> getAllCaloTowerDetIds    ();
+  m_caloTowersFromTrigPrimsAlgo.setCoder       (m_caloTPGTranscoder.product());
+  m_caloTowersFromTrigPrimsAlgo.setEcalTPGScale(m_ecalTPGScale);
+  m_caloTowersFromTrigPrimsAlgo.setMap         (m_caloTrigTowerMap);
 
-  cout << "trigTowerDetIds have size: " << trigTowerDetIds.size() << endl;
-  cout << "caloTowerDetIds have size: " << caloTowerDetIds.size() << endl;
-
-  vector<HcalTrigTowerDetId>::iterator trigTowerDetId_iter = trigTowerDetIds.begin();
-  vector<CaloTowerDetId>::iterator     caloTowerDetId_iter = caloTowerDetIds.begin();
-  
   //-----------------------------------------------------
-  // Get real handles of trigger primitives 
-  // (This will be more useful later)
+  // Get trigger primitives 
   //-----------------------------------------------------
   
-  /*
   Handle<HcalTrigPrimDigiCollection> HCALTrigPrimDigis;
   bool hcalTrigPrimDigiTagExists = iEvent.getByLabel(m_hcalTrigPrimTag,HCALTrigPrimDigis);
   if (!hcalTrigPrimDigiTagExists){
@@ -170,65 +182,36 @@ void CaloTowersFromTrigPrimsCreator::produce(Event& iEvent, const EventSetup& iS
     LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract ECAL trigger primitives with label: " << m_ecalTrigPrimTag;
     return;
   }
-  */
 
-  //------------------------------------------------------
-  // Loop over the HCAL trig prims first
-  //------------------------------------------------------
-  
-  /*
-  HcalTrigPrimDigiCollection::const_iterator hcalTrigPrimDigi = HCALTrigPrimDigis -> begin();
-  
-  for (; hcalTrigPrimDigi != HCALTrigPrimDigis -> end(); hcalTrigPrimDigi++){
-
-    vector<HcalDetId> HcalDetIds = m_trigTowerGeometry.detIds((*hcalTrigPrimDigi).id());
-  */
-  
-
-  //------------------------------------------------------
-  // 1.  Loop over all CaloTowerDetId's
-  // 2.  See how many different trigger towers each was mapped to
-  // 3.  You hope that each CaloTower was only mapped to one trigger tower
-  //------------------------------------------------------
-
-  vector<CaloTowerDetId> multiplyMappedCaloTowerDetIds;
-  vector<CaloTowerDetId>::iterator thisMultiplyMappedCaloTowerDetId;
-
-  for(; caloTowerDetId_iter != caloTowerDetIds.end(); ++caloTowerDetId_iter){
-
-    int entries = caloToTrigTowerMap.count(*caloTowerDetId_iter);
-
-    if (entries > 1) {   
-      multiplyMappedCaloTowerDetIds.push_back(*caloTowerDetId_iter);      
-    }    
-
+  Handle<HOTrigPrimDigiCollection> HOTrigPrimDigis;
+  bool hoTrigPrimDigiTagExists = iEvent.getByType(HOTrigPrimDigis);
+  if (!hoTrigPrimDigiTagExists){
+    LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract HO trigger primitives with label: " << m_hoTrigPrimTag;
+    return;
   }
+
+  //------------------------------------------------------
+  // Create an empty collection
+  //------------------------------------------------------
   
-  cout << multiplyMappedCaloTowerDetIds.size() << " CaloTower(s) with constituents that were assigned to different trigger towers" << endl;
+  auto_ptr<CaloTowerCollection> caloTowerCollection(new CaloTowerCollection());
 
-  for (thisMultiplyMappedCaloTowerDetId  = multiplyMappedCaloTowerDetIds.begin();
-       thisMultiplyMappedCaloTowerDetId != multiplyMappedCaloTowerDetIds.end();
-       thisMultiplyMappedCaloTowerDetId++){    
-    cout << "  " << *thisMultiplyMappedCaloTowerDetId;
-    
-    vector<DetId> constituents = m_caloTowerConstituentsMap.product() -> constituentsOf(*thisMultiplyMappedCaloTowerDetId);
-    vector<DetId>::iterator thisConstituent = constituents.begin();
+  //------------------------------------------------------
+  // Apply the algorithm
+  //------------------------------------------------------
+  
+  m_caloTowersFromTrigPrimsAlgo.process(*HCALTrigPrimDigis);
+  m_caloTowersFromTrigPrimsAlgo.process(*HOTrigPrimDigis);
+  m_caloTowersFromTrigPrimsAlgo.process(*ECALTrigPrimDigis);
 
-    cout << " (" << constituents.size() << ") ";
+  //------------------------------------------------------
+  // Finish the algorithm
+  //------------------------------------------------------
+  
+  m_caloTowersFromTrigPrimsAlgo.finish(*caloTowerCollection);
 
-    for (; thisConstituent != constituents.end(); thisConstituent++){
-      if ( (*thisConstituent).det() == DetId::Hcal ){	
-	HcalDetId hcalDetId = HcalDetId(*thisConstituent); 
+  iEvent.put(caloTowerCollection,"TEST123");
 
-	int nTriggerTowers = m_trigTowerGeometry.towerIds(hcalDetId).size();
-
-	if (nTriggerTowers != 2) cout << hcalDetId << " ";
-      }
-    }
-    cout << endl;
-    
-    
-  }  
 }
 
 void CaloTowersFromTrigPrimsCreator::beginJob(const EventSetup&){}

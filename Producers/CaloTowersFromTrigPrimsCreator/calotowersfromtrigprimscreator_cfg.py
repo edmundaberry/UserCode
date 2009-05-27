@@ -16,11 +16,14 @@ process.load("Configuration.StandardSequences.RawToDigi_cff")
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-        'file:/uscms/home/eberry/data/4406CC7F-3497-DD11-B5F5-001D0967DA99.root'
+        'file:/uscms/home/eberry/data/test.root'
     )
 )
 
 process.load("Geometry.CaloEventSetup.CaloTowerConstituents_cfi")
+process.load("Geometry.CaloEventSetup.EcalTrigTowerConstituents_cfi")
+process.load("SimCalorimetry.HcalTrigPrimProducers.hcaltpdigi_cff")
+process.load("CalibCalorimetry.EcalTPGTools.ecalTPGScale_cff")
 
 process.unpack = cms.Path(process.RawToDigi)
 
@@ -35,7 +38,7 @@ process.produce = cms.Path(process.myProducerLabel)
 process.finalProcess = cms.EndPath(process.out)
 
 process.schedule = cms.Schedule()
-# process.schedule.append(process.unpack)
+##process.schedule.append(process.unpack)
 process.schedule.append(process.produce)
 # process.schedule.append(process.finalProcess)
 
