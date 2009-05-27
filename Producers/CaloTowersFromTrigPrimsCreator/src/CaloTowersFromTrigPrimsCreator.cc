@@ -118,6 +118,8 @@ m_caloTowersFromTrigPrimsAlgo()
   bool d_verbose = true;
   m_verbose = iConfig.getUntrackedParameter("verbose",d_verbose);
 
+  produces<CaloTowerCollection>();
+
 }
 
 //------------------------------------------------------
@@ -172,23 +174,25 @@ void CaloTowersFromTrigPrimsCreator::produce(Event& iEvent, const EventSetup& iS
   Handle<HcalTrigPrimDigiCollection> HCALTrigPrimDigis;
   bool hcalTrigPrimDigiTagExists = iEvent.getByLabel(m_hcalTrigPrimTag,HCALTrigPrimDigis);
   if (!hcalTrigPrimDigiTagExists){
-    LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract HCAL trigger primitives with label: " << m_hcalTrigPrimTag;
+    LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract HCAL trigger primitives with " << m_hcalTrigPrimTag;
     return;
   }
 
   Handle<EcalTrigPrimDigiCollection> ECALTrigPrimDigis;
   bool ecalTrigPrimDigiTagExists = iEvent.getByLabel(m_ecalTrigPrimTag,ECALTrigPrimDigis);
   if (!ecalTrigPrimDigiTagExists){
-    LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract ECAL trigger primitives with label: " << m_ecalTrigPrimTag;
+    LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract ECAL trigger primitives with " << m_ecalTrigPrimTag;
     return;
   }
 
+  /*
   Handle<HOTrigPrimDigiCollection> HOTrigPrimDigis;
   bool hoTrigPrimDigiTagExists = iEvent.getByType(HOTrigPrimDigis);
   if (!hoTrigPrimDigiTagExists){
     LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract HO trigger primitives with label: " << m_hoTrigPrimTag;
     return;
   }
+  */
 
   //------------------------------------------------------
   // Create an empty collection
@@ -201,7 +205,7 @@ void CaloTowersFromTrigPrimsCreator::produce(Event& iEvent, const EventSetup& iS
   //------------------------------------------------------
   
   m_caloTowersFromTrigPrimsAlgo.process(*HCALTrigPrimDigis);
-  m_caloTowersFromTrigPrimsAlgo.process(*HOTrigPrimDigis);
+  // m_caloTowersFromTrigPrimsAlgo.process(*HOTrigPrimDigis);
   m_caloTowersFromTrigPrimsAlgo.process(*ECALTrigPrimDigis);
 
   //------------------------------------------------------
@@ -210,7 +214,7 @@ void CaloTowersFromTrigPrimsCreator::produce(Event& iEvent, const EventSetup& iS
   
   m_caloTowersFromTrigPrimsAlgo.finish(*caloTowerCollection);
 
-  iEvent.put(caloTowerCollection,"TEST123");
+  iEvent.put(caloTowerCollection);
 
 }
 

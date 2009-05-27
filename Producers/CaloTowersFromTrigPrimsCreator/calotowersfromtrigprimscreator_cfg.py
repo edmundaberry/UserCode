@@ -1,10 +1,10 @@
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("OWNPARTICLES")
+process = cms.Process("MyCaloTowerCreator")
 
 process.load("FWCore.MessageService.MessageLogger_cfi")
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(5) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
 
 process.load("Configuration.StandardSequences.Services_cff")
 process.load("Configuration.StandardSequences.Geometry_cff")
@@ -30,8 +30,13 @@ process.unpack = cms.Path(process.RawToDigi)
 process.myProducerLabel = cms.EDProducer('CaloTowersFromTrigPrimsCreator')
 
 process.out = cms.OutputModule("PoolOutputModule",
-    fileName = cms.untracked.string('full_output.root'),
-    outputCommands = cms.untracked.vstring('keep *')
+    fileName = cms.untracked.string('final_output.root'),
+    outputCommands = cms.untracked.vstring(
+        'drop *',
+        'keep *_simHcalTriggerPrimitiveDigis_*_*',
+        'keep *_simEcalTriggerPrimitiveDigis_*_*',
+        'keep CaloTowersSorted_*_*_*'
+)
 )
 
 process.produce = cms.Path(process.myProducerLabel)
@@ -40,6 +45,6 @@ process.finalProcess = cms.EndPath(process.out)
 process.schedule = cms.Schedule()
 ##process.schedule.append(process.unpack)
 process.schedule.append(process.produce)
-# process.schedule.append(process.finalProcess)
+process.schedule.append(process.finalProcess)
 
 
