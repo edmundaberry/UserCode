@@ -22,25 +22,36 @@ CaloTowersFromTrigPrimsAlgo::CaloTowersFromTrigPrimsAlgo():
 
 CaloTowersFromTrigPrimsAlgo::~CaloTowersFromTrigPrimsAlgo(){}
 
+void CaloTowersFromTrigPrimsAlgo::setMapping(){
+
+  m_caloTrigTowerMap -> setGeometry(m_geometry,
+				    m_caloTowerConstituentsMap,
+				    m_ecalTrigTowerConstituentsMap);
+  
+}
+
 //----------------------------------------------------
 // Pass off the TPG handles to assign hits
-//
-// This can probably be templated
 //----------------------------------------------------
 
+template <typename TrigPrimDigiCollection>
+void CaloTowersFromTrigPrimsAlgo::process(const TrigPrimDigiCollection& TrigPrimDigis) { 
+
+  typename TrigPrimDigiCollection::const_iterator trigPrimDigi = TrigPrimDigis.begin();
+
+  for(; trigPrimDigi != TrigPrimDigis.end(); ++trigPrimDigi)    
+    assignHit(&(*trigPrimDigi));
+
+}
+
+//--------------
+
+/*
 void CaloTowersFromTrigPrimsAlgo::process(const HcalTrigPrimDigiCollection& HcalTrigPrimDigis) { 
 
   for(HcalTrigPrimDigiCollection::const_iterator hcalTrigPrimDigi = HcalTrigPrimDigis.begin();
       hcalTrigPrimDigi != HcalTrigPrimDigis.end(); ++hcalTrigPrimDigi)    
     assignHit(&(*hcalTrigPrimDigi));
-
-}
-
-void CaloTowersFromTrigPrimsAlgo::process(const HOTrigPrimDigiCollection& HOTrigPrimDigis) { 
-
-  for(HOTrigPrimDigiCollection::const_iterator hoTrigPrimDigi = HOTrigPrimDigis.begin();
-      hoTrigPrimDigi != HOTrigPrimDigis.end(); ++hoTrigPrimDigi)    
-    assignHit(&(*hoTrigPrimDigi));
 
 }
 
@@ -51,15 +62,13 @@ void CaloTowersFromTrigPrimsAlgo::process(const EcalTrigPrimDigiCollection& Ecal
     assignHit(&(*ecalTrigPrimDigi));
   
 }
+*/
 
 //----------------------------------------------------
 // Assign hits for the HO.
 // HO trigger primitives contain only single yes/no
 // bits.  Add the threshold energy.
 //----------------------------------------------------
-
-void CaloTowersFromTrigPrimsAlgo::assignHit(const HOTriggerPrimitiveDigi * hoTrigPrimDigi){
-}
 
 void CaloTowersFromTrigPrimsAlgo::assignHit(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi) {
 
@@ -81,7 +90,7 @@ void CaloTowersFromTrigPrimsAlgo::assignHit(const HcalTriggerPrimitiveDigi * hca
     int nHcalIds = 0;
     
     for (; detId != DetIds.end(); detId++)      
-      if ((*detId).det() == DetId::Hcal && (*detId).subdetId() != HcalOuter) nHcalIds++;
+      if ((*detId).det() == DetId::Hcal) nHcalIds++;
     
     detId = DetIds.begin();
 
@@ -148,7 +157,7 @@ void CaloTowersFromTrigPrimsAlgo::assignHit(const EcalTriggerPrimitiveDigi * eca
 
 void CaloTowersFromTrigPrimsAlgo::finish(CaloTowerCollection& result) {
 
-  for(MetaTowerMap::const_iterator mapItr = theTowerMap.begin(); mapItr != theTowerMap.end(); ++mapItr) {
+  for(MetaTowerMap::const_iterator mapItr = m_metaTowerMap.begin(); mapItr != m_metaTowerMap.end(); ++mapItr) {
     
     if ( (mapItr->second).metaConstituents.size()<1) continue;
     
@@ -157,7 +166,7 @@ void CaloTowersFromTrigPrimsAlgo::finish(CaloTowerCollection& result) {
     if (ct.constituentsSize()>0) result.push_back(ct);
   }
 
-  theTowerMap.clear(); 
+  m_metaTowerMap.clear(); 
 }
 
 double CaloTowersFromTrigPrimsAlgo::getTrigTowerEnergy(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi){
@@ -274,15 +283,15 @@ CaloTowersFromTrigPrimsAlgo::MetaTower::MetaTower() :
 
 
 CaloTowersFromTrigPrimsAlgo::MetaTower & CaloTowersFromTrigPrimsAlgo::find(const CaloTowerDetId & detId) {
-  MetaTowerMap::iterator itr = theTowerMap.find(detId);
-  if(itr == theTowerMap.end()) {
+  MetaTowerMap::iterator itr = m_metaTowerMap.find(detId);
+  if(itr == m_metaTowerMap.end()) {
 
     // need to build a new tower
     MetaTower t;
 
     // store it in the map
-    theTowerMap.insert(std::pair<CaloTowerDetId, CaloTowersFromTrigPrimsAlgo::MetaTower>(detId, t));
-    itr = theTowerMap.find(detId);
+    m_metaTowerMap.insert(std::pair<CaloTowerDetId, CaloTowersFromTrigPrimsAlgo::MetaTower>(detId, t));
+    itr = m_metaTowerMap.find(detId);
   }
   return itr->second;
 }

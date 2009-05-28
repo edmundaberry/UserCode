@@ -1,6 +1,7 @@
 #ifndef CALOTOWERSFROMTRIGPRIMSALGO_H
 #define CALOTOWERSFROMTRIGPRIMSALGO_H
 
+// ROOT functions
 #include <TMath.h>
 
 // Data collections
@@ -22,10 +23,16 @@ class CaloTowersFromTrigPrimsAlgo {
 
  public:
 
-  
+  //------------------------------------------------------
+  // Constructor & Destructor
+  //------------------------------------------------------
 
   CaloTowersFromTrigPrimsAlgo();
   ~CaloTowersFromTrigPrimsAlgo();
+
+  //------------------------------------------------------
+  // Preliminary setup functions
+  //------------------------------------------------------
 
   void setGeometry     ( const CaloGeometry *geometry, 
 		         const CaloTowerConstituentsMap *caloTowerConstituentsMap,
@@ -33,16 +40,22 @@ class CaloTowersFromTrigPrimsAlgo {
 			 const CaloSubdetectorGeometry *ecalBarrelGeometry,
 			 const CaloSubdetectorGeometry *ecalEndcapGeometry );
   		       
-  void setMap          ( CaloTrigTowerMap * map   ) { m_caloTrigTowerMap  = map;   }
-  void setCoder        ( const CaloTPGTranscoder * coder ) { m_caloTPGTranscoder = coder; }
+  void setHcalTPGCoder ( const CaloTPGTranscoder * coder ) { m_caloTPGTranscoder = coder; }
   void setEcalTPGScale ( EcalTPGScale              scale ) { m_ecalTPGScale      = scale; }
 
-  void process(const HcalTrigPrimDigiCollection& HcalTrigPrimDigis);
-  void process(const HOTrigPrimDigiCollection&   HOTrigPrimDigis  );
-  void process(const EcalTrigPrimDigiCollection& EcalTrigPrimDigis);
+  void setMapping();
+
+  //------------------------------------------------------
+  // Main algorithm functions
+  //------------------------------------------------------
+
+  template <typename TrigPrimDigiCollection> void process(const TrigPrimDigiCollection& TrigPrimDigis);
+  //void process(const EcalTrigPrimDigiCollection& EcalTrigPrimDigis); 
   void finish (CaloTowerCollection& FinalCaloTowerCollection);
 
  private:
+
+  //------------------------------------------------------
   
   EcalTPGScale              m_ecalTPGScale;
   HcalTrigTowerGeometry     m_hcalTrigTowerGeometry;
@@ -57,7 +70,7 @@ class CaloTowersFromTrigPrimsAlgo {
   };
 
   typedef std::map<CaloTowerDetId, MetaTower> MetaTowerMap;
-  MetaTowerMap theTowerMap;
+  MetaTowerMap m_metaTowerMap;
 
   const CaloGeometry                 *m_geometry;
   const CaloTowerConstituentsMap     *m_caloTowerConstituentsMap;
@@ -69,9 +82,7 @@ class CaloTowersFromTrigPrimsAlgo {
 
   MetaTower & find(const CaloTowerDetId &id);
 
-
   void assignHit(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
-  void assignHit(const HOTriggerPrimitiveDigi   * hoTrigPrimDigi  );
   void assignHit(const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
 
   CaloTower convert(const CaloTowerDetId& id, const MetaTower& mt);

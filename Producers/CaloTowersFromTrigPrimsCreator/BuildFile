@@ -16,7 +16,8 @@
 
 <use name=boost>
 
-<flags EDM_PLUGIN=1>
+<flags EDM_PLUGIN=0>
+
 <export>
 
    <lib name=ProducersCaloTowersFromTrigPrimsCreator>
