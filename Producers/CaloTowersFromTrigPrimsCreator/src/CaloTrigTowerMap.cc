@@ -1,25 +1,5 @@
-// System files
-#include <iostream>
-#include <map>
-#include <utility>
-#include <vector>
-
-// Main header file
+// Header file
 #include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTrigTowerMap.h"
-
-// Data collections
-#include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
-#include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
-
-// Geometry
-#include "Geometry/CaloGeometry/interface/CaloGeometry.h"
-#include "Geometry/Records/interface/CaloGeometryRecord.h"
-
-// Framework
-#include "FWCore/Framework/interface/ESHandle.h"
-
-using namespace edm;
-using namespace std;
 
 CaloTrigTowerMap::CaloTrigTowerMap(){}
 
@@ -31,11 +11,20 @@ CaloTrigTowerMap::CaloTrigTowerMap(const CaloTrigTowerMap& copy){
 CaloTrigTowerMap::~CaloTrigTowerMap(){}
 
 void CaloTrigTowerMap::setGeometry( const CaloGeometry *geometry, 
-					   const CaloTowerConstituentsMap *caloTowerConstituentsMap,
-					   const EcalTrigTowerConstituentsMap *ecalTrigTowerConstituentsMap
-					   ){
+				    const CaloTowerConstituentsMap *caloTowerConstituentsMap,
+				    const EcalTrigTowerConstituentsMap *ecalTrigTowerConstituentsMap
+				    ){
+  
+  std::cout << "    Setting CaloTowerConstituentsMap " << std::endl;
+  
   m_caloTowerConstituentsMap     = caloTowerConstituentsMap;
+
+  std::cout << "    Setting EcalTrigTowerConstituentsMap " << std::endl;
+
   m_ecalTrigTowerConstituentsMap = ecalTrigTowerConstituentsMap;
+
+  std::cout << "    Setting CaloGeometry " << std::endl;
+
   m_geometry                     = geometry;
 }
 
@@ -43,39 +32,54 @@ CaloTrigTowerMap & CaloTrigTowerMap::operator=(const CaloTrigTowerMap &copy){
 
   m_geometry                     = copy.m_geometry;
   m_ecalTrigTowerConstituentsMap = copy.m_ecalTrigTowerConstituentsMap;
-  m_caloTowerConstituentsMap     = copy.m_caloTowerConstituentsMap;
-  
+  m_caloTowerConstituentsMap     = copy.m_caloTowerConstituentsMap;  
 
   return *this;
 }
 
-vector<CaloTowerDetId> CaloTrigTowerMap::getCaloTowers(HcalTrigTowerDetId hcalTrigTowerDetId){
+std::vector<CaloTowerDetId> CaloTrigTowerMap::getCaloTowers(HcalTrigTowerDetId hcalTrigTowerDetId){
   
-  vector <CaloTowerDetId> retval;
+  std::cout << "      In CaloTrigTowerMap::getCaloTowers " << std::endl;
 
-  vector<HcalDetId> HcalDetIds = m_hcalTrigTowerGeometry.detIds(hcalTrigTowerDetId);
+  std::vector <CaloTowerDetId> retval;
+
+  std::cout << "      Getting HcalDetId's for this trigger tower: "
+	    << hcalTrigTowerDetId
+	    << std::endl;
+
+  std::vector<HcalDetId> HcalDetIds = m_hcalTrigTowerGeometry.detIds(hcalTrigTowerDetId);
   
-  vector<HcalDetId>::iterator hcalDetId = HcalDetIds.begin();
+  std::cout << "      Got HcalDetId's for this trigger tower: "
+	    << hcalTrigTowerDetId
+	    << std::endl;
+
+  std::vector<HcalDetId>::iterator hcalDetId = HcalDetIds.begin();
+
+  std::cout << "      Got THESE HcalDetId's for this trigger tower: " 
+	    << hcalTrigTowerDetId
+	    << std::endl;
   
   for (; hcalDetId != HcalDetIds.end(); hcalDetId++){
+    std::cout << "        " << *hcalDetId 
+	      << std::endl;
     CaloTowerDetId caloTowerDetId = m_caloTowerConstituentsMap -> towerOf(*hcalDetId);
     retval.push_back (caloTowerDetId);
   }
 
-  sort   (retval.begin(), retval.end());  
-  unique (retval.begin(), retval.end());
+  std::sort   (retval.begin(), retval.end());  
+  std::unique (retval.begin(), retval.end());
   
   return retval;
   
 }
 
-vector<CaloTowerDetId> CaloTrigTowerMap::getCaloTowers(EcalTrigTowerDetId ecalTrigTowerDetId){
+std::vector<CaloTowerDetId> CaloTrigTowerMap::getCaloTowers(EcalTrigTowerDetId ecalTrigTowerDetId){
   
-  vector <CaloTowerDetId> retval;
+  std::vector <CaloTowerDetId> retval;
 
-  vector<DetId> DetIds = m_ecalTrigTowerConstituentsMap -> constituentsOf(ecalTrigTowerDetId);
+  std::vector<DetId> DetIds = m_ecalTrigTowerConstituentsMap -> constituentsOf(ecalTrigTowerDetId);
   
-  vector<DetId>::iterator detId = DetIds.begin();
+  std::vector<DetId>::iterator detId = DetIds.begin();
 
   for (; detId != DetIds.end(); detId++){
 
@@ -85,8 +89,8 @@ vector<CaloTowerDetId> CaloTrigTowerMap::getCaloTowers(EcalTrigTowerDetId ecalTr
     
   }
 
-  sort   (retval.begin(), retval.end());  
-  unique (retval.begin(), retval.end());
+  std::sort   (retval.begin(), retval.end());  
+  std::unique (retval.begin(), retval.end());
 
   return retval;
 

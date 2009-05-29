@@ -6,20 +6,33 @@
 //   and instruction bools here.
 //------------------------------------------------------
 
-CaloTowersFromTrigPrimsCreator::CaloTowersFromTrigPrimsCreator(const ParameterSet& iConfig) :
-m_caloTowersFromTrigPrimsAlgo(){
-
-  InputTag d_hcalTrigPrimTag("simHcalTriggerPrimitiveDigis");
-  m_hcalTrigPrimTag = iConfig.getUntrackedParameter<InputTag>("hcalTrigPrimTag",d_hcalTrigPrimTag);
-
-  InputTag d_ecalTrigPrimTag("simEcalTriggerPrimitiveDigis");
-  m_ecalTrigPrimTag = iConfig.getUntrackedParameter<InputTag>("ecalTrigPrimTag",d_ecalTrigPrimTag);
+CaloTowersFromTrigPrimsCreator::CaloTowersFromTrigPrimsCreator(const edm::ParameterSet& iConfig) :
+  m_caloTowersFromTrigPrimsAlgo(){
   
-  InputTag d_hoTrigPrimTag("");
-  m_hoTrigPrimTag = iConfig.getUntrackedParameter<InputTag>("hoTrigPrimTag",d_hoTrigPrimTag);
+  //-----------------------------------------------------
+  // Get input from the user
+  //-----------------------------------------------------
+  
+  double d_momHBDepth = 0.2;
+  double d_momHEDepth = 0.4;
+  double d_momEBDepth = 0.3;
+  double d_momEEDepth = 0.0;
+  m_momHBDepth = iConfig.getUntrackedParameter<double> ("momHBDepth",d_momHBDepth);  
+  m_momHEDepth = iConfig.getUntrackedParameter<double> ("momHEDepth",d_momHEDepth);
+  m_momEBDepth = iConfig.getUntrackedParameter<double> ("momEBDepth",d_momEBDepth);  
+  m_momEEDepth = iConfig.getUntrackedParameter<double> ("momEEDepth",d_momEEDepth);  
 
+  edm::InputTag d_hcalTrigPrimTag("simHcalTriggerPrimitiveDigis");
+  edm::InputTag d_ecalTrigPrimTag("simEcalTriggerPrimitiveDigis");
+  m_hcalTrigPrimTag = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag",d_hcalTrigPrimTag);
+  m_ecalTrigPrimTag = iConfig.getUntrackedParameter<edm::InputTag>("ecalTrigPrimTag",d_ecalTrigPrimTag);
+  
   bool d_verbose = true;
-  m_verbose = iConfig.getUntrackedParameter("verbose",d_verbose);
+  m_verbose = iConfig.getUntrackedParameter<bool>("verbose",d_verbose);
+
+  //-----------------------------------------------------
+  // Tell producer what to produce
+  //-----------------------------------------------------
 
   produces<CaloTowerCollection>();
 
@@ -35,7 +48,7 @@ CaloTowersFromTrigPrimsCreator::~CaloTowersFromTrigPrimsCreator(){}
 // Main production function
 //------------------------------------------------------
 
-void CaloTowersFromTrigPrimsCreator::produce(Event& iEvent, const EventSetup& iSetup) {
+void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
   //-----------------------------------------------------
   // Get all of your ESHandles
@@ -54,17 +67,17 @@ void CaloTowersFromTrigPrimsCreator::produce(Event& iEvent, const EventSetup& iS
   // Get trigger primitives from the event
   //-----------------------------------------------------
   
-  Handle<HcalTrigPrimDigiCollection> HCALTrigPrimDigis;
+  edm::Handle<HcalTrigPrimDigiCollection> HCALTrigPrimDigis;
   bool hcalTrigPrimDigiTagExists = iEvent.getByLabel(m_hcalTrigPrimTag,HCALTrigPrimDigis);
   if (!hcalTrigPrimDigiTagExists){
-    LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract HCAL trigger primitives with " << m_hcalTrigPrimTag;
+    edm::LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract HCAL trigger primitives with " << m_hcalTrigPrimTag;
     return;
   }
 
-  Handle<EcalTrigPrimDigiCollection> ECALTrigPrimDigis;
+  edm::Handle<EcalTrigPrimDigiCollection> ECALTrigPrimDigis;
   bool ecalTrigPrimDigiTagExists = iEvent.getByLabel(m_ecalTrigPrimTag,ECALTrigPrimDigis);
   if (!ecalTrigPrimDigiTagExists){
-    LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract ECAL trigger primitives with " << m_ecalTrigPrimTag;
+    edm::LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract ECAL trigger primitives with " << m_ecalTrigPrimTag;
     return;
   }
   
@@ -72,30 +85,34 @@ void CaloTowersFromTrigPrimsCreator::produce(Event& iEvent, const EventSetup& iS
   // Create an empty collection
   //------------------------------------------------------
   
-  auto_ptr<CaloTowerCollection> caloTowerCollection(new CaloTowerCollection());
+  std::auto_ptr<CaloTowerCollection> caloTowerCollection(new CaloTowerCollection());
 
   //-----------------------------------------------------
   // Initialize the algorithm
   //-----------------------------------------------------
   
-  m_caloTowersFromTrigPrimsAlgo.setGeometry(m_geometry.product(),
-					    m_caloTowerConstituentsMap.product(), 
-					    m_ecalTrigTowerConstituentsMap.product(),
-					    m_ecalBarrelGeometry.product(),
-					    m_ecalEndcapGeometry.product() 	       );
+  m_caloTowersFromTrigPrimsAlgo.setVerbose       (m_verbose);
+  m_caloTowersFromTrigPrimsAlgo.setGeometry      (m_geometry.product(),
+						  m_caloTowerConstituentsMap.product(), 
+						  m_ecalTrigTowerConstituentsMap.product(),
+						  m_ecalBarrelGeometry.product(),
+						  m_ecalEndcapGeometry.product() 	    );
   
-  m_caloTowersFromTrigPrimsAlgo.setHcalTPGCoder (m_caloTPGTranscoder.product());
-  m_caloTowersFromTrigPrimsAlgo.setEcalTPGScale (m_ecalTPGScale);
-  m_caloTowersFromTrigPrimsAlgo.setMapping();
+  m_caloTowersFromTrigPrimsAlgo.setDetectorDepths(m_momHBDepth, m_momHEDepth,
+						  m_momEBDepth, m_momEEDepth );
+  
+  m_caloTowersFromTrigPrimsAlgo.setHcalTPGCoder  (m_caloTPGTranscoder.product());
+  m_caloTowersFromTrigPrimsAlgo.setEcalTPGScale  (m_ecalTPGScale);
 
-
+  //m_caloTowersFromTrigPrimsAlgo.setMapping();
+  
   //------------------------------------------------------
   // Apply the algorithm
   //------------------------------------------------------
   
-  m_caloTowersFromTrigPrimsAlgo.process(*HCALTrigPrimDigis);
   m_caloTowersFromTrigPrimsAlgo.process(*ECALTrigPrimDigis);
-
+  m_caloTowersFromTrigPrimsAlgo.process(*HCALTrigPrimDigis);
+  
   //------------------------------------------------------
   // Finish the algorithm
   //------------------------------------------------------
@@ -110,7 +127,7 @@ void CaloTowersFromTrigPrimsCreator::produce(Event& iEvent, const EventSetup& iS
 
 }
 
-void CaloTowersFromTrigPrimsCreator::beginJob(const EventSetup&){}
+void CaloTowersFromTrigPrimsCreator::beginJob(const edm::EventSetup&){}
 
 void CaloTowersFromTrigPrimsCreator::endJob() {}
 

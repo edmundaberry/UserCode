@@ -1,28 +1,19 @@
-<use name=FWCore/Framework>
-<use name=FWCore/PluginManager>
+<export>
+<use name=Producers/CaloTowersFromTrigPrimsCreator>			      
+</export>
+<library name=ProducersCaloTowersFromTrigPrimsCreator_plugins file=*.cc>
+<use name=Producers/CaloTowersFromTrigPrimsCreator>			      
+<use name=FWCore/Framework>					      
+<use name=FWCore/PluginManager>					      
 <use name=FWCore/ParameterSet>
-
 <use name=DataFormats/HcalDetId>
 <use name=DataFormats/HcalDigi>
 <use name=DataFormats/EcalDigi>
-
 <use name=Geometry/CaloGeometry>
 <use name=Geometry/CaloTopology>
 <use name=Geometry/HcalTowerAlgo>
 <use name=Geometry/CaloEventSetup>
-
 <use name=CalibFormats/CaloTPG>
 <use name=CalibCalorimetry/EcalTPGTools>
-
 <use name=boost>
-
-<flags EDM_PLUGIN=1>
-<export>
-
-   <lib name=ProducersCaloTowersFromTrigPrimsCreator>
-
-   <use name=FWCore/Framework>
-   <use name=FWCore/PluginManager>
-   <use name=FWCore/ParameterSet>
-
-</export>
+</library>

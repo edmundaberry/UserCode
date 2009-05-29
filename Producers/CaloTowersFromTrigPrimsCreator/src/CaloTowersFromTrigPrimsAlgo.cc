@@ -5,15 +5,16 @@
 //----------------------------------------------------
 
 CaloTowersFromTrigPrimsAlgo::CaloTowersFromTrigPrimsAlgo():
+  m_verbose(false),
   m_geometry(0),
   m_caloTowerConstituentsMap(0),
   m_ecalTrigTowerConstituentsMap(0),
   m_ecalBarrelGeometry(0),
   m_ecalEndcapGeometry(0),
-  theMomHBDepth(0.2),
-  theMomHEDepth(0.4),
-  theMomEBDepth(0.3),
-  theMomEEDepth(0.0)
+  m_momHBDepth(-999.0),
+  m_momHEDepth(-999.0),
+  m_momEBDepth(-999.0),
+  m_momEEDepth(-999.0)
 {}
 
 //----------------------------------------------------
@@ -22,138 +23,177 @@ CaloTowersFromTrigPrimsAlgo::CaloTowersFromTrigPrimsAlgo():
 
 CaloTowersFromTrigPrimsAlgo::~CaloTowersFromTrigPrimsAlgo(){}
 
-void CaloTowersFromTrigPrimsAlgo::setMapping(){
+//----------------------------------------------------
+// Get input from user
+//----------------------------------------------------
 
-  m_caloTrigTowerMap -> setGeometry(m_geometry,
-				    m_caloTowerConstituentsMap,
-				    m_ecalTrigTowerConstituentsMap);
+void CaloTowersFromTrigPrimsAlgo::setDetectorDepths(double momHBDepth, double momHEDepth, 
+						    double momEBDepth, double momEEDepth){
   
+  m_momHBDepth = momHBDepth;
+  m_momHEDepth = momHEDepth;
+  m_momEBDepth = momEBDepth;
+  m_momEEDepth = momEEDepth;
+
 }
 
 //----------------------------------------------------
-// Pass off the TPG handles to assign hits
+// 1. Extract energy from trigger primitives, 
+// 2. Divide energy among mapped CaloTowers
 //----------------------------------------------------
 
-template <typename TrigPrimDigiCollection>
-void CaloTowersFromTrigPrimsAlgo::process(const TrigPrimDigiCollection& TrigPrimDigis) { 
-
-  typename TrigPrimDigiCollection::const_iterator trigPrimDigi = TrigPrimDigis.begin();
-
-  for(; trigPrimDigi != TrigPrimDigis.end(); ++trigPrimDigi)    
-    assignHit(&(*trigPrimDigi));
-
-}
-
-//--------------
-
-/*
-void CaloTowersFromTrigPrimsAlgo::process(const HcalTrigPrimDigiCollection& HcalTrigPrimDigis) { 
-
-  for(HcalTrigPrimDigiCollection::const_iterator hcalTrigPrimDigi = HcalTrigPrimDigis.begin();
-      hcalTrigPrimDigi != HcalTrigPrimDigis.end(); ++hcalTrigPrimDigi)    
-    assignHit(&(*hcalTrigPrimDigi));
-
-}
-
-void CaloTowersFromTrigPrimsAlgo::process(const EcalTrigPrimDigiCollection& EcalTrigPrimDigis) { 
-
-  for(EcalTrigPrimDigiCollection::const_iterator ecalTrigPrimDigi = EcalTrigPrimDigis.begin();
-      ecalTrigPrimDigi != EcalTrigPrimDigis.end(); ++ecalTrigPrimDigi)
-    assignHit(&(*ecalTrigPrimDigi));
+template <typename TriggerPrimitiveDigi>
+void CaloTowersFromTrigPrimsAlgo::assignEnergy(const TriggerPrimitiveDigi* trigPrimDigi){
   
-}
-*/
-
-//----------------------------------------------------
-// Assign hits for the HO.
-// HO trigger primitives contain only single yes/no
-// bits.  Add the threshold energy.
-//----------------------------------------------------
-
-void CaloTowersFromTrigPrimsAlgo::assignHit(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi) {
-
-  const HcalTrigTowerDetId hcalTrigTowerDetId = hcalTrigPrimDigi -> id();
+  //----------------------------------------------------
+  // Get the trigger tower DetId & map it to CaloTowers
+  //----------------------------------------------------
   
-  vector<CaloTowerDetId> CaloTowerDetIds = m_caloTrigTowerMap -> getCaloTowers( hcalTrigTowerDetId );
-  vector<CaloTowerDetId>::iterator caloTowerDetId = CaloTowerDetIds.begin();
+  typedef typename TriggerPrimitiveDigi::key_type TrigTowerDetId;
+  
+  TrigTowerDetId trigTowerDetId = trigPrimDigi -> id();
 
-  double totalEnergy = getTrigTowerEnergy(hcalTrigPrimDigi);
+  std::vector<CaloTowerDetId> CaloTowerDetIds = getCaloTowers( trigTowerDetId );
+  std::vector<CaloTowerDetId>::iterator caloTowerDetId = CaloTowerDetIds.begin();
+  
+  //----------------------------------------------------
+  // Get the energy from this trig prim and divide
+  // it among the number of CaloTowers you'll map to
+  //----------------------------------------------------
+  
+  double totalEnergy = getTrigTowerEnergy(trigPrimDigi);
   double towerEnergy = totalEnergy / (double) CaloTowerDetIds.size();
-
+  
+  //----------------------------------------------------
+  // Loop over the mapped CaloTowers and distribute
+  // the energy to the appropriate MetaTowers
+  //----------------------------------------------------
+  
   for (; caloTowerDetId != CaloTowerDetIds.end(); caloTowerDetId++){
-
+    
+    //----------------------------------------------------
+    // Find the MetaTower
+    //----------------------------------------------------
+    
     MetaTower &metaTower = find(*caloTowerDetId);
     
     std::vector<DetId> DetIds = m_caloTowerConstituentsMap -> constituentsOf(*caloTowerDetId);
     std::vector<DetId>::iterator detId = DetIds.begin();
-
-    int nHcalIds = 0;
+    
+    //----------------------------------------------------
+    // We need to know how many DetId's from this
+    // calorimeter are in this CaloTower, and we need to
+    // distribute the energy evenly among them.
+    //
+    // Then we can give each CaloTower a list of 
+    // constituent DetId's and their energies.
+    // 
+    // This is for consistency with the generic CaloTower
+    // creation method, which used this information to 
+    // determine shower positioning.
+    //----------------------------------------------------
+    
+    int nDetIdsFromThisCalo = 0;
     
     for (; detId != DetIds.end(); detId++)      
-      if ((*detId).det() == DetId::Hcal) nHcalIds++;
+      if ((*detId).det() == trigTowerDetId.det()) nDetIdsFromThisCalo++;
     
     detId = DetIds.begin();
-
+    
     for (; detId != DetIds.end(); detId++){
       if ((*detId).det() == DetId::Hcal && (*detId).subdetId() != HcalOuter) {
-	double constituent_energy = towerEnergy / (double) nHcalIds;
+	double constituent_energy = towerEnergy / (double) nDetIdsFromThisCalo;
 	std::pair<DetId,double> mc(*detId, constituent_energy);
 	metaTower.metaConstituents.push_back(mc);
       }
     }
-
+    
+    //----------------------------------------------------
+    // Now distribute the EM and hadronic energies.
+    // E_outer is zeroed for now.
+    //----------------------------------------------------
+    
+    metaTower.E_outer = 0;
     metaTower.E += towerEnergy;
-
-    if ( hcalTrigTowerDetId.ieta() > m_hcalTopology.firstHFRing() ) {
-      metaTower.E_had += towerEnergy / 2.0;
-      metaTower.E_em  += towerEnergy / 2.0;      
-    }
     
-    else {
-      metaTower.E_had += towerEnergy;
-      metaTower.E_em  += 0.0;
-    }
-  }
-  
-}
-
-void CaloTowersFromTrigPrimsAlgo::assignHit(const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi) {
-
-  EcalTrigTowerDetId ecalTrigTowerDetId = ecalTrigPrimDigi -> id();
-  
-  vector<CaloTowerDetId> CaloTowerDetIds = m_caloTrigTowerMap -> getCaloTowers( ecalTrigTowerDetId );
-  vector<CaloTowerDetId>::iterator caloTowerDetId = CaloTowerDetIds.begin();
-
-  double totalEnergy = getTrigTowerEnergy( ecalTrigPrimDigi );
-  double towerEnergy = totalEnergy / (double) CaloTowerDetIds.size();
-
-  for (; caloTowerDetId != CaloTowerDetIds.end(); caloTowerDetId++){
-
-    MetaTower &metaTower = find(*caloTowerDetId);
+    //----------------------------------------------------
+    // First distribute hadronic energy
+    //----------------------------------------------------
     
-    std::vector<DetId> DetIds = m_caloTowerConstituentsMap -> constituentsOf(*caloTowerDetId);
-    std::vector<DetId>::iterator detId = DetIds.begin();
-
-    int nEcalIds = 0;
-    
-    for (; detId != DetIds.end(); detId++)      
-      if ((*detId).det() == DetId::Ecal) nEcalIds++;
-    
-    detId = DetIds.begin();
-
-    for (; detId != DetIds.end(); detId++){
-      if ((*detId).det() == DetId::Ecal) {
-	double constituent_energy = towerEnergy / (double) nEcalIds;
-	std::pair<DetId,double> mc(*detId, constituent_energy);
-	metaTower.metaConstituents.push_back(mc);
+    if (trigTowerDetId.det() == DetId::Hcal){
+      
+      // Assume the HF is 50/50 EM and Hadronic energy
+      
+      if ( trigTowerDetId.ieta() > m_hcalTopology.firstHFRing() ) {
+	metaTower.E_had += towerEnergy / 2.0;
+	metaTower.E_em  += towerEnergy / 2.0;      
       }
+      
+      else metaTower.E_had += towerEnergy;
     }
-
-    metaTower.E    += towerEnergy;
-    metaTower.E_em += towerEnergy;
-
+    
+    //----------------------------------------------------
+    // Now distribute the EM energy
+    //----------------------------------------------------
+    
+    else if (trigTowerDetId.det() == DetId::Ecal)
+      metaTower.E_em  += towerEnergy;
+    
+    else edm::LogWarning("CaloTowersFromTrigPrimsCreator") << "This trigger tower detector ID doesn't make sense -- " << trigTowerDetId << std::endl;
+    
   }
+} 
+
+//----------------------------------------------------
+// Set geometry and mapping tools
+//----------------------------------------------------
+
+void CaloTowersFromTrigPrimsAlgo::setGeometry( const CaloGeometry *geometry, 
+					       const CaloTowerConstituentsMap *caloTowerConstituentsMap,
+					       const EcalTrigTowerConstituentsMap *ecalTrigTowerConstituentsMap,
+					       const CaloSubdetectorGeometry *ecalBarrelGeometry,
+					       const CaloSubdetectorGeometry *ecalEndcapGeometry    ){
+
+  m_caloTowerConstituentsMap     = caloTowerConstituentsMap;
+  m_ecalTrigTowerConstituentsMap = ecalTrigTowerConstituentsMap;
+  m_geometry                     = geometry;
+  m_ecalBarrelGeometry           = ecalBarrelGeometry;
+  m_ecalEndcapGeometry           = ecalEndcapGeometry;
+  m_caloTowerGeometry            = geometry -> getSubdetectorGeometry(DetId::Calo, CaloTowerDetId::SubdetId);
+
 }
+
+//----------------------------------------------------
+// Loop through the TPG collections and assign energies
+//
+// I can't get templating to work here
+//    -- maybe because 'process' is a public function?
+//----------------------------------------------------
+
+void CaloTowersFromTrigPrimsAlgo::process(const EcalTrigPrimDigiCollection& EcalTrigPrimDigis) { 
+  
+  EcalTrigPrimDigiCollection::const_iterator trigPrimDigi = EcalTrigPrimDigis.begin();
+
+  for(; trigPrimDigi != EcalTrigPrimDigis.end(); ++trigPrimDigi)    
+    assignEnergy(&(*trigPrimDigi));
+}
+
+
+void CaloTowersFromTrigPrimsAlgo::process(const HcalTrigPrimDigiCollection& HcalTrigPrimDigis) { 
+  
+  HcalTrigPrimDigiCollection::const_iterator trigPrimDigi = HcalTrigPrimDigis.begin();
+  
+  for(; trigPrimDigi != HcalTrigPrimDigis.end(); ++trigPrimDigi)    
+    assignEnergy(&(*trigPrimDigi));
+    
+}
+
+
+//----------------------------------------------------
+// 1. Loop through the map of MetaTowers
+// 2. Covert MetaTowers to CaloTowers
+// 3. Push CaloTowers into the Collection
+//----------------------------------------------------
 
 void CaloTowersFromTrigPrimsAlgo::finish(CaloTowerCollection& result) {
 
@@ -168,6 +208,10 @@ void CaloTowersFromTrigPrimsAlgo::finish(CaloTowerCollection& result) {
 
   m_metaTowerMap.clear(); 
 }
+
+//----------------------------------------------------
+// Uncompress the energy from an HCAL TPG
+//----------------------------------------------------
 
 double CaloTowersFromTrigPrimsAlgo::getTrigTowerEnergy(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi){
 
@@ -186,13 +230,17 @@ double CaloTowersFromTrigPrimsAlgo::getTrigTowerEnergy(const HcalTriggerPrimitiv
   
 }
 
+//----------------------------------------------------
+// Uncompress the energy from an ECAL TPG
+//----------------------------------------------------
+
 double CaloTowersFromTrigPrimsAlgo::getTrigTowerEnergy(const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi){
   
   double et = m_ecalTPGScale.getTPGInGeV(*ecalTrigPrimDigi);
   double meanEta = 0.0;
 
-  vector<DetId> EcalDetIds = m_ecalTrigTowerConstituentsMap -> constituentsOf(ecalTrigPrimDigi -> id());
-  vector<DetId>::iterator ecalDetId = EcalDetIds.begin();
+  std::vector<DetId> EcalDetIds = m_ecalTrigTowerConstituentsMap -> constituentsOf(ecalTrigPrimDigi -> id());
+  std::vector<DetId>::iterator ecalDetId = EcalDetIds.begin();
 
   for (; ecalDetId != EcalDetIds.end(); ecalDetId++){
 
@@ -211,6 +259,10 @@ double CaloTowersFromTrigPrimsAlgo::getTrigTowerEnergy(const EcalTriggerPrimitiv
   return energy;
 
 }
+
+//----------------------------------------------------
+// Determine the position of an EM shower
+//----------------------------------------------------
 
 GlobalPoint CaloTowersFromTrigPrimsAlgo::emShwrPos(std::vector<std::pair<DetId,double> >& metaContains, 
 						   float fracDepth, double emE) {
@@ -259,6 +311,10 @@ GlobalPoint CaloTowersFromTrigPrimsAlgo::emCrystalShwrPos(DetId detId, float fra
    return point;
 }
 
+//----------------------------------------------------
+// Determine the position of a hadronic shower
+//----------------------------------------------------
+
 GlobalPoint CaloTowersFromTrigPrimsAlgo::hadSegmentShwrPos(DetId detId, float fracDepth) {
   const CaloCellGeometry* cellGeometry = m_geometry -> getGeometry(detId);
   GlobalPoint point = cellGeometry->getPosition();  // face of the cell
@@ -276,7 +332,6 @@ GlobalPoint CaloTowersFromTrigPrimsAlgo::hadSegmentShwrPos(DetId detId, float fr
   
   return point;
 }
-
 
 CaloTowersFromTrigPrimsAlgo::MetaTower::MetaTower() : 
   E(0),E_em(0),E_had(0),E_outer(0), emSumTimeTimesE(0), hadSumTimeTimesE(0), emSumEForTime(0), hadSumEForTime(0) {}
@@ -296,20 +351,9 @@ CaloTowersFromTrigPrimsAlgo::MetaTower & CaloTowersFromTrigPrimsAlgo::find(const
   return itr->second;
 }
 
-void CaloTowersFromTrigPrimsAlgo::setGeometry( const CaloGeometry *geometry, 
-					       const CaloTowerConstituentsMap *caloTowerConstituentsMap,
-					       const EcalTrigTowerConstituentsMap *ecalTrigTowerConstituentsMap,
-					       const CaloSubdetectorGeometry *ecalBarrelGeometry,
-					       const CaloSubdetectorGeometry *ecalEndcapGeometry    ){
-
-  m_caloTowerConstituentsMap     = caloTowerConstituentsMap;
-  m_ecalTrigTowerConstituentsMap = ecalTrigTowerConstituentsMap;
-  m_geometry                     = geometry;
-  m_ecalBarrelGeometry           = ecalBarrelGeometry;
-  m_ecalEndcapGeometry           = ecalEndcapGeometry;
-  m_caloTowerGeometry            = geometry -> getSubdetectorGeometry(DetId::Calo, CaloTowerDetId::SubdetId);
-
-}
+//----------------------------------------------------
+// Convert MetaTower to CaloTower
+//----------------------------------------------------
 
 CaloTower CaloTowersFromTrigPrimsAlgo::convert(const CaloTowerDetId& id, const MetaTower& mt) {
 
@@ -326,13 +370,16 @@ CaloTower CaloTowersFromTrigPrimsAlgo::convert(const CaloTowerDetId& id, const M
   // Depth information.  Come back to this.
   //----------------------------------------------------
   
+  double momHadDepth;
+  double momEmDepth;
+
   if (id.ietaAbs()<=17) {
-    theMomHadDepth = theMomHBDepth;
-    theMomEmDepth  = theMomEBDepth;
+    momHadDepth = m_momHBDepth;
+    momEmDepth  = m_momEBDepth;
   }
   else {
-    theMomHadDepth = theMomHEDepth;
-    theMomEmDepth  = theMomEEDepth;
+    momHadDepth = m_momHEDepth;
+    momEmDepth  = m_momEEDepth;
   }
   
   //----------------------------------------------------
@@ -354,13 +401,13 @@ CaloTower CaloTowersFromTrigPrimsAlgo::convert(const CaloTowerDetId& id, const M
   // For ECAL, HB/HE/HO
   if (id.ietaAbs()<=29) {
     if (E_em>0) {
-      emPoint   = emShwrPos(metaContains, theMomEmDepth, E_em);
+      emPoint   = emShwrPos(metaContains, momEmDepth, E_em);
       double emPf = 1.0/cosh(emPoint.eta());
       towerP4 += CaloTower::PolarLorentzVector(E_em*emPf, emPoint.eta(), emPoint.phi(), 0); 
     }
     if (E_had>0) {
       //double E_had_tot = (theHOIsUsed && id.ietaAbs()<16)? E_had+E_outer : E_had;
-      hadPoint  = hadShwrPos(metaContains, theMomHadDepth, E_had);
+      hadPoint  = hadShwrPos(metaContains, momHadDepth, E_had);
       double hadPf = 1.0/cosh(hadPoint.eta());
       towerP4 += CaloTower::PolarLorentzVector(E_had*hadPf, hadPoint.eta(), hadPoint.phi(), 0); 
     }
@@ -406,6 +453,10 @@ CaloTower CaloTowersFromTrigPrimsAlgo::convert(const CaloTowerDetId& id, const M
 
 } 
 
+//----------------------------------------------------
+// Holdover from CaloTowersCreator
+//----------------------------------------------------
+
 int CaloTowersFromTrigPrimsAlgo::compactTime(float time) {
 
   const float timeUnit = 0.01; // discretization (ns)
@@ -445,6 +496,55 @@ GlobalPoint CaloTowersFromTrigPrimsAlgo::hadShwrPos(std::vector<std::pair<DetId,
     hadY += p.y();
     hadZ += p.z();
   }
-
-   return GlobalPoint(hadX/nConst, hadY/nConst, hadZ/nConst);
+  
+  return GlobalPoint(hadX/nConst, hadY/nConst, hadZ/nConst);
 }
+
+//----------------------------------------------------
+// Map from TriggerTowers to CaloTowers
+// Formerly performed by its own class.
+// Seems to run faster within this Algorithm class.
+//----------------------------------------------------
+
+std::vector<CaloTowerDetId> CaloTowersFromTrigPrimsAlgo::getCaloTowers(HcalTrigTowerDetId hcalTrigTowerDetId){
+  
+  std::vector <CaloTowerDetId> retval;
+  
+  std::vector<HcalDetId> HcalDetIds = m_hcalTrigTowerGeometry.detIds(hcalTrigTowerDetId);
+  std::vector<HcalDetId>::iterator hcalDetId = HcalDetIds.begin();
+  
+  for (; hcalDetId != HcalDetIds.end(); hcalDetId++){
+    CaloTowerDetId caloTowerDetId = m_caloTowerConstituentsMap -> towerOf(*hcalDetId);
+    retval.push_back (caloTowerDetId);
+  }
+
+  std::sort   (retval.begin(), retval.end());  
+  std::unique (retval.begin(), retval.end());
+  
+  return retval;
+  
+}
+
+std::vector<CaloTowerDetId> CaloTowersFromTrigPrimsAlgo::getCaloTowers(EcalTrigTowerDetId ecalTrigTowerDetId){
+  
+  std::vector <CaloTowerDetId> retval;
+
+  std::vector<DetId> DetIds = m_ecalTrigTowerConstituentsMap -> constituentsOf(ecalTrigTowerDetId);
+  
+  std::vector<DetId>::iterator detId = DetIds.begin();
+
+  for (; detId != DetIds.end(); detId++){
+
+    CaloTowerDetId caloTowerDetId = m_caloTowerConstituentsMap -> towerOf(*detId);
+    
+    if (!caloTowerDetId.null()) retval.push_back(caloTowerDetId);
+    
+  }
+
+  std::sort   (retval.begin(), retval.end());  
+  std::unique (retval.begin(), retval.end());
+
+  return retval;
+
+}
+
