@@ -158,7 +158,6 @@ bool analyze(){
   int n_created_entries = m_createdTree -> GetEntries();
   int n_default_entries = m_defaultTree -> GetEntries();
   
-
   if (n_created_entries != n_default_entries){
     std::cout << "Differing numbers of events for these ROOT files" << std::endl;
     std::cout << "  Created ROOT file is: " << CREATED_FILE_NAME << std::endl;
@@ -170,7 +169,7 @@ bool analyze(){
 
   else if ( MAX_N_EVENTS < 0 ) nEvents = n_created_entries;
   
-  else nEvents = TMath::Min( MAX_N_EVENTS, n_created_entries );
+  else nEvents = TMath::Min( MAX_N_EVENTS, n_created_entries );  
 
   //-------------------------------------------------
   // Loop over the events
@@ -188,13 +187,13 @@ bool analyze(){
     // Get tree entries
     //-------------------------------------------------
 
-    m_createdTree -> GetEntries();
-    m_defaultTree -> GetEntries();
+    m_createdTree -> GetEntry(iEvent);
+    m_defaultTree -> GetEntry(iEvent);
     
     //-------------------------------------------------
     // Make sure these events are the same
     //-------------------------------------------------
-    
+
     if (default_run   != created_run ||
 	default_event != created_event ){
       std::cout << "Run/Event mismatch!" << std::endl;
