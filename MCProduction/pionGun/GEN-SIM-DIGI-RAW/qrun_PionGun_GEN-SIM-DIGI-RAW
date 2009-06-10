@@ -1,0 +1,140 @@
+#!/bin/tcsh
+
+## Set release base and version
+set MY_RELEASE_BASE = /uscms/home/eberry/TowerAlgo/
+set CMSSW_VERSION = CMSSW_2_2_7
+set TAG = IDEAL_V12
+set TEST = false
+
+## Set variables
+set job = $1
+set numevents = $2
+if ( ${3} == "" ) then
+set suffix = ${3}
+else
+set suffix = _${3}
+endif
+
+if ($TEST == true) then
+set job = 1
+set numevents = 2
+set suffix = _TEST
+endif 
+
+## Set file names
+set tarFile = ${MY_RELEASE_BASE}/${CMSSW_VERSION}/src/Release.tar
+set cfgFile = PionGun_job${job}_${numevents}events${suffix}_cfg.py
+
+if ($TEST != true) then
+## Go to the scratch directory
+cd ${_CONDOR_SCRATCH_DIR}
+
+## Load the environment
+source /uscmst1/prod/sw/cms/cshrc uaf
+
+## Download, compile, and initialize CMSSW
+scram p CMSSW ${CMSSW_VERSION}
+cd ${CMSSW_VERSION}/src
+endif
+
+eval `scram runtime -csh`
+
+if ($TEST != true) then
+## Untar the tar ball containing the analysis framework
+tar -xvf ${tarFile}
+
+## Remove the old .pyc files and recompile
+find -name "*.pyc" -print | xargs rm
+scram b
+showtags
+
+## Go back to the scratch directory
+cd ${_CONDOR_SCRATCH_DIR}
+endif
+
+## Tell the log file what you're going to do
+echo I am going to perform MC steps GEN, SIM, DIGI, and RAW on a pion particle gun
+echo I am using CMSSW version: ${CMSSW_VERSION}
+echo I am making python cfg file: ${cfgFile}
+echo I am going to analyze ${numevents} events
+echo I am using the suffix ${3}
+echo This is job ${job}, and I have to do ${numevents} events/job
+
+## Make the config file
+
+cat > ${cfgFile}<<EOF
+
+import FWCore.ParameterSet.Config as cms
+
+process = cms.Process("GEN-SIM-DIGI-RAW")
+
+process.load("FWCore.MessageService.MessageLogger_cfi")
+
+process.load("Configuration.StandardSequences.SimulationRandomNumberGeneratorSeeds_cff")
+process.load("Configuration.StandardSequences.VtxSmearedBetafuncEarlyCollision_cff")
+process.load("Configuration.StandardSequences.Generator_cff")
+process.load("Configuration.StandardSequences.Simulation_cff")
+process.load("Configuration.StandardSequences.Geometry_cff")
+process.load("Configuration.StandardSequences.MagneticField_cff")
+process.load("Configuration.StandardSequences.Reconstruction_cff")
+process.load("Configuration.StandardSequences.MixingNoPileUp_cff")
+process.load("Configuration.StandardSequences.DigiToRaw_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.load("L1Trigger.Configuration.SimL1Emulator_cff")
+process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
+process.load("Configuration.EventContent.EventContent_cff")
+
+process.load("L1TriggerConfig.L1GtConfigProducers.Luminosity.lumi1031.L1Menu_MC2009_v0_L1T_Scales_20080922_Imp0_Unprescaled_cff")
+
+process.GlobalTag.globaltag = '${TAG}::All'
+
+process.maxEvents = cms.untracked.PSet(
+    input = cms.untracked.int32(${numevents})
+)
+
+process.source = cms.Source("FlatRandomEGunSource",
+    PGunParameters = cms.untracked.PSet(
+        PartID = cms.untracked.vint32(211),
+        MinEta = cms.untracked.double(3.99),
+        MaxEta = cms.untracked.double(4.01),
+        MinPhi = cms.untracked.double(1.571),
+        MaxPhi = cms.untracked.double(1.572),
+        MinE = cms.untracked.double(5000.0),
+        MaxE = cms.untracked.double(5000.0)
+    ),
+    Verbosity = cms.untracked.int32(0), ## set to 1 (or greater)  for printouts
+    AddAntiParticle = cms.untracked.bool(True) ## back-to-back particles
+)
+
+process.out = cms.OutputModule("PoolOutputModule",                               
+                                outputCommands = cms.untracked.vstring('drop *', 'keep FEDRawDataCollection_*_*_*'),
+                                fileName = cms.untracked.string('HFPionGun_${TAG}_GEN-SIM-DIGI-RAW_job${job}_${numevents}events${suffix}.root')
+)
+
+process.GEN  = cms.Path(process.pgen)
+process.SIM  = cms.Path(process.psim)
+process.DIGI = cms.Path(process.pdigi)
+process.L1   = cms.Path(process.SimL1Emulator)
+process.RAW  = cms.Path(process.DigiToRaw)
+process.OUT  = cms.EndPath(process.out)
+
+process.schedule = cms.Schedule()
+process.schedule.append( process.GEN  )
+process.schedule.append( process.SIM  )
+process.schedule.append( process.DIGI )
+process.schedule.append( process.L1   )
+process.schedule.append( process.RAW  )
+process.schedule.append( process.OUT  )
+
+
+EOF
+
+## Run the .cfg file
+cmsRun ${cfgFile}
+
+## Remove the .cfg file and the CMSSW build
+if ($TEST != true) then
+rm ${cfgFile} 
+rm -rf ${CMSSW_VERSION}
+endif
+
