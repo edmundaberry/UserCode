@@ -84,6 +84,8 @@ process.load("L1Trigger.Configuration.SimL1Emulator_cff")
 process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 process.load("Configuration.EventContent.EventContent_cff")
 
+process.load("L1TriggerConfig.L1GtConfigProducers.Luminosity.lumi1031.L1Menu_MC2009_v0_L1T_Scales_20080922_Imp0_Unprescaled_cff")
+
 process.GlobalTag.globaltag = '${TAG}::All'
 
 process.maxEvents = cms.untracked.PSet(
@@ -95,10 +97,10 @@ process.source = cms.Source("FlatRandomEGunSource",
         PartID = cms.untracked.vint32(211),
         MinEta = cms.untracked.double(3.99),
         MaxEta = cms.untracked.double(4.01),
-        MinPhi = cms.untracked.double(-3.14159265359), 
-        MaxPhi = cms.untracked.double(3.14159265359),
-        MinE = cms.untracked.double(100.0),
-        MaxE = cms.untracked.double(100.0)
+        MinPhi = cms.untracked.double(1.571),
+        MaxPhi = cms.untracked.double(1.572),
+        MinE = cms.untracked.double(5000.0),
+        MaxE = cms.untracked.double(5000.0)
     ),
     Verbosity = cms.untracked.int32(0), ## set to 1 (or greater)  for printouts
     AddAntiParticle = cms.untracked.bool(True) ## back-to-back particles

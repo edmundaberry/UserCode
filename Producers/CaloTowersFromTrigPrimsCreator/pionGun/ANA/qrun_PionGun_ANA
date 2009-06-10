@@ -13,8 +13,8 @@ BLANK=""
 DATA_FOLDER="/uscms/home/eberry/data/PionGun/RAW-DIGI-RECO"
 
 # File information variables
-N_FILES=`ls ${DATA_FOLDER}/*.root | wc -w`
-FILE_LIST=`echo "${DATA_FOLDER}/*.root"`
+N_FILES=`ls ${DATA_FOLDER}/*5000GeV*.root | wc -w`
+FILE_LIST=`echo "${DATA_FOLDER}/*5000GeV*.root"`
 FILE_NUM=1
 
 # Get list of local files with line breaks
@@ -49,7 +49,7 @@ fi
 
 if [ $TEST == "true" ]; then
 job=1
-numevents=2
+numevents=10
 suffix="_TEST"
 fi
 

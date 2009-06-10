@@ -13,8 +13,8 @@ BLANK=""
 DATA_FOLDER="/uscms/home/eberry/data/PionGun/GEN-SIM-DIGI-RAW"
 
 # File information variables
-N_FILES=`ls ${DATA_FOLDER}/*.root | wc -w`
-FILE_LIST=`echo "${DATA_FOLDER}/*.root"`
+N_FILES=`ls ${DATA_FOLDER}/*5000GeV*.root | wc -w`
+FILE_LIST=`echo "${DATA_FOLDER}/*5000GeV*.root"`
 FILE_NUM=1
 
 # Get list of local files with line breaks
@@ -107,12 +107,15 @@ cat > ${cfgFile}<<EOF
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("RAW-DIGI-RECO")
-process.load("Configuration.StandardSequences.Reconstruction_cff")
+
 process.load("Configuration.StandardSequences.Geometry_cff")
 process.load("Configuration.StandardSequences.MagneticField_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 process.load("Configuration.EventContent.EventContent_cff")
 process.load("Configuration.StandardSequences.RawToDigi_cff")
+process.load("RecoJets.Configuration.CaloTowersES_cfi")
+process.load("RecoJets.JetProducers.CaloTowerSchemeB_cfi")
+process.load("RecoLocalCalo.Configuration.RecoLocalCalo_cff")
 
 process.GlobalTag.globaltag = '${TAG}::All'
 
@@ -130,6 +133,8 @@ process.out = cms.OutputModule("PoolOutputModule",
                                 outputCommands = cms.untracked.vstring('keep *'),
 				fileName = cms.untracked.string('HFPionGun_${TAG}_RAW-DIGI-RECO_job${job}_${numevents}events${suffix}.root')
 )
+
+
 
 process.calolocalreco_noEcalPreshower = cms.Sequence(process.ecalLocalRecoSequence_nopreshower+process.hcalLocalRecoSequence)
 
