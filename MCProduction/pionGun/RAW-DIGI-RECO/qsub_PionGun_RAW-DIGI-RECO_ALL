@@ -1,14 +1,8 @@
 #!/bin/tcsh
 
 set njobs           = 50
-set nevents         = 20
+set nevents_per_job = 20
+set suffix          = "5000GeV-Focused"
 
-set LAUNCH_DIR = $PWD
-set RELEASE_DIR = /uscms/home/eberry/TowerAlgo/CMSSW_2_2_7/src/
-
-## cd RELEASE_DIR 
-## tar cf Release.tar Analyzers Producers Geometry
-## cd LAUNCH_DIR
-
-./qsub_PionGun_RAW-DIGI-RECO 1 ${njobs} ${nevents} "5000GeV-Focused"
+./qsub_PionGun_RAW-DIGI-RECO 1 ${njobs} ${nevents_per_job} ${suffix}
 

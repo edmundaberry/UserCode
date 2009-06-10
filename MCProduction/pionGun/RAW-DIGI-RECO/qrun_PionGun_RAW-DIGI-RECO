@@ -3,18 +3,18 @@
 source /uscmst1/prod/sw/cms/shrc uaf
 
 ## Set release base and version
-MY_RELEASE_BASE="/uscms/home/eberry/TowerAlgo/"
+MY_RELEASE_BASE="/uscms/home/${USER}/TowerAlgo/"
 CMSSW_VERSION="CMSSW_2_2_7"
 TAG="IDEAL_V12"
 TEST="false"
 BLANK=""
 
-# Information for getting at local data
-DATA_FOLDER="/uscms/home/eberry/data/PionGun/GEN-SIM-DIGI-RAW"
+# ROOT file location
+DATA_FOLDER="/uscms/home/${USER}/data/PionGun/GEN-SIM-DIGI-RAW"
 
 # File information variables
-N_FILES=`ls ${DATA_FOLDER}/*5000GeV*.root | wc -w`
-FILE_LIST=`echo "${DATA_FOLDER}/*5000GeV*.root"`
+N_FILES=`ls ${DATA_FOLDER}/*.root | wc -w`
+FILE_LIST=`echo "${DATA_FOLDER}/*.root"`
 FILE_NUM=1
 
 # Get list of local files with line breaks

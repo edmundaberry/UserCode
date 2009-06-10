@@ -1,7 +1,7 @@
 #!/bin/tcsh
 
 ## Set release base and version
-set MY_RELEASE_BASE = /uscms/home/eberry/TowerAlgo/
+set MY_RELEASE_BASE = /uscms/home/${USER}/TowerAlgo/
 set CMSSW_VERSION = CMSSW_2_2_7
 set TAG = IDEAL_V12
 set TEST = false
