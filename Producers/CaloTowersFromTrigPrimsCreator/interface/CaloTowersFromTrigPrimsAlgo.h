@@ -3,6 +3,7 @@
 
 // ROOT functions
 #include <TMath.h>
+#include <map>
 
 // Data collections
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
@@ -18,8 +19,10 @@
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 
 // Energy scaling
-#include "CalibFormats/CaloTPG/interface/CaloTPGTranscoder.h"
-#include "CalibCalorimetry/EcalTPGTools/interface/EcalTPGScale.h"
+#include "CondFormats/L1TObjects/interface/L1CaloEcalScale.h"
+#include "CondFormats/DataRecord/interface/L1CaloEcalScaleRcd.h"
+#include "CondFormats/L1TObjects/interface/L1CaloHcalScale.h"
+#include "CondFormats/DataRecord/interface/L1CaloHcalScaleRcd.h"
 
 // Framework
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
@@ -39,23 +42,26 @@ class CaloTowersFromTrigPrimsAlgo {
   // Preliminary setup functions
   //------------------------------------------------------
 
-  void setGeometry       ( const CaloGeometry *geometry, 
-			   const CaloTowerConstituentsMap *caloTowerConstituentsMap,
-			   const EcalTrigTowerConstituentsMap *ecalTrigTowerConstituentsMap,
-			   const CaloSubdetectorGeometry *ecalBarrelGeometry,
-			   const CaloSubdetectorGeometry *ecalEndcapGeometry );
+  void setGeometry        ( const CaloGeometry *geometry, 
+			    const CaloTowerConstituentsMap *caloTowerConstituentsMap,
+			    const EcalTrigTowerConstituentsMap *ecalTrigTowerConstituentsMap,
+			    const CaloSubdetectorGeometry *ecalBarrelGeometry,
+			    const CaloSubdetectorGeometry *ecalEndcapGeometry );
   
-  void setHcalTPGCoder   ( const CaloTPGTranscoder * coder ) { m_caloTPGTranscoder = coder; }
-  void setEcalTPGScale   ( EcalTPGScale              scale ) { m_ecalTPGScale      = scale; }
-  void setDetectorDepths ( double momHBDepth, double momHEDepth,
-			   double momEBDepth, double momEEDepth );
+  void setDetectorDepths  ( double momHBDepth, double momHEDepth,
+			    double momEBDepth, double momEEDepth );
   
-  void setVerbose        ( bool v ) { m_verbose = v; }
+  void setL1CaloScales    ( const L1CaloEcalScale *ecalScale, const L1CaloHcalScale *hcalScale);
+       
+  void setVerbose         ( bool  v ) { m_verbose      = v; }
+  void setHadThreshold    ( float t ) { m_hadThreshold = t; }
+  void setEmThreshold     ( float t ) { m_emThreshold  = t; }
 
   //------------------------------------------------------
   // Main public algorithm functions
   //------------------------------------------------------
   
+  void setDefaultCaloTowers (const CaloTowerCollection& defaultCaloTowers);
   void process(const EcalTrigPrimDigiCollection& EcalTrigPrimDigis);
   void process(const HcalTrigPrimDigiCollection& HcalTrigPrimDigis);
 
@@ -70,18 +76,23 @@ class CaloTowersFromTrigPrimsAlgo {
   bool m_verbose;
 
   //------------------------------------------------------
+  // Default CaloTowers
+  //------------------------------------------------------
+
+  CaloTowerCollection m_defaultCaloTowers;
+
+  //------------------------------------------------------
   // Energy scales
   //------------------------------------------------------
   
-  EcalTPGScale              m_ecalTPGScale;
-  const CaloTPGTranscoder * m_caloTPGTranscoder;  
+  const L1CaloEcalScale   * m_l1CaloEcalScale;
+  const L1CaloHcalScale   * m_l1CaloHcalScale;
 
   //------------------------------------------------------
   // Geometry/mapping info
   //------------------------------------------------------
 
   HcalTrigTowerGeometry               m_hcalTrigTowerGeometry;
-  // CaloTrigTowerMap                   *m_caloTrigTowerMap;
 
   const CaloGeometry                 *m_geometry;
   const CaloTowerConstituentsMap     *m_caloTowerConstituentsMap;
@@ -89,7 +100,13 @@ class CaloTowersFromTrigPrimsAlgo {
   const CaloSubdetectorGeometry      *m_ecalBarrelGeometry;
   const CaloSubdetectorGeometry      *m_ecalEndcapGeometry;
   const CaloSubdetectorGeometry      *m_caloTowerGeometry;
-  const HcalTopology                  m_hcalTopology;
+  const HcalTopology                  m_hcalTopology;  
+
+  //------------------------------------------------------
+  // Threshold energies
+  //------------------------------------------------------
+ 
+  float m_hadThreshold, m_emThreshold;
 
   //------------------------------------------------------
   // Detector depth information 
@@ -135,6 +152,12 @@ class CaloTowersFromTrigPrimsAlgo {
 
   double getTrigTowerEnergy(const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
   double getTrigTowerEnergy(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
+
+  double getTrigTowerET(const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
+  double getTrigTowerET(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
+
+  double getMeanEta(const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
+  double getMeanEta(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
   
   //------------------------------------------------------
   // Mapping from Trigger Towers to CaloTowers
