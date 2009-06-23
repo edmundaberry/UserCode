@@ -11,8 +11,7 @@
 <use name=Geometry/HcalTowerAlgo>
 <use name=Geometry/CaloEventSetup>
 
-<use name=CalibFormats/CaloTPG>
-<use name=CalibCalorimetry/EcalTPGTools>
+<use name=CondFormats/L1TObjects>
 
 <use name=boost>
 
