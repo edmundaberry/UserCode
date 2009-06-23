@@ -1,0 +1,8 @@
+#!/bin/tcsh
+
+set njobs           = 50
+set nevents         = 20
+
+./qsub_ForwardElectronGun_GEN-SIM-DIGI-RAW 1 ${njobs} ${nevents} "5000GeV-Focused"
+	
+
