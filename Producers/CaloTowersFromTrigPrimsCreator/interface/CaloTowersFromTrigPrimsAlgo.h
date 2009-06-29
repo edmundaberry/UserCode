@@ -61,7 +61,6 @@ class CaloTowersFromTrigPrimsAlgo {
   // Main public algorithm functions
   //------------------------------------------------------
   
-  void setDefaultCaloTowers (const CaloTowerCollection& defaultCaloTowers);
   void process(const EcalTrigPrimDigiCollection& EcalTrigPrimDigis);
   void process(const HcalTrigPrimDigiCollection& HcalTrigPrimDigis);
 
@@ -76,17 +75,11 @@ class CaloTowersFromTrigPrimsAlgo {
   bool m_verbose;
 
   //------------------------------------------------------
-  // Default CaloTowers
-  //------------------------------------------------------
-
-  CaloTowerCollection m_defaultCaloTowers;
-
-  //------------------------------------------------------
   // Energy scales
   //------------------------------------------------------
   
-  const L1CaloEcalScale   * m_l1CaloEcalScale;
-  const L1CaloHcalScale   * m_l1CaloHcalScale;
+  const L1CaloEcalScale * m_l1CaloEcalScale;
+  const L1CaloHcalScale * m_l1CaloHcalScale;
 
   //------------------------------------------------------
   // Geometry/mapping info
@@ -103,12 +96,6 @@ class CaloTowersFromTrigPrimsAlgo {
   const HcalTopology                  m_hcalTopology;  
 
   //------------------------------------------------------
-  // Threshold energies
-  //------------------------------------------------------
- 
-  float m_hadThreshold, m_emThreshold;
-
-  //------------------------------------------------------
   // Detector depth information 
   //------------------------------------------------------
 
@@ -116,6 +103,12 @@ class CaloTowersFromTrigPrimsAlgo {
   double m_momHEDepth;
   double m_momEBDepth;
   double m_momEEDepth;
+
+  //------------------------------------------------------
+  // Threshold energies
+  //------------------------------------------------------
+ 
+  float m_hadThreshold, m_emThreshold;
 
   //------------------------------------------------------
   // MetaTower setup
