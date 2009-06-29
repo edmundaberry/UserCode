@@ -112,7 +112,19 @@ std::vector<DetId> CaloTowerConstituentsMap::constituentsOf(const CaloTowerDetId
   }
   if (standardEB_ && id.ietaAbs()<EBDetId::MAX_IETA/5) {
     HcalDetId hid(HcalBarrel,id.ieta(),id.iphi(),1); // for the limits
-    for (int ie=hid.crystal_ieta_low(); ie<=hid.crystal_ieta_high(); ie++)
+    
+    int crystal_ieta_low, crystal_ieta_high;
+    
+    if (hid.zside() == -1) {
+      crystal_ieta_low  = hid.crystal_ieta_high();
+      crystal_ieta_high = hid.crystal_ieta_low ();
+    }
+    else {
+      crystal_ieta_low  = hid.crystal_ieta_low ();
+      crystal_ieta_high = hid.crystal_ieta_high();
+    }
+    
+    for (int ie= crystal_ieta_low; ie<=crystal_ieta_high; ie++)
       for (int ip=hid.crystal_iphi_low(); ip<=hid.crystal_iphi_high(); ip++)
 	items.push_back(EBDetId(ie,ip));
   }
