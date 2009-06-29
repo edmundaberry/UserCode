@@ -13,8 +13,8 @@ BLANK=""
 DATA_FOLDER="/uscms/home/eberry/data/MiddleElectronGun/GEN-SIM-DIGI-RAW"
 
 # File information variables
-N_FILES=`ls ${DATA_FOLDER}/*5000GeV*.root | wc -w`
-FILE_LIST=`echo "${DATA_FOLDER}/*5000GeV*.root"`
+N_FILES=`ls ${DATA_FOLDER}/*100GeV*.root | wc -w`
+FILE_LIST=`echo "${DATA_FOLDER}/*100GeV*.root"`
 FILE_NUM=1
 
 # Get list of local files with line breaks

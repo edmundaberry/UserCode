@@ -8,7 +8,7 @@ TEST="false"
 BLANK=""
 
 # Information for getting at local data
-DATA_FOLDER="/uscms/home/eberry/data/ForwardElectronGun/GEN-SIM-DIGI-RAW"
+DATA_FOLDER="/uscms/home/eberry/data/CentralPionGun/GEN-SIM-DIGI-RAW"
 
 # File information variables
 N_FILES=`ls ${DATA_FOLDER}/*100GeV*.root | wc -w`
@@ -53,7 +53,7 @@ fi
 
 ## Set file names
 tarFile="${MY_RELEASE_BASE}/${CMSSW_VERSION}/src/Release.tar"
-cfgFile="ForwardElectronGun_job${job}_${numevents}events${suffix}_cfg.py"
+cfgFile="PionGun_job${job}_${numevents}events${suffix}_cfg.py"
 
 if [ $TEST != "true" ]; then
 ## Go to the scratch directory
@@ -90,7 +90,7 @@ set eventsToSkip = 0
 ((eventsToSkip = $numevents * $jobMinusOne))
 
 ## Tell the log file what you're going to do
-echo I am going to perform MC steps DigiToRaw and RECO on an electron particle gun
+echo I am going to perform MC steps DigiToRaw and RECO on a pion particle gun
 echo I am using CMSSW version: ${CMSSW_VERSION}
 echo I am making python cfg file: ${cfgFile}
 echo I am going to analyze ${numevents} events
@@ -129,8 +129,10 @@ process.source.skipEvents = cms.untracked.uint32(${eventsToSkip})
 
 process.out = cms.OutputModule("PoolOutputModule",                               
                                 outputCommands = cms.untracked.vstring('keep *'),
-				fileName = cms.untracked.string('ForwardElectronGun_${TAG}_RAW-DIGI-RECO_job${job}_${numevents}events${suffix}.root')
+				fileName = cms.untracked.string('CentralPionGun_${TAG}_RAW-DIGI-RECO_job${job}_${numevents}events${suffix}.root')
 )
+
+
 
 process.calolocalreco_noEcalPreshower = cms.Sequence(process.ecalLocalRecoSequence_nopreshower+process.hcalLocalRecoSequence)
 

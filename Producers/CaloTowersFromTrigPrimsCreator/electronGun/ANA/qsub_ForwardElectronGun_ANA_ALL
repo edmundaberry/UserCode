@@ -3,5 +3,5 @@
 set njobs           = 1
 set nevents         = 1000
 
-./qsub_ForwardElectronGun_ANA 1 ${njobs} ${nevents} "5000GeV-Focused"
+./qsub_ForwardElectronGun_ANA 1 ${njobs} ${nevents} "100GeV-Focused"
 

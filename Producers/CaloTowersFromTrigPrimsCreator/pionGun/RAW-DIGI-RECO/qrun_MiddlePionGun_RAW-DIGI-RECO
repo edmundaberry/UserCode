@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source /uscmst1/prod/sw/cms/shrc uaf
-
 ## Set release base and version
 MY_RELEASE_BASE="/uscms/home/eberry/TowerAlgo/"
 CMSSW_VERSION="CMSSW_2_2_7"
@@ -10,11 +8,11 @@ TEST="false"
 BLANK=""
 
 # Information for getting at local data
-DATA_FOLDER="/uscms/home/eberry/data/PionGun/GEN-SIM-DIGI-RAW"
+DATA_FOLDER="/uscms/home/eberry/data/MiddlePionGun/GEN-SIM-DIGI-RAW"
 
 # File information variables
-N_FILES=`ls ${DATA_FOLDER}/*5000GeV*.root | wc -w`
-FILE_LIST=`echo "${DATA_FOLDER}/*5000GeV*.root"`
+N_FILES=`ls ${DATA_FOLDER}/*100GeV*.root | wc -w`
+FILE_LIST=`echo "${DATA_FOLDER}/*100GeV*.root"`
 FILE_NUM=1
 
 # Get list of local files with line breaks
@@ -62,7 +60,7 @@ if [ $TEST != "true" ]; then
 cd ${_CONDOR_SCRATCH_DIR}
 
 ## Load the environment
-source /uscmst1/prod/sw/cms/cshrc uaf
+source /uscmst1/prod/sw/cms/shrc uaf
 
 ## Download, compile, and initialize CMSSW
 scram p CMSSW ${CMSSW_VERSION}
@@ -131,7 +129,7 @@ process.source.skipEvents = cms.untracked.uint32(${eventsToSkip})
 
 process.out = cms.OutputModule("PoolOutputModule",                               
                                 outputCommands = cms.untracked.vstring('keep *'),
-				fileName = cms.untracked.string('HFPionGun_${TAG}_RAW-DIGI-RECO_job${job}_${numevents}events${suffix}.root')
+				fileName = cms.untracked.string('MiddlePionGun_${TAG}_RAW-DIGI-RECO_job${job}_${numevents}events${suffix}.root')
 )
 
 

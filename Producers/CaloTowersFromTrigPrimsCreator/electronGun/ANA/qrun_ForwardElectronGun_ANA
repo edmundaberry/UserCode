@@ -11,8 +11,8 @@ BLANK=""
 DATA_FOLDER="/uscms/home/eberry/data/ForwardElectronGun/RAW-DIGI-RECO"
 
 # File information variables
-N_FILES=`ls ${DATA_FOLDER}/*5000GeV*.root | wc -w`
-FILE_LIST=`echo "${DATA_FOLDER}/*5000GeV*.root"`
+N_FILES=`ls ${DATA_FOLDER}/*100GeV*.root | wc -w`
+FILE_LIST=`echo "${DATA_FOLDER}/*100GeV*.root"`
 FILE_NUM=1
 
 # Get list of local files with line breaks
@@ -52,7 +52,7 @@ if [ $TEST == "true" ]; then
 fi
 
 ## Set file names
-tarFile="${MY_RELEASE_BASE}/${CMSSW_VERSION}/src/Release_ANA.tar"
+tarFile="${MY_RELEASE_BASE}/${CMSSW_VERSION}/src/Release.tar"
 cfgFile="ForwardElectronGun_job${job}_${numevents}events${suffix}_cfg.py"
 
 if [ $TEST != "true" ]; then
@@ -123,19 +123,16 @@ process.source.skipEvents = cms.untracked.uint32(${eventsToSkip})
 
 ## My CaloTower producer
 process.load("Producers.CaloTowersFromTrigPrimsCreator.calotowersfromtrigprimscreator_cfi")
+process.caloTowersFromTrigPrimsCreator.ebDigiTag = cms.untracked.InputTag ('simEcalUnsuppressedDigis')
+process.caloTowersFromTrigPrimsCreator.eeDigiTag = cms.untracked.InputTag ('simEcalUnsuppressedDigis')
+process.caloTowersFromTrigPrimsCreator.verbose = False
 
-## My CaloTower comparator 
-process.load("Analyzers.CaloTowerComp.calotowercomp_cfi")
-process.caloTowerComparator.defaultCaloTowerFileName = "CaloTowerCompOutput_DefaultTowers_ForwardElectronGun_${TAG}_job${job}_${numevents}events${suffix}.root"
-process.caloTowerComparator.createdCaloTowerFileName = "CaloTowerCompOutput_CreatedTowers_ForwardElectronGun_${TAG}_job${job}_${numevents}events${suffix}.root"
+## My analyzer
+process.load("Producers.CaloTowersFromTrigPrimsCreator.calotowersfromtrigprimsanalyzer_cfi")
+process.caloTowersFromTrigPrimsAnalyzer.outputFileName = "CaloTowersFromTrigPrimsAnalyzerOutput_ForwardElectronGun_${TAG}_job${job}_${numevents}events${suffix}.root"
 
-## My TrigTower analyzer
-process.load("Analyzers.TPGAnalyzer.tpganalyzer_cfi")
-process.tpgAnalyzer.outputFileName = "TPGAnalyzerOutput_ForwardElectronGun_${TAG}_job${job}_${numevents}events${suffix}.root"
-
-process.PRODUCE = cms.Path( process.caloTowersFromTrigPrimsCreator )
-process.ANALYZE = cms.Path( process.caloTowerComparator + process.tpgAnalyzer )
-## process.ANALYZE = cms.Path( process.tpgAnalyzer )
+process.PRODUCE = cms.Path( process.caloTowersFromTrigPrimsCreator  )
+process.ANALYZE = cms.Path( process.caloTowersFromTrigPrimsAnalyzer )
 
 process.schedule = cms.Schedule()
 process.schedule.append(process.PRODUCE)

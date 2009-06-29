@@ -7,10 +7,10 @@ set test = false
 eval `scram runtime -csh`
 
 ## User sets these run variables
-set package     = Producers/CaloTowersFromTrigPrimsCreator/pionGun/GEN-SIM-DIGI-RAW/
-set exec_name   = PionGun_GEN-SIM-DIGI-RAW
+set package     = Producers/CaloTowersFromTrigPrimsCreator/pionGun/ANA/
+set exec_name   = CentralPionGun_ANA
 set base_dir    = /uscmst1b_scratch/lpc1/3DayLifetime/${user}/
-set type        = PionGun
+set type        = CentralPionGun
 set num_args    = 4
 
 ## Let the script set these

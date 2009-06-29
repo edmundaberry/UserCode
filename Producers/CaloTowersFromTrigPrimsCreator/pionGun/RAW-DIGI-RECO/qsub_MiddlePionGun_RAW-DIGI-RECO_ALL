@@ -10,6 +10,5 @@ set RELEASE_DIR = /uscms/home/eberry/TowerAlgo/CMSSW_2_2_7/src/
 ## tar cf Release.tar Analyzers Producers Geometry
 ## cd LAUNCH_DIR
 
-./qsub_PionGun_GEN-SIM-DIGI-RAW 1 ${njobs} ${nevents} "5000GeV-Focused"
-	
+./qsub_MiddlePionGun_RAW-DIGI-RECO 1 ${njobs} ${nevents} "100GeV-Focused"
 

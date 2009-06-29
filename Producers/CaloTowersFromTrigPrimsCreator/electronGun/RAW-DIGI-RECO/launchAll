@@ -1,0 +1,11 @@
+#!/bin/tcsh
+
+cd /uscms/home/eberry/TowerAlgo/CMSSW_2_2_7/src/Producers/CaloTowersFromTrigPrimsCreator/electronGun/RAW-DIGI-RECO
+
+source /uscms/home/eberry/.tcshrc
+
+eval `scramv1 runtime -csh`
+
+./qsub_CentralElectronGun_RAW-DIGI-RECO_ALL
+./qsub_ForwardElectronGun_RAW-DIGI-RECO_ALL
+./qsub_MiddleElectronGun_RAW-DIGI-RECO_ALL

@@ -3,6 +3,4 @@
 set njobs           = 50
 set nevents         = 20
 
-./qsub_MiddleElectronGun_GEN-SIM-DIGI-RAW 1 ${njobs} ${nevents} "5000GeV-Focused"
-	
-
+./qsub_CentralElectronGun_GEN-SIM-DIGI-RAW 1 ${njobs} ${nevents} "100GeV-Focused"

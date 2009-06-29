@@ -122,8 +122,8 @@ process.source = cms.Source("FlatRandomEGunSource",
         MaxEta = cms.untracked.double(-4.01),
         MinPhi = cms.untracked.double(1.571),
         MaxPhi = cms.untracked.double(1.572),
-        MinE = cms.untracked.double(5000.0),
-        MaxE = cms.untracked.double(5000.0)
+        MinE = cms.untracked.double(100.0),
+        MaxE = cms.untracked.double(100.0)
     ),
     Verbosity = cms.untracked.int32(0), ## set to 1 (or greater)  for printouts
     AddAntiParticle = cms.untracked.bool(True) ## back-to-back particles
@@ -148,7 +148,9 @@ process.RandomNumberGeneratorService.moduleSeeds = cms.PSet(
 
 
 process.out = cms.OutputModule("PoolOutputModule",                               
-                                outputCommands = cms.untracked.vstring( 'drop *', 
+                                outputCommands = cms.untracked.vstring( 'drop *',
+                                                                        'keep H*DataFramesSorted_*_*_*',
+                                                                        'keep E*DigiCollection_*_*_*', 
 									'keep FEDRawDataCollection_*_*_*', 
 									'keep *TriggerPrimitiveDigisSorted_*_*_*'),
                                 fileName = cms.untracked.string('ForwardElectronGun_${TAG}_GEN-SIM-DIGI-RAW_job${job}_${numevents}events${suffix}.root')

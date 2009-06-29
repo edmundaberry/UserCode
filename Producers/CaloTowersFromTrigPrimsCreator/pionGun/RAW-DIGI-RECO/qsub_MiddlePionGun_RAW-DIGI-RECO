@@ -7,10 +7,10 @@ set test = false
 eval `scram runtime -csh`
 
 ## User sets these run variables
-set package     = Producers/CaloTowersFromTrigPrimsCreator/pionGun/ANA/
-set exec_name   = PionGun_ANA
+set package     = Producers/CaloTowersFromTrigPrimsCreator/pionGun/RAW-DIGI-RECO/
+set exec_name   = MiddlePionGun_RAW-DIGI-RECO
 set base_dir    = /uscmst1b_scratch/lpc1/3DayLifetime/${user}/
-set type        = PionGun
+set type        = MiddlePionGun
 set num_args    = 4
 
 ## Let the script set these
@@ -27,25 +27,20 @@ set jobNumEnd   = $2
 set jobNEvents  = $3
 set suffix = $4
 
-if ($#argv != $num_args) then
-    echo "USAGE: ./${0} <min_njob> <max_njob> <num_events> <suffix>"
-    exit 1
-endif 
-
-
 else 
 
-# These variables have to be here
 set jobNumBegin = 1
 set jobNumEnd   = 1
-set jobNEvents  = 10
-
-## Here is where you would set any other variables you might have
+set jobNEvents  = 2
 set suffix = TEST
 
 endif
 
 ## If input doesn't make sense, print the usage and bail
+if ($#argv != $num_args) then
+    echo "USAGE: ./${0} <min_njob> <max_njob> <num_events> <suffix>"
+    exit 1
+endif 
 
 ## Check to make sure all of the executables and directories are where they should be
 if (! -e ${condor_dir}) then 

@@ -1,7 +1,7 @@
 #!/bin/tcsh
 
-set njobs           = 1
-set nevents         = 1000
+set njobs           = 50
+set nevents         = 20
 
 set LAUNCH_DIR = $PWD
 set RELEASE_DIR = /uscms/home/eberry/TowerAlgo/CMSSW_2_2_7/src/
@@ -10,5 +10,5 @@ set RELEASE_DIR = /uscms/home/eberry/TowerAlgo/CMSSW_2_2_7/src/
 ## tar cf Release.tar Analyzers Producers Geometry
 ## cd LAUNCH_DIR
 
-./qsub_PionGun_ANA 1 ${njobs} ${nevents} "5000GeV-Focused"
+./qsub_ForwardPionGun_RAW-DIGI-RECO 1 ${njobs} ${nevents} "100GeV-Focused"
 

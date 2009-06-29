@@ -1,0 +1,116 @@
+#!/bin/tcsh
+
+## Is this a test?
+set test = false
+
+## Setup CMSSW environment variables
+eval `scram runtime -csh`
+
+## User sets these run variables
+set package     = Producers/CaloTowersFromTrigPrimsCreator/pionGun/GEN-SIM-DIGI-RAW/
+set exec_name   = CentralPionGun_GEN-SIM-DIGI-RAW
+set base_dir    = /uscmst1b_scratch/lpc1/3DayLifetime/${user}/
+set type        = CentralPionGun
+set num_args    = 4
+
+## Let the script set these
+set condor_dir  = ${base_dir}/${type}/condor
+set log_dir     = ${base_dir}/${type}/log
+set output_dir  = ${base_dir}/${type}/output
+set exec_path   = ${CMSSW_BASE}/src/${package}/qrun_${exec_name}
+
+if ($test != true) then
+
+# These variables have to be here
+set jobNumBegin = $1
+set jobNumEnd   = $2
+set jobNEvents  = $3
+set suffix = $4
+
+if ($#argv != $num_args) then
+    echo "USAGE: ./${0} <min_njob> <max_njob> <num_events> <suffix>"
+    exit 1
+endif 
+
+
+else 
+
+# These variables have to be here
+set jobNumBegin = 1
+set jobNumEnd   = 1
+set jobNEvents  = 10
+
+## Here is where you would set any other variables you might have
+set suffix = TEST
+
+endif
+
+## If input doesn't make sense, print the usage and bail
+
+## Check to make sure all of the executables and directories are where they should be
+if (! -e ${condor_dir}) then 
+    echo "Warning! Could not find condor directory ${condor_dir}"
+    echo "Trying to create it..."
+    mkdir -p ${condor_dir}
+    if (! -e ${condor_dir}) then 
+	echo "Failed to create ${condor_dir}. Exiting."
+	exit 1
+    endif 
+    echo "OK"
+endif
+if (! -e ${output_dir}) then
+    echo "Warning! Could not find condor directory ${output_dir}"
+    echo "Trying to create it..."
+    mkdir -p ${output_dir}
+    if (! -e ${output_dir}) then 
+	echo "Failed to create ${output_dir}. Exiting."
+	exit 1
+    endif 
+    echo "OK"
+endif 
+if (! -e ${log_dir}) then 
+    echo "Warning! Could not find condor directory ${log_dir}"
+    echo "Trying to create it..."
+    mkdir -p ${log_dir}
+    if (! -e ${log_dir}) then 
+	echo "Failed to create ${log_dir}. Exiting."
+	exit 1
+    endif 
+    echo "OK"
+endif 
+if (! -e $exec_path) then
+    echo "Warning! Cannot find executable: ${exec_path}"
+    echo "Exiting."
+    exit 1
+endif 
+
+cd $output_dir
+
+set job = $jobNumBegin
+
+while ($job <= $jobNumEnd)
+    
+    set file_prefix = ${exec_name}_job${job}_${jobNEvents}events
+    set condor_file = ${file_prefix}_condor
+    
+    cat > ${condor_dir}/${condor_file}<<EOF
+    universe = vanilla
+    Executable = ${exec_path}
+    Requirements = Memory >= 199 && OpSys == "LINUX" && (Arch != "DUMMY")
+    ShouldTransferFiles = YES
+    WhenToTransferOutput = ON_EXIT
+    Output = ${log_dir}/${file_prefix}_\$(Cluster)_\$(Process).stdout
+    Error = ${log_dir}/${file_prefix}_\$(Cluster)_\$(Process).stderr
+    Log = ${log_dir}/${file_prefix}_\$(Cluster)_\$(Process).log
+    notify_user = ${user}@FNAL.GOV
+    Arguments = $job $jobNEvents $suffix
+    Queue 1
+  
+EOF
+
+    condor_submit ${condor_dir}/${condor_file}
+
+    @ job = $job + 1
+    
+end
+

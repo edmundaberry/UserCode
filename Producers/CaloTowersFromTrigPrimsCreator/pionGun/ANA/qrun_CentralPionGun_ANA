@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source /uscmst1/prod/sw/cms/shrc uaf
-
 ## Set release base and version
 MY_RELEASE_BASE="/uscms/home/eberry/TowerAlgo/"
 CMSSW_VERSION="CMSSW_2_2_7"
@@ -10,11 +8,11 @@ TEST="false"
 BLANK=""
 
 # Information for getting at local data
-DATA_FOLDER="/uscms/home/eberry/data/PionGun/RAW-DIGI-RECO"
+DATA_FOLDER="/uscms/home/eberry/data/CentralPionGun/RAW-DIGI-RECO"
 
 # File information variables
-N_FILES=`ls ${DATA_FOLDER}/*5000GeV*.root | wc -w`
-FILE_LIST=`echo "${DATA_FOLDER}/*5000GeV*.root"`
+N_FILES=`ls ${DATA_FOLDER}/*100GeV*Focused.root | wc -w`
+FILE_LIST=`echo "${DATA_FOLDER}/*100GeV*Focused.root"`
 FILE_NUM=1
 
 # Get list of local files with line breaks
@@ -49,20 +47,20 @@ fi
 
 if [ $TEST == "true" ]; then
 job=1
-numevents=10
+numevents=1
 suffix="_TEST"
 fi
-
+ 
 ## Set file names
 tarFile="${MY_RELEASE_BASE}/${CMSSW_VERSION}/src/Release.tar"
-cfgFile="PionGun_job${job}_${numevents}events${suffix}_cfg.py"
+cfgFile="CentralPionGun_job${job}_${numevents}events${suffix}_cfg.py"
 
 if [ $TEST != "true" ]; then
 ## Go to the scratch directory
 cd ${_CONDOR_SCRATCH_DIR}
 
 ## Load the environment
-source /uscmst1/prod/sw/cms/cshrc uaf
+source /uscmst1/prod/sw/cms/shrc uaf
 
 ## Download, compile, and initialize CMSSW
 scram p CMSSW ${CMSSW_VERSION}
@@ -124,15 +122,17 @@ ${DATA_FILES}
 process.source.skipEvents = cms.untracked.uint32(${eventsToSkip})
 
 ## My CaloTower producer
-process.load("Producers.CaloTowersFromTrigPrimsCreator.calotowersfromtrigprimscreator_unpacked_cfi")
+process.load("Producers.CaloTowersFromTrigPrimsCreator.calotowersfromtrigprimscreator_cfi")
+process.caloTowersFromTrigPrimsCreator.ebDigiTag = cms.untracked.InputTag ('simEcalUnsuppressedDigis')
+process.caloTowersFromTrigPrimsCreator.eeDigiTag = cms.untracked.InputTag ('simEcalUnsuppressedDigis')
+process.caloTowersFromTrigPrimsCreator.verbose = False
 
-## My CaloTower comparator 
-process.load("Analyzers.CaloTowerComp.calotowercomp_cfi")
-process.caloTowerComparator.defaultCaloTowerFileName = "CaloTowerCompOutput_DefaultTowers_PionGun_${TAG}_job${job}_${numevents}events${suffix}.root"
-process.caloTowerComparator.createdCaloTowerFileName = "CaloTowerCompOutput_CreatedTowers_PionGun_${TAG}_job${job}_${numevents}events${suffix}.root"
+## My analyzer
+process.load("Producers.CaloTowersFromTrigPrimsCreator.calotowersfromtrigprimsanalyzer_cfi")
+process.caloTowersFromTrigPrimsAnalyzer.outputFileName = "CaloTowersFromTrigPrimsAnalyzerOutput_CentralPionGun_${TAG}_job${job}_${numevents}events${suffix}.root"
 
-process.PRODUCE = cms.Path( process.caloTowersFromTrigPrimsCreator )
-process.ANALYZE = cms.Path( process.caloTowerComparator )
+process.PRODUCE = cms.Path( process.caloTowersFromTrigPrimsCreator  )
+process.ANALYZE = cms.Path( process.caloTowersFromTrigPrimsAnalyzer )
 
 process.schedule = cms.Schedule()
 process.schedule.append(process.PRODUCE)
