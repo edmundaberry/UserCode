@@ -16,4 +16,5 @@
 <use name=CalibFormats/CaloTPG>
 <use name=CalibCalorimetry/EcalTPGTools>
 <use name=boost>
+<flags EDM_PLUGIN=1>
 </library>
