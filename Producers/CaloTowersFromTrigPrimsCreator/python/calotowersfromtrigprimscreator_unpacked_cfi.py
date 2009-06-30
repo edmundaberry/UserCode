@@ -1,9 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-from Geometry.CaloEventSetup.CaloTowerConstituents_cfi import *
 from Geometry.CaloEventSetup.EcalTrigTowerConstituents_cfi import *
-from SimCalorimetry.HcalTrigPrimProducers.hcaltpdigi_cff import *
-from CalibCalorimetry.EcalTPGTools.ecalTPGScale_cff import *
 from RecoJets.Configuration.CaloTowersES_cfi import *
 
 caloTowersFromTrigPrimsCreator = cms.EDProducer('CaloTowersFromTrigPrimsCreator',
