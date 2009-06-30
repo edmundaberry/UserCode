@@ -17,6 +17,7 @@ caloTowersFromTrigPrimsCreator = cms.EDProducer('CaloTowersFromTrigPrimsCreator'
   hcalTrigPrimTag = cms.untracked.InputTag("hcalDigis"),
   ecalTrigPrimTag = cms.untracked.InputTag("ecalDigis","EcalTriggerPrimitives"),
   defaultCaloTowersTag = cms.untracked.InputTag("towerMaker"),
+  useHF = cms.untracked.bool(True),                                                
   verbose = cms.untracked.bool(False)
                                                 
 )
