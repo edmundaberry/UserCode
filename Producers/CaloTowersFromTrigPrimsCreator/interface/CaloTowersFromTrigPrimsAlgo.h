@@ -17,6 +17,7 @@
 #include "Geometry/CaloTopology/interface/CaloTowerConstituentsMap.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
 
 // Energy scaling
 #include "CondFormats/L1TObjects/interface/L1CaloEcalScale.h"
@@ -53,6 +54,7 @@ class CaloTowersFromTrigPrimsAlgo {
   
   void setL1CaloScales    ( const L1CaloEcalScale *ecalScale, const L1CaloHcalScale *hcalScale);
        
+  void useHF              ( bool  b ) { m_useHF        = b; }
   void setVerbose         ( bool  v ) { m_verbose      = v; }
   void setHadThreshold    ( float t ) { m_hadThreshold = t; }
   void setEmThreshold     ( float t ) { m_emThreshold  = t; }
@@ -109,6 +111,12 @@ class CaloTowersFromTrigPrimsAlgo {
   //------------------------------------------------------
  
   float m_hadThreshold, m_emThreshold;
+
+  //------------------------------------------------------
+  // Use the HF?
+  //------------------------------------------------------
+  
+  bool m_useHF;
 
   //------------------------------------------------------
   // MetaTower setup

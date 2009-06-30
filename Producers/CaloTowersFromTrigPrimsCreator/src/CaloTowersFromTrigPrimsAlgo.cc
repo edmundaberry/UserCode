@@ -16,7 +16,8 @@ CaloTowersFromTrigPrimsAlgo::CaloTowersFromTrigPrimsAlgo():
   m_momEBDepth(-999.0),
   m_momEEDepth(-999.0),
   m_hadThreshold(-1.0),
-  m_emThreshold(-1.0)
+  m_emThreshold(-1.0),
+  m_useHF(false)
 {}
 
 //----------------------------------------------------
@@ -146,16 +147,27 @@ void CaloTowersFromTrigPrimsAlgo::assignEnergy(const TriggerPrimitiveDigi* trigP
     
     if (trigTowerDetId.det() == DetId::Hcal){
       
-      // Assume the HF is 50/50 EM and Hadronic energy
       
+      // Is this the HF?
       if ( trigTowerDetId.ieta() > m_hcalTopology.firstHFRing() ) {
-      
-      	metaTower.E_had += towerEnergy / 2.0;
-      	metaTower.E_em  += towerEnergy / 2.0;      
+
+	if ( m_useHF ){
+	
+	  // Assume the HF is 50/50 EM and Hadronic energy
+	  metaTower.E_had += towerEnergy / 2.0;
+	  metaTower.E_em  += towerEnergy / 2.0;
+	}
+
+	else {
+	  
+	  metaTower.E_had += 0.0;
+	  metaTower.E_em  += 0.0;
+
+	}
       }
       
       else metaTower.E_had += towerEnergy;
-      // metaTower.E_had += towerEnergy;
+
     }
     
     //----------------------------------------------------

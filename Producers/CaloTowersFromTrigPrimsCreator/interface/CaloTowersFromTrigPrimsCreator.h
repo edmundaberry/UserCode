@@ -5,7 +5,6 @@
 // Include files
 //------------------------------------------------------
 
-// Framework files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -13,26 +12,8 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/ESHandle.h"
 
-// Data collections
-#include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
-#include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
-
-// Geometry
-#include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
-#include "Geometry/CaloGeometry/interface/CaloGeometry.h"
-#include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
-#include "Geometry/Records/interface/CaloGeometryRecord.h"
-
-// Energy scale info
-#include "CondFormats/L1TObjects/interface/L1CaloEcalScale.h"
-#include "CondFormats/DataRecord/interface/L1CaloEcalScaleRcd.h"
-#include "CondFormats/L1TObjects/interface/L1CaloHcalScale.h"
-#include "CondFormats/DataRecord/interface/L1CaloHcalScaleRcd.h"
-
 // Algorithm
 #include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTowersFromTrigPrimsAlgo.h"
-
-// class CaloTowerConstituentsMap;
 
 class CaloTowersFromTrigPrimsCreator : public edm::EDProducer {
 public:
@@ -53,6 +34,7 @@ private:
   // Instruction bools
   //------------------------------------------------------
     
+  bool m_useHF;
   bool m_verbose;
 
   //------------------------------------------------------
@@ -76,11 +58,7 @@ private:
   //------------------------------------------------------
   
   edm::InputTag m_hcalTrigPrimTag;
-  edm::InputTag m_hoTrigPrimTag;
   edm::InputTag m_ecalTrigPrimTag;
-  edm::InputTag m_defaultCaloTowersTag;
-  edm::InputTag m_ebDigiTag;
-  edm::InputTag m_eeDigiTag;
 
   //------------------------------------------------------
   // Geometry objects
@@ -89,7 +67,7 @@ private:
   edm::ESHandle<CaloGeometry>                 m_geometry;
   edm::ESHandle<CaloSubdetectorGeometry>      m_ecalBarrelGeometry;
   edm::ESHandle<CaloSubdetectorGeometry>      m_ecalEndcapGeometry;
-  HcalTrigTowerGeometry                  m_trigTowerGeometry;
+  HcalTrigTowerGeometry                       m_trigTowerGeometry;
 
   //------------------------------------------------------
   // Constituent mappings

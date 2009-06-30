@@ -25,21 +25,18 @@ CaloTowersFromTrigPrimsCreator::CaloTowersFromTrigPrimsCreator(const edm::Parame
 
   edm::InputTag d_hcalTrigPrimTag("simHcalTriggerPrimitiveDigis");
   edm::InputTag d_ecalTrigPrimTag("simEcalTriggerPrimitiveDigis");
-  edm::InputTag d_defaultCaloTowersTag("towerMaker");
-  edm::InputTag d_ebDigiTag("ecalDigis","ebDigis");
-  edm::InputTag d_eeDigiTag("ecalDigis","eeDigis");
 
   m_hcalTrigPrimTag = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag",d_hcalTrigPrimTag);
   m_ecalTrigPrimTag = iConfig.getUntrackedParameter<edm::InputTag>("ecalTrigPrimTag",d_ecalTrigPrimTag);
-  m_defaultCaloTowersTag = iConfig.getUntrackedParameter<edm::InputTag>("defaultCaloTowersTag",d_defaultCaloTowersTag);
-  m_ebDigiTag = iConfig.getUntrackedParameter<edm::InputTag>("ebDigiTag",d_ebDigiTag);
-  m_eeDigiTag = iConfig.getUntrackedParameter<edm::InputTag>("eeDigiTag",d_eeDigiTag);  
 
   double d_hadThreshold = -1.0;
   double d_emThreshold  = -1.0;
   m_hadThreshold = iConfig.getUntrackedParameter<double>("hadThreshold",d_hadThreshold);
   m_emThreshold  = iConfig.getUntrackedParameter<double>("emThreshold", d_emThreshold );
-
+						
+  bool d_useHF = true;
+  m_useHF = iConfig.getUntrackedParameter<bool>("useHF",d_useHF);
+  
   bool d_verbose = true;
   m_verbose = iConfig.getUntrackedParameter<bool>("verbose",d_verbose);
 
@@ -92,35 +89,6 @@ void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::Even
     edm::LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract ECAL trigger primitives with " << m_ecalTrigPrimTag;
     return;
   }
-
-  //-----------------------------------------------------
-  // Get real ECAL digis
-  //-----------------------------------------------------
-  
-  edm::Handle<EBDigiCollection> EBDigis;
-  bool ebDigiTagExists = iEvent.getByLabel(m_ebDigiTag, EBDigis);
-  if (!ebDigiTagExists){
-    edm::LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract EB digis with " << m_ebDigiTag;
-    return;
-  }
-
-  edm::Handle<EEDigiCollection> EEDigis;
-  bool eeDigiTagExists = iEvent.getByLabel(m_eeDigiTag, EEDigis);
-  if (!eeDigiTagExists){
-    edm::LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract EE digis with " << m_eeDigiTag;
-    return;
-  }
-
-  //-----------------------------------------------------
-  // Try to get default CaloTowers
-  //-----------------------------------------------------
-
-  edm::Handle<CaloTowerCollection> DefaultCaloTowers;
-  bool defaultCaloTowersExist = iEvent.getByLabel(m_defaultCaloTowersTag, DefaultCaloTowers);
-  if (!defaultCaloTowersExist){
-    edm::LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract default CaloTowers with " << m_defaultCaloTowersTag;
-    return;
-  }
   
   //------------------------------------------------------
   // Create an empty collection
@@ -147,6 +115,7 @@ void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::Even
   m_caloTowersFromTrigPrimsAlgo.setHadThreshold      (m_hadThreshold);
   m_caloTowersFromTrigPrimsAlgo.setEmThreshold       (m_emThreshold );
   
+  m_caloTowersFromTrigPrimsAlgo.useHF                (m_useHF);
   m_caloTowersFromTrigPrimsAlgo.setVerbose           (m_verbose);
 
   //------------------------------------------------------
