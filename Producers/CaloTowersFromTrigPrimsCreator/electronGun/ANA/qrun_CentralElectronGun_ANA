@@ -4,7 +4,7 @@
 MY_RELEASE_BASE="/uscms/home/eberry/TowerAlgo/"
 CMSSW_VERSION="CMSSW_2_2_7"
 TAG="IDEAL_V12"
-TEST="true"
+TEST="false"
 BLANK=""
 
 # Information for getting at local data
