@@ -17,10 +17,12 @@ process.source = cms.Source("PoolSource",
 ))
 
 process.load("Producers.CaloTowersFromTrigPrimsCreator.calotowersfromtrigprimscreator_cfi")
+process.load("Producers.CaloTowersFromTrigPrimsCreator.calotowersfromtrigprimsanalyzer_cfi")
 
 process.PRODUCE = cms.Path( process.caloTowersFromTrigPrimsCreator  )
+process.ANALYZE = cms.Path( process.caloTowersFromTrigPrimsAnalyzer )
 
 process.schedule = cms.Schedule()
 process.schedule.append(process.PRODUCE)
-
+process.schedule.append(process.ANALYZE)
 
