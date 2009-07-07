@@ -15,11 +15,23 @@ CaloTowersFromTrigPrimsAnalyzer::CaloTowersFromTrigPrimsAnalyzer(const edm::Para
   edm::InputTag d_hcalTrigPrimTag("simHcalTriggerPrimitiveDigis");
   edm::InputTag d_ecalTrigPrimTag("simEcalTriggerPrimitiveDigis");
 
-  m_hcalTrigPrimTag     = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag",d_hcalTrigPrimTag);
-  m_ecalTrigPrimTag     = iConfig.getUntrackedParameter<edm::InputTag>("ecalTrigPrimTag",d_ecalTrigPrimTag);
-  m_createdCaloTowerTag = iConfig.getUntrackedParameter<edm::InputTag>("createdCaloTowerTag",d_createdCaloTowerTag);
-  m_defaultCaloTowerTag = iConfig.getUntrackedParameter<edm::InputTag>("defaultCaloTowerTag",d_defaultCaloTowerTag);
+  edm::InputTag d_tpgJetTag    ("iterativeCone5TPGJets");	
+  edm::InputTag d_caloJetTag   ("iterativeCone5CaloJets");	  
+  edm::InputTag d_tpgCorJetTag ("L2L3CorJetIC5TPG");
+  edm::InputTag d_caloCorJetTag("L2L3CorJetIC5Calo");
+  edm::InputTag d_genJetTag    ("iterativeCone5GenJets");
 
+  m_hcalTrigPrimTag     = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag"     , d_hcalTrigPrimTag    );
+  m_ecalTrigPrimTag     = iConfig.getUntrackedParameter<edm::InputTag>("ecalTrigPrimTag"     , d_ecalTrigPrimTag    );
+  m_createdCaloTowerTag = iConfig.getUntrackedParameter<edm::InputTag>("createdCaloTowerTag" , d_createdCaloTowerTag);
+  m_defaultCaloTowerTag = iConfig.getUntrackedParameter<edm::InputTag>("defaultCaloTowerTag" , d_defaultCaloTowerTag);
+
+  m_tpgJetTag           = iConfig.getUntrackedParameter<edm::InputTag>("tpgJetTag"     , d_tpgJetTag    );	
+  m_caloJetTag          = iConfig.getUntrackedParameter<edm::InputTag>("caloJetTag"    , d_caloJetTag   );	                  
+  m_tpgCorJetTag        = iConfig.getUntrackedParameter<edm::InputTag>("tpgCorJetTag"  , d_tpgCorJetTag );	
+  m_caloCorJetTag       = iConfig.getUntrackedParameter<edm::InputTag>("caloCorJetTag" , d_caloCorJetTag);
+  m_genJetTag           = iConfig.getUntrackedParameter<edm::InputTag>("genJetTag"     , d_genJetTag    );	
+  
   std::string d_outputFileName("CaloTowersFromTrigPrimsAnalyzerOutput.root");
   std::string outputFileName = iConfig.getUntrackedParameter<std::string>("outputFileName", d_outputFileName);
 
@@ -158,12 +170,157 @@ void CaloTowersFromTrigPrimsAnalyzer::analyze(const edm::Event& iEvent, const ed
 
   analyzeTPGs();
   analyzeCaloTowers();
+  analyzeJets();
 
   //-----------------------------------------------------
   // Finalize the ROOT trees
   //-----------------------------------------------------
 
   m_fillCaloTowersFromTrigPrimsAnalyzerTree.fill();
+
+}
+
+//-----------------------------------------------------
+// Get Jet handles and analyze
+//-----------------------------------------------------
+
+void CaloTowersFromTrigPrimsAnalyzer::analyzeJets(){
+
+  edm::Handle<reco::CaloJetCollection> CaloJets;
+  bool caloJetsExist = m_event -> getByLabel( m_caloJetTag, CaloJets );
+  if (!caloJetsExist) {
+    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract calo jets with " << m_caloJetTag;
+    return;
+  }
+
+  edm::Handle<reco::CaloJetCollection> TPGJets;
+  bool tpgJetsExist = m_event -> getByLabel( m_tpgJetTag, TPGJets );
+  if (!tpgJetsExist) {
+    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract tpg jets with " << m_tpgJetTag;
+    return;
+  }
+
+  edm::Handle<reco::CaloJetCollection> CaloCorJets;
+  bool caloCorJetsExist = m_event -> getByLabel( m_caloCorJetTag, CaloCorJets );
+  if (!caloCorJetsExist) {
+    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract corrected calo jets with " << m_caloCorJetTag;
+    return;
+  }
+
+  edm::Handle<reco::CaloJetCollection> TPGCorJets;
+  bool tpgCorJetsExist = m_event -> getByLabel( m_tpgCorJetTag, TPGCorJets );
+  if (!tpgCorJetsExist) {
+    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract tpg jets with " << m_tpgJetTag;
+    return;
+  }
+
+  edm::Handle<reco::GenJetCollection> GenJets;
+  bool genJetsExist = m_event -> getByLabel ( m_genJetTag, GenJets );
+  if ( !genJetsExist ) {
+    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract gen jets with " << m_genJetTag;
+    return;
+  }
+
+  bool fromTPGs  = true;
+  bool corrected = true;
+
+  analyzeJets ( *CaloJets   , !fromTPGs, !corrected );
+  analyzeJets ( *TPGJets    ,  fromTPGs, !corrected );
+  analyzeJets ( *CaloCorJets, !fromTPGs,  corrected );
+  analyzeJets ( *TPGCorJets ,  fromTPGs,  corrected );
+  analyzeJets ( *GenJets );
+
+}
+
+void CaloTowersFromTrigPrimsAnalyzer::analyzeJets( const reco::CaloJetCollection& Jets,
+						   bool fromTPGs, bool corrected){
+
+  int n_these_jets = 0;
+  
+  int  nrjet = m_caloTowersFromTrigPrimsAnalyzerTree.nrjet;  
+  if ( nrjet == -999 ) nrjet = 0;
+   
+  reco::CaloJetCollection::const_iterator iJet = Jets.begin();
+  
+  float pt, et;
+  float phi, eta;
+  int ieta, iphi;
+
+  for (; iJet != Jets.end(); iJet++){
+
+    if   ( corrected ) m_caloTowersFromTrigPrimsAnalyzerTree.rjet_isCor [nrjet] = 1;
+    else               m_caloTowersFromTrigPrimsAnalyzerTree.rjet_isCor [nrjet] = 0;
+								       
+    if   ( fromTPGs  ) m_caloTowersFromTrigPrimsAnalyzerTree.rjet_isMine[nrjet] = 1;
+    else               m_caloTowersFromTrigPrimsAnalyzerTree.rjet_isMine[nrjet] = 0;
+
+    pt  = (float) (*iJet).pt();
+    et  = (float) (*iJet).pt();
+    phi = (float) (*iJet).phi();
+    eta = (float) (*iJet).eta();
+
+    m_caloTowersFromTrigPrimsAnalyzerTree.rjet_pt  [nrjet] = pt ;
+    m_caloTowersFromTrigPrimsAnalyzerTree.rjet_et  [nrjet] = et ;
+    m_caloTowersFromTrigPrimsAnalyzerTree.rjet_phi [nrjet] = phi;
+    m_caloTowersFromTrigPrimsAnalyzerTree.rjet_eta [nrjet] = eta;
+
+    std::vector<CaloTowerPtr> jetTowers = (*iJet).getCaloConstituents();
+    std::vector<CaloTowerPtr>::iterator jetTower = jetTowers.begin();
+    
+    int rjet_nct = 0;
+
+    for (; jetTower!= jetTowers.end(); jetTower++){
+
+      ieta = (int) (**jetTower).id().ieta();
+      iphi = (int) (**jetTower).id().iphi();  
+
+      m_caloTowersFromTrigPrimsAnalyzerTree.rjet_ct_ieta[nrjet][rjet_nct] = ieta;
+      m_caloTowersFromTrigPrimsAnalyzerTree.rjet_ct_iphi[nrjet][rjet_nct] = iphi;
+      
+      rjet_nct++;
+    }
+    
+    m_caloTowersFromTrigPrimsAnalyzerTree.rjet_nct  [nrjet] = rjet_nct;
+
+    nrjet++;
+    n_these_jets++;
+
+  }
+  
+  m_caloTowersFromTrigPrimsAnalyzerTree.nrjet = nrjet;
+
+  if      ( ( corrected) && ( fromTPGs) ) m_caloTowersFromTrigPrimsAnalyzerTree.nTPGCorJet  = n_these_jets;
+  else if ( ( corrected) && (!fromTPGs) ) m_caloTowersFromTrigPrimsAnalyzerTree.nCaloCorJet = n_these_jets;
+  else if ( (!corrected) && ( fromTPGs) ) m_caloTowersFromTrigPrimsAnalyzerTree.nTPGJet     = n_these_jets;
+  else if ( (!corrected) && (!fromTPGs) ) m_caloTowersFromTrigPrimsAnalyzerTree.nCaloJet    = n_these_jets;
+
+}
+
+void CaloTowersFromTrigPrimsAnalyzer::analyzeJets(const reco::GenJetCollection & Jets){
+
+  int ngjet = 0;
+
+  reco::GenJetCollection::const_iterator iJet = Jets.begin();
+  
+  float pt, et;
+  float phi, eta;
+
+  for (; iJet != Jets.end(); iJet++){
+    
+    pt  = (float) (*iJet).pt();
+    et  = (float) (*iJet).pt();
+    phi = (float) (*iJet).phi();
+    eta = (float) (*iJet).eta();
+
+    m_caloTowersFromTrigPrimsAnalyzerTree.gjet_pt  [ngjet] = pt ;
+    m_caloTowersFromTrigPrimsAnalyzerTree.gjet_et  [ngjet] = et ;
+    m_caloTowersFromTrigPrimsAnalyzerTree.gjet_phi [ngjet] = phi;
+    m_caloTowersFromTrigPrimsAnalyzerTree.gjet_eta [ngjet] = eta;
+    
+    ngjet++;
+  }
+
+  m_caloTowersFromTrigPrimsAnalyzerTree.ngjet = ngjet;
 
 }
 
@@ -180,14 +337,14 @@ void CaloTowersFromTrigPrimsAnalyzer::analyzeTPGs(){
   edm::Handle<HcalTrigPrimDigiCollection> HCALTrigPrimDigis;
   bool hcalTrigPrimDigiTagExists = m_event -> getByLabel(m_hcalTrigPrimTag,HCALTrigPrimDigis);
   if (!hcalTrigPrimDigiTagExists){
-    edm::LogWarning("TPGAnalyzer") << "Could not extract HCAL trigger primitives with " << m_hcalTrigPrimTag;
+    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract HCAL trigger primitives with " << m_hcalTrigPrimTag;
     return;
   }
 
   edm::Handle<EcalTrigPrimDigiCollection> ECALTrigPrimDigis;
   bool ecalTrigPrimDigiTagExists = m_event -> getByLabel(m_ecalTrigPrimTag,ECALTrigPrimDigis);
   if (!ecalTrigPrimDigiTagExists){
-    edm::LogWarning("TPGAnalyzer") << "Could not extract ECAL trigger primitives with " << m_ecalTrigPrimTag;
+    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract ECAL trigger primitives with " << m_ecalTrigPrimTag;
     return;
   }
 
