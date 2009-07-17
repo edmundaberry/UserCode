@@ -3,12 +3,5 @@
 set njobs           = 1
 set nevents         = 1000
 
-set WORK_DIR = $PWD
-
-cd ~/TowerAlgo/CMSSW_2_2_7/src/
-tar cf Release_ANA.tar Analyzers Geometry Producers
-tar cf Release.tar Analyzers Geometry Producers
-
-cd $WORK_DIR
 ./qsub_NeutrinoGun_ANA 1 ${njobs} ${nevents} "5000GeV-Focused-NoHadThreshold"
 
