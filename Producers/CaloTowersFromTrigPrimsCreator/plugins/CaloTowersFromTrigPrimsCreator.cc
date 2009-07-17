@@ -13,31 +13,19 @@ CaloTowersFromTrigPrimsCreator::CaloTowersFromTrigPrimsCreator(const edm::Parame
   // Get input from the user
   //-----------------------------------------------------
   
-  double d_momHBDepth = 0.2;
-  double d_momHEDepth = 0.4;
-  double d_momEBDepth = 0.3;
-  double d_momEEDepth = 0.0;
-
-  m_momHBDepth = iConfig.getUntrackedParameter<double> ("momHBDepth",d_momHBDepth);  
-  m_momHEDepth = iConfig.getUntrackedParameter<double> ("momHEDepth",d_momHEDepth);
-  m_momEBDepth = iConfig.getUntrackedParameter<double> ("momEBDepth",d_momEBDepth);  
-  m_momEEDepth = iConfig.getUntrackedParameter<double> ("momEEDepth",d_momEEDepth);  
-
   edm::InputTag d_hcalTrigPrimTag("simHcalTriggerPrimitiveDigis");
   edm::InputTag d_ecalTrigPrimTag("simEcalTriggerPrimitiveDigis");
-
   m_hcalTrigPrimTag = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag",d_hcalTrigPrimTag);
   m_ecalTrigPrimTag = iConfig.getUntrackedParameter<edm::InputTag>("ecalTrigPrimTag",d_ecalTrigPrimTag);
-
+  
   double d_hadThreshold = -1.0;
   double d_emThreshold  = -1.0;
   m_hadThreshold = iConfig.getUntrackedParameter<double>("hadThreshold",d_hadThreshold);
   m_emThreshold  = iConfig.getUntrackedParameter<double>("emThreshold", d_emThreshold );
 						
-  bool d_useHF = true;
-  m_useHF = iConfig.getUntrackedParameter<bool>("useHF",d_useHF);
-  
-  bool d_verbose = true;
+  bool d_useHF   = true;
+  bool d_verbose = false;
+  m_useHF   = iConfig.getUntrackedParameter<bool>("useHF"  ,d_useHF  );  
   m_verbose = iConfig.getUntrackedParameter<bool>("verbose",d_verbose);
 
   //-----------------------------------------------------
@@ -71,6 +59,7 @@ void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::Even
   iSetup.get<EcalEndcapGeometryRecord>().get("EcalEndcap", m_ecalEndcapGeometry);
   iSetup.get<L1CaloEcalScaleRcd>      ().get(m_l1CaloEcalScale                 );
   iSetup.get<L1CaloHcalScaleRcd>      ().get(m_l1CaloHcalScale                 );
+  iSetup.get<EcalMappingRcd>          ().get(m_ecalElectronicsMapping          );
   
   //-----------------------------------------------------
   // Get trigger primitives from the event
@@ -105,10 +94,7 @@ void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::Even
 						      m_ecalTrigTowerConstituentsMap.product(),
 						      m_ecalBarrelGeometry.product(),
 						      m_ecalEndcapGeometry.product());
-  
-  m_caloTowersFromTrigPrimsAlgo.setDetectorDepths    (m_momHBDepth, m_momHEDepth,
-						      m_momEBDepth, m_momEEDepth );
-  
+    
   m_caloTowersFromTrigPrimsAlgo.setL1CaloScales      (m_l1CaloEcalScale.product(),
 						      m_l1CaloHcalScale.product() );   
 
@@ -118,6 +104,8 @@ void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::Even
   m_caloTowersFromTrigPrimsAlgo.useHF                (m_useHF);
   m_caloTowersFromTrigPrimsAlgo.setVerbose           (m_verbose);
 
+  m_caloTowersFromTrigPrimsAlgo.resetEnergy          ();
+
   //------------------------------------------------------
   // Apply the algorithm
   //------------------------------------------------------
@@ -126,10 +114,12 @@ void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::Even
   m_caloTowersFromTrigPrimsAlgo.process(*HCALTrigPrimDigis);
   
   //------------------------------------------------------
-  // Finish the algorithm
+  // Fill the empty collection
   //------------------------------------------------------
   
   m_caloTowersFromTrigPrimsAlgo.finish(*caloTowerCollection);
+
+    m_caloTowersFromTrigPrimsAlgo.checkEnergy();
 
   //------------------------------------------------------
   // Add the final CaloTowerCollection to the event

@@ -73,11 +73,11 @@ class CaloTowersFromTrigPrimsAnalyzerTree {
 
     run         = -999;
     event       = -999;
-    ntpg        = -999;
-    nct         = -999;
+    ntpg        = 0;
+    nct         = 0;
     
-    ngjet       = -999;
-    nrjet       = -999;	   
+    ngjet       = 0;
+    nrjet       = 0;	   
     nCaloJet    = 0;  
     nTPGJet     = 0;   
     nCaloCorJet = 0;

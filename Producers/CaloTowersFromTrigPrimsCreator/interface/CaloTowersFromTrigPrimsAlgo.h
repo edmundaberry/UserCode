@@ -18,6 +18,8 @@
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
+#include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
+#include "Geometry/EcalMapping/interface/EcalMappingRcd.h"
 
 // Energy scaling
 #include "CondFormats/L1TObjects/interface/L1CaloEcalScale.h"
@@ -48,21 +50,34 @@ class CaloTowersFromTrigPrimsAlgo {
 			    const EcalTrigTowerConstituentsMap *ecalTrigTowerConstituentsMap,
 			    const CaloSubdetectorGeometry *ecalBarrelGeometry,
 			    const CaloSubdetectorGeometry *ecalEndcapGeometry );
-  
-  void setDetectorDepths  ( double momHBDepth, double momHEDepth,
-			    double momEBDepth, double momEEDepth );
-  
+    
   void setL1CaloScales    ( const L1CaloEcalScale *ecalScale, const L1CaloHcalScale *hcalScale);
        
   void useHF              ( bool  b ) { m_useHF        = b; }
   void setVerbose         ( bool  v ) { m_verbose      = v; }
   void setHadThreshold    ( float t ) { m_hadThreshold = t; }
   void setEmThreshold     ( float t ) { m_emThreshold  = t; }
+  void setDefaultCaloTowers ( CaloTowerCollection* c ) { m_defaultCaloTowers = c; }
+  double getTPGEnergy     ()          { return m_tpgEnergy; }
+  double getCCTEnergy     ()          { return m_cctEnergy; }
+
+  void resetEnergy() { 
+    m_tpgEnergy = 0.0;
+    m_cctEnergy = 0.0;
+  }
+
+  void checkEnergy(){
+    if (m_tpgEnergy - m_cctEnergy > 0.001 ){
+      edm::LogError("CaloTowersFromTrigPrimsAlgo") << "Energy distribution error: " 
+						   << "TrigPrims  had " << m_tpgEnergy << " GeV in this event, but "
+						   << "CaloTowers had " << m_cctEnergy << " GeV in this event";
+    }
+  }
 
   //------------------------------------------------------
   // Main public algorithm functions
   //------------------------------------------------------
-  
+
   void process(const EcalTrigPrimDigiCollection& EcalTrigPrimDigis);
   void process(const HcalTrigPrimDigiCollection& HcalTrigPrimDigis);
 
@@ -75,6 +90,15 @@ class CaloTowersFromTrigPrimsAlgo {
   //------------------------------------------------------
 
   bool m_verbose;
+
+  CaloTowerCollection *m_defaultCaloTowers;
+
+  //------------------------------------------------------
+  // Total energy counters
+  //------------------------------------------------------
+
+  double m_tpgEnergy;
+  double m_cctEnergy;
 
   //------------------------------------------------------
   // Energy scales
@@ -89,22 +113,12 @@ class CaloTowersFromTrigPrimsAlgo {
 
   HcalTrigTowerGeometry               m_hcalTrigTowerGeometry;
 
-  const CaloGeometry                 *m_geometry;
   const CaloTowerConstituentsMap     *m_caloTowerConstituentsMap;
   const EcalTrigTowerConstituentsMap *m_ecalTrigTowerConstituentsMap;
   const CaloSubdetectorGeometry      *m_ecalBarrelGeometry;
   const CaloSubdetectorGeometry      *m_ecalEndcapGeometry;
   const CaloSubdetectorGeometry      *m_caloTowerGeometry;
   const HcalTopology                  m_hcalTopology;  
-
-  //------------------------------------------------------
-  // Detector depth information 
-  //------------------------------------------------------
-
-  double m_momHBDepth;
-  double m_momHEDepth;
-  double m_momEBDepth;
-  double m_momEEDepth;
 
   //------------------------------------------------------
   // Threshold energies
@@ -123,7 +137,7 @@ class CaloTowersFromTrigPrimsAlgo {
   //------------------------------------------------------
   
   template <typename TriggerPrimitiveDigi>
-    void assignEnergy(const TriggerPrimitiveDigi* trigPrimDigi);
+    double assignEnergy(const TriggerPrimitiveDigi* trigPrimDigi);
       
   struct MetaTower {
     MetaTower();
@@ -154,11 +168,13 @@ class CaloTowersFromTrigPrimsAlgo {
   double getTrigTowerEnergy(const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
   double getTrigTowerEnergy(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
 
-  double getTrigTowerET(const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
-  double getTrigTowerET(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
+  double getTrigTowerET    (const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
+  double getTrigTowerET    (const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
 
-  double getMeanEta(const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
-  double getMeanEta(const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
+  double getMeanEta        (const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
+  double getMeanEta        (const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
+
+  EcalTrigTowerDetId getEcalPseudoTowerPartner ( EcalTrigTowerDetId id );
   
   //------------------------------------------------------
   // Mapping from Trigger Towers to CaloTowers

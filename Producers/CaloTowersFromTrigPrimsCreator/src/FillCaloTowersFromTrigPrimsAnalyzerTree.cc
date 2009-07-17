@@ -22,6 +22,13 @@ void FillCaloTowersFromTrigPrimsAnalyzerTree::init(std::string filename, CaloTow
    m_tree->Branch("event"       , &(m_treePtr->event       ), "event/I"             );
    m_tree->Branch("ntpg"        , &(m_treePtr->ntpg        ), "ntpg/I"              );
    m_tree->Branch("nct"         , &(m_treePtr->nct         ), "nct/I"               );
+
+   m_tree->Branch("nrjet"        , &(m_treePtr->nrjet        ), "nrjet/I"              ); 
+   m_tree->Branch("ngjet"        , &(m_treePtr->ngjet        ), "ngjet/I"              ); 
+   m_tree->Branch("nTPGJet"     , &(m_treePtr->nTPGJet     ), "nTPGJet/I"           ); 
+   m_tree->Branch("nCaloJet"    , &(m_treePtr->nCaloJet    ), "nCaloJet/I"          ); 
+   m_tree->Branch("nTPGCorJet"  , &(m_treePtr->nTPGCorJet  ), "nTPGCorJet/I"        ); 
+   m_tree->Branch("nCaloCorJet" , &(m_treePtr->nCaloCorJet ), "nCaloCorJet/I"       ); 
    
    m_tree->Branch("tpg_ieta"    , &(m_treePtr->tpg_ieta    ), "tpg_ieta[ntpg]/I"    );
    m_tree->Branch("tpg_iphi"    , &(m_treePtr->tpg_iphi    ), "tpg_iphi[ntpg]/I"    );
@@ -36,6 +43,23 @@ void FillCaloTowersFromTrigPrimsAnalyzerTree::init(std::string filename, CaloTow
    m_tree->Branch("ct_necon"    , &(m_treePtr->ct_necon    ), "ct_necon[nct]/I"     );
    
    m_tree->Branch("ct_isMine"   , &(m_treePtr->ct_isMine   ), "ct_isMine[nct]/I"    );
+
+   m_tree->Branch("rjet_nct"     , &(m_treePtr->rjet_nct     ), "rjet_nct[nrjet]/I"     );
+   m_tree->Branch("rjet_isCor"   , &(m_treePtr->rjet_isCor   ), "rjet_isCor[nrjet]/I"   );
+   m_tree->Branch("rjet_isMine"  , &(m_treePtr->rjet_isMine  ), "rjet_isMine[nrjet]/I"  );
+
+   m_tree->Branch("rjet_ct_ieta" , &(m_treePtr->rjet_ct_ieta ), "rjet_ct_ieta[nrjet][100]/I");
+   m_tree->Branch("rjet_ct_iphi" , &(m_treePtr->rjet_ct_iphi ), "rjet_ct_iphi[nrjet][100]/I");
+
+   m_tree->Branch("gjet_pt"      , &(m_treePtr->gjet_pt      ), "gjet_pt[ngjet]/F"      );
+   m_tree->Branch("gjet_et"      , &(m_treePtr->gjet_et      ), "gjet_et[ngjet]/F"      );
+   m_tree->Branch("gjet_eta"     , &(m_treePtr->gjet_eta     ), "gjet_eta[ngjet]/F"     );
+   m_tree->Branch("gjet_phi"     , &(m_treePtr->gjet_phi     ), "gjet_phi[ngjet]/F"     );
+
+   m_tree->Branch("rjet_pt"      , &(m_treePtr->rjet_pt      ), "rjet_pt[nrjet]/F"      );
+   m_tree->Branch("rjet_et"      , &(m_treePtr->rjet_et      ), "rjet_et[nrjet]/F"      );
+   m_tree->Branch("rjet_eta"     , &(m_treePtr->rjet_eta     ), "rjet_eta[nrjet]/F"     );
+   m_tree->Branch("rjet_phi"     , &(m_treePtr->rjet_phi     ), "rjet_phi[nrjet]/F"     );
 
    m_tree->Branch("tpg_et"      , &(m_treePtr->tpg_et      ), "tpg_et[ntpg]/F"      );
    m_tree->Branch("tpg_energy"  , &(m_treePtr->tpg_energy  ), "tpg_energy[ntpg]/F"  );

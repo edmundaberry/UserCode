@@ -59,11 +59,13 @@ private:
   
   edm::InputTag m_hcalTrigPrimTag;
   edm::InputTag m_ecalTrigPrimTag;
+  edm::InputTag m_defaultCaloTowerTag;
 
   //------------------------------------------------------
   // Geometry objects
   //------------------------------------------------------
-
+  
+  edm::ESHandle<EcalElectronicsMapping>       m_ecalElectronicsMapping;
   edm::ESHandle<CaloGeometry>                 m_geometry;
   edm::ESHandle<CaloSubdetectorGeometry>      m_ecalBarrelGeometry;
   edm::ESHandle<CaloSubdetectorGeometry>      m_ecalEndcapGeometry;

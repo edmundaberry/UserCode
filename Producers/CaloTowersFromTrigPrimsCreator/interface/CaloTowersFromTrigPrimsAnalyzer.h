@@ -17,6 +17,8 @@
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
 #include "DataFormats/CaloTowers/interface/CaloTowerCollection.h"
+#include "DataFormats/JetReco/interface/GenJetCollection.h"
+#include "DataFormats/JetReco/interface/CaloJetCollection.h"
 
 // Energy scale info
 #include "CondFormats/L1TObjects/interface/L1CaloEcalScale.h"
@@ -58,14 +60,21 @@ private:
 
   void analyzeTPGs();
   void analyzeCaloTowers();
-  void analyzeCaloTowers( const edm::View<reco::Candidate> & towers, bool isMine);
+  void analyzeJets();
+
+  void analyzeJets( const reco::GenJetCollection & Jets );
+  void analyzeJets( const reco::CaloJetCollection & Jets, bool fromTPGs, bool corrected );
+  
+  float analyzeCaloTowers( const edm::View<reco::Candidate> & towers, bool isMine);
   
   template <typename TrigPrimDigiCollection>  
-  void analyzeTPGs( const TrigPrimDigiCollection& trigPrimDigiCollection );
+  float analyzeTPGs( const TrigPrimDigiCollection& trigPrimDigiCollection );
 
   //------------------------------------------------------
   // Helper functions for analyzing TPG energies
   //------------------------------------------------------
+  
+  EcalTrigTowerDetId getEcalPseudoTowerPartner (EcalTrigTowerDetId id);
 
   float getTrigTowerET (const HcalTriggerPrimitiveDigi& hcalTrigPrimDigi);
   float getTrigTowerET (const EcalTriggerPrimitiveDigi& ecalTrigPrimDigi);
@@ -79,8 +88,15 @@ private:
   
   edm::InputTag m_hcalTrigPrimTag;
   edm::InputTag m_ecalTrigPrimTag;
+
   edm::InputTag m_createdCaloTowerTag;
   edm::InputTag m_defaultCaloTowerTag;
+
+  edm::InputTag m_genJetTag;	
+  edm::InputTag m_tpgJetTag;	
+  edm::InputTag m_caloJetTag;			                
+  edm::InputTag m_tpgCorJetTag;	
+  edm::InputTag m_caloCorJetTag;
 
   //------------------------------------------------------
   // Energy scales
@@ -117,8 +133,12 @@ private:
   const edm::Event*      m_event;
   const edm::EventSetup* m_setup;
 
+  bool m_verbose;
   bool m_newEvent;
   int m_tpgNumber;
+
+  float m_tpgEnergy;
+  float m_cctEnergy;
 
 
 };
