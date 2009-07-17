@@ -9,10 +9,12 @@
 <use name=DataFormats/HcalDetId>
 <use name=DataFormats/HcalDigi>
 <use name=DataFormats/EcalDigi>
+<use name=DataFormats/JetReco>
 <use name=Geometry/CaloGeometry>
 <use name=Geometry/CaloTopology>
 <use name=Geometry/HcalTowerAlgo>
 <use name=Geometry/CaloEventSetup>
+<use name=Geometry/EcalMapping>
 <use name=CalibFormats/CaloTPG>
 <use name=CalibCalorimetry/EcalTPGTools>
 <use name=boost>
