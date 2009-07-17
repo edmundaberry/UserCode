@@ -1,4 +1,5 @@
 #include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTowersFromTrigPrimsAnalyzer.h"
+#include <limits> 
 
 //---------------------------------------------
 // Constructor
@@ -34,6 +35,9 @@ CaloTowersFromTrigPrimsAnalyzer::CaloTowersFromTrigPrimsAnalyzer(const edm::Para
   
   std::string d_outputFileName("CaloTowersFromTrigPrimsAnalyzerOutput.root");
   std::string outputFileName = iConfig.getUntrackedParameter<std::string>("outputFileName", d_outputFileName);
+
+  bool d_verbose(false);
+  m_verbose = iConfig.getUntrackedParameter<bool>("verbose",d_verbose);
 
   //---------------------------------------------
   // Initialize ROOT trees
@@ -78,12 +82,34 @@ float CaloTowersFromTrigPrimsAnalyzer::getTrigTowerET ( const EcalTriggerPrimiti
   double et = (double) m_l1CaloEcalScale -> et (ecalRctInput, ietaAbs, sign);
   
   return et;
-
+  
 }
 
 //---------------------------------------------
 // Methods for getting trig tower position
 //---------------------------------------------
+
+EcalTrigTowerDetId CaloTowersFromTrigPrimsAnalyzer::getEcalPseudoTowerPartner (EcalTrigTowerDetId id){
+
+  EcalSubdetector subdet = id.subDet();
+  int ieta               = id.ieta();
+  int ietaAbs            = id.ietaAbs();
+  int iphi               = id.iphi();
+  int zside              = ieta / ietaAbs;
+
+  if ( ietaAbs != 28 && ietaAbs != 27 )
+    edm::LogError("CaloTowersFromTrigPrimsAlgo") << " Trying to find the partner of an ECAL tower not on the inner ring!";
+  
+  bool iphi_is_even = ( iphi == (iphi/2)*2);
+  
+  if ( iphi_is_even) iphi--;
+  if (!iphi_is_even) iphi++;
+  
+  EcalTrigTowerDetId retval = EcalTrigTowerDetId(zside,subdet,ietaAbs,iphi);
+
+  return retval;
+
+}
 
 float CaloTowersFromTrigPrimsAnalyzer::getTrigTowerMeanEta(const HcalTriggerPrimitiveDigi& hcalTrigPrimDigi){
 
@@ -103,7 +129,15 @@ float CaloTowersFromTrigPrimsAnalyzer::getTrigTowerMeanEta(const EcalTriggerPrim
   double meanTheta = 0.0;
   
   std::vector<DetId> EcalDetIds = m_ecalTrigTowerConstituentsMap -> constituentsOf(ecalTrigPrimDigi.id());
+
+  if ( EcalDetIds.size() == 0 ){
+    EcalTrigTowerDetId partnerTower = getEcalPseudoTowerPartner( ecalTrigPrimDigi.id() );
+    EcalDetIds = m_ecalTrigTowerConstituentsMap -> constituentsOf(partnerTower);
+  }
+
   std::vector<DetId>::iterator ecalDetId = EcalDetIds.begin();
+
+  assert (EcalDetIds.size() != 0 );
   
   for (; ecalDetId != EcalDetIds.end(); ecalDetId++){
 
@@ -113,7 +147,7 @@ float CaloTowersFromTrigPrimsAnalyzer::getTrigTowerMeanEta(const EcalTriggerPrim
       meanTheta += (double) m_ecalEndcapGeometry -> getGeometry( *ecalDetId ) -> getPosition().theta();
 
   }
-
+  
   if (EcalDetIds.size() != 0 ) meanTheta /= (double) EcalDetIds.size();
   if (EcalDetIds.size() == 0 ) return -999.0;
   
@@ -147,7 +181,7 @@ void CaloTowersFromTrigPrimsAnalyzer::analyze(const edm::Event& iEvent, const ed
 
   m_event = &iEvent;
   m_setup = &iSetup;
-  
+
   //-----------------------------------------------------
   // Initialize the ROOT trees
   //-----------------------------------------------------
@@ -157,7 +191,7 @@ void CaloTowersFromTrigPrimsAnalyzer::analyze(const edm::Event& iEvent, const ed
   //-----------------------------------------------------
   // Get run and event information
   //-----------------------------------------------------
-  
+
   int run   = (int) m_event -> id().run();
   int event = (int) m_event -> id().event();
   
@@ -168,9 +202,16 @@ void CaloTowersFromTrigPrimsAnalyzer::analyze(const edm::Event& iEvent, const ed
   // Perform the analysis
   //-----------------------------------------------------
 
-  analyzeTPGs();
+  analyzeTPGs();  
   analyzeCaloTowers();
-  analyzeJets();
+  analyzeJets();  
+
+  //-----------------------------------------------------
+  // Print energy info
+  //-----------------------------------------------------
+  
+   // std::cout << "Analyzer TPG Event energy = " << m_tpgEnergy << std::endl;
+   // std::cout << "Analyzer CCT Event energy = " << m_cctEnergy << std::endl;
 
   //-----------------------------------------------------
   // Finalize the ROOT trees
@@ -189,46 +230,41 @@ void CaloTowersFromTrigPrimsAnalyzer::analyzeJets(){
   edm::Handle<reco::CaloJetCollection> CaloJets;
   bool caloJetsExist = m_event -> getByLabel( m_caloJetTag, CaloJets );
   if (!caloJetsExist) {
-    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract calo jets with " << m_caloJetTag;
-    return;
+    if (m_verbose) edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract calo jets with " << m_caloJetTag;
   }
 
   edm::Handle<reco::CaloJetCollection> TPGJets;
   bool tpgJetsExist = m_event -> getByLabel( m_tpgJetTag, TPGJets );
   if (!tpgJetsExist) {
-    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract tpg jets with " << m_tpgJetTag;
-    return;
+    if (m_verbose) edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract tpg jets with " << m_tpgJetTag;
   }
 
   edm::Handle<reco::CaloJetCollection> CaloCorJets;
   bool caloCorJetsExist = m_event -> getByLabel( m_caloCorJetTag, CaloCorJets );
   if (!caloCorJetsExist) {
-    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract corrected calo jets with " << m_caloCorJetTag;
-    return;
+    if (m_verbose) edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract corrected calo jets with " << m_caloCorJetTag;
   }
 
   edm::Handle<reco::CaloJetCollection> TPGCorJets;
   bool tpgCorJetsExist = m_event -> getByLabel( m_tpgCorJetTag, TPGCorJets );
   if (!tpgCorJetsExist) {
-    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract tpg jets with " << m_tpgJetTag;
-    return;
+    if (m_verbose) edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract tpg jets with " << m_tpgJetTag;
   }
 
   edm::Handle<reco::GenJetCollection> GenJets;
   bool genJetsExist = m_event -> getByLabel ( m_genJetTag, GenJets );
   if ( !genJetsExist ) {
-    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract gen jets with " << m_genJetTag;
-    return;
+    if (m_verbose) edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract gen jets with " << m_genJetTag;
   }
 
   bool fromTPGs  = true;
   bool corrected = true;
 
-  analyzeJets ( *CaloJets   , !fromTPGs, !corrected );
-  analyzeJets ( *TPGJets    ,  fromTPGs, !corrected );
-  analyzeJets ( *CaloCorJets, !fromTPGs,  corrected );
-  analyzeJets ( *TPGCorJets ,  fromTPGs,  corrected );
-  analyzeJets ( *GenJets );
+  if ( caloJetsExist    ) analyzeJets ( *CaloJets   , !fromTPGs, !corrected );
+  if ( tpgJetsExist     ) analyzeJets ( *TPGJets    ,  fromTPGs, !corrected );
+  if ( caloCorJetsExist ) analyzeJets ( *CaloCorJets, !fromTPGs,  corrected );
+  if ( tpgCorJetsExist  ) analyzeJets ( *TPGCorJets ,  fromTPGs,  corrected );
+  if ( genJetsExist     ) analyzeJets ( *GenJets );
 
 }
 
@@ -337,31 +373,38 @@ void CaloTowersFromTrigPrimsAnalyzer::analyzeTPGs(){
   edm::Handle<HcalTrigPrimDigiCollection> HCALTrigPrimDigis;
   bool hcalTrigPrimDigiTagExists = m_event -> getByLabel(m_hcalTrigPrimTag,HCALTrigPrimDigis);
   if (!hcalTrigPrimDigiTagExists){
-    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract HCAL trigger primitives with " << m_hcalTrigPrimTag;
-    return;
+    if (m_verbose) edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract HCAL trigger primitives with " << m_hcalTrigPrimTag;
   }
 
   edm::Handle<EcalTrigPrimDigiCollection> ECALTrigPrimDigis;
   bool ecalTrigPrimDigiTagExists = m_event -> getByLabel(m_ecalTrigPrimTag,ECALTrigPrimDigis);
   if (!ecalTrigPrimDigiTagExists){
-    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract ECAL trigger primitives with " << m_ecalTrigPrimTag;
-    return;
+    if (m_verbose) edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract ECAL trigger primitives with " << m_ecalTrigPrimTag;
   }
 
   //-----------------------------------------------------
   // Analyze the individual handles
   //-----------------------------------------------------
 
-  analyzeTPGs(*HCALTrigPrimDigis);
-  analyzeTPGs(*ECALTrigPrimDigis);
+  float hcalTPGEnergy = 0.0; 
+  float ecalTPGEnergy = 0.0; 
+
+  if (hcalTrigPrimDigiTagExists) hcalTPGEnergy = analyzeTPGs(*HCALTrigPrimDigis);
+  if (ecalTrigPrimDigiTagExists) ecalTPGEnergy = analyzeTPGs(*ECALTrigPrimDigis);
+
+  m_tpgEnergy = hcalTPGEnergy + ecalTPGEnergy;
 
 }
 
 template <typename TrigPrimDigiCollection>
-void CaloTowersFromTrigPrimsAnalyzer::analyzeTPGs(const TrigPrimDigiCollection& trigPrimDigiCollection){
+float CaloTowersFromTrigPrimsAnalyzer::analyzeTPGs(const TrigPrimDigiCollection& trigPrimDigiCollection){
+
+  using std::numeric_limits; 
+
+  float totalEnergy = 0.0;
 
   typedef typename TrigPrimDigiCollection::const_iterator Iterator;
-  
+
   Iterator trigPrimDigi = trigPrimDigiCollection.begin();
 
   int nTPG = m_caloTowersFromTrigPrimsAnalyzerTree.ntpg;
@@ -370,9 +413,8 @@ void CaloTowersFromTrigPrimsAnalyzer::analyzeTPGs(const TrigPrimDigiCollection& 
   for(; trigPrimDigi != trigPrimDigiCollection.end(); ++trigPrimDigi)    {
 
     int ietaAbs = (*trigPrimDigi).id().ietaAbs();
-
-    int ieta = (*trigPrimDigi).id().ieta();
-    int iphi = (*trigPrimDigi).id().iphi();
+    int ieta    = (*trigPrimDigi).id().ieta();
+    int iphi    = (*trigPrimDigi).id().iphi();
     
     int isEcal = 0;
     int isHcal = 0;
@@ -385,6 +427,8 @@ void CaloTowersFromTrigPrimsAnalyzer::analyzeTPGs(const TrigPrimDigiCollection& 
     float et      = getTrigTowerET     (*trigPrimDigi);
     float etaMean = getTrigTowerMeanEta(*trigPrimDigi);
     float energy  = et * cosh(etaMean);
+
+    totalEnergy += energy;
     
     m_caloTowersFromTrigPrimsAnalyzerTree.tpg_ieta   [nTPG] = ieta;
     m_caloTowersFromTrigPrimsAnalyzerTree.tpg_iphi   [nTPG] = iphi;
@@ -402,6 +446,7 @@ void CaloTowersFromTrigPrimsAnalyzer::analyzeTPGs(const TrigPrimDigiCollection& 
 
   m_caloTowersFromTrigPrimsAnalyzerTree.ntpg = nTPG;
 
+  return totalEnergy;
 }
 
 //-----------------------------------------------------
@@ -415,32 +460,37 @@ void CaloTowersFromTrigPrimsAnalyzer::analyzeCaloTowers(){
   //---------------------------------------------
 
   edm::Handle<edm::View<reco::Candidate> > created_towers;
-  bool gotHandle =  m_event -> getByLabel( m_createdCaloTowerTag , created_towers);
-  if (!gotHandle) {
-    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract created calo towers with tag: " << m_createdCaloTowerTag;
-    return;
+  bool createdTowersExist =  m_event -> getByLabel( m_createdCaloTowerTag , created_towers);
+  if (!createdTowersExist) {
+    if (m_verbose) edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract created calo towers with tag: " << m_createdCaloTowerTag;
   }
 
 
   edm::Handle<edm::View<reco::Candidate> > default_towers;
-  gotHandle =  m_event -> getByLabel( m_defaultCaloTowerTag , default_towers);
-  if (!gotHandle) {
-    edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract default calo towers with tag: " << m_defaultCaloTowerTag;
-    return;
+  bool defaultTowersExist =  m_event -> getByLabel( m_defaultCaloTowerTag , default_towers);
+  if (!defaultTowersExist) {
+    if (m_verbose) edm::LogWarning("CaloTowersFromTrigPrimsAnalyzer") << "Could not extract default calo towers with tag: " << m_defaultCaloTowerTag;
   }
 
   bool isMine = true;
 
-  analyzeCaloTowers (*created_towers, isMine);
-  analyzeCaloTowers (*default_towers,!isMine);
+  float cctEnergy = 0.0;
+  float dctEnergy = 0.0;
+
+  if (createdTowersExist) cctEnergy = analyzeCaloTowers (*created_towers, isMine);
+  if (defaultTowersExist) dctEnergy = analyzeCaloTowers (*default_towers,!isMine);
+
+  m_cctEnergy = cctEnergy;
 
 }
 
-void CaloTowersFromTrigPrimsAnalyzer::analyzeCaloTowers( const edm::View<reco::Candidate> & towers, bool isMine){
+float CaloTowersFromTrigPrimsAnalyzer::analyzeCaloTowers( const edm::View<reco::Candidate> & towers, bool isMine){
 
   using namespace reco;
   using namespace std;
   using namespace edm;
+
+  float totalEnergy = 0.0;
   
   //---------------------------------------------
   // Loop over CaloTowers
@@ -468,6 +518,9 @@ void CaloTowersFromTrigPrimsAnalyzer::analyzeCaloTowers( const edm::View<reco::C
       ct_etEm  = (float) calotower->emEt();
       ct_etHad = (float) calotower->hadEt();
       ct_etOut = (float) calotower->outerEt();
+
+      totalEnergy += ct_eEm ;
+      totalEnergy += ct_eHad;
 
       vector<DetId> constituents = calotower->constituents();
       vector<DetId>::iterator constituent = constituents.begin();
@@ -503,10 +556,12 @@ void CaloTowersFromTrigPrimsAnalyzer::analyzeCaloTowers( const edm::View<reco::C
       
     } // end if(!calotower.isNull())    
 
-  } // end loop over candidates
-
+  } // end loop over candidates  
 
   m_caloTowersFromTrigPrimsAnalyzerTree.nct = nct;
+
+  return totalEnergy;
+
 }
 
 //-----------------------------------------------------
