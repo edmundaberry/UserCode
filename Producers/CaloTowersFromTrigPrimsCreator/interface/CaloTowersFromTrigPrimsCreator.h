@@ -29,29 +29,6 @@ private:
   virtual void beginJob(const edm::EventSetup&) ;
   virtual void produce(edm::Event&, const edm::EventSetup&);
   virtual void endJob() ;
-    
-  //------------------------------------------------------
-  // Instruction bools
-  //------------------------------------------------------
-    
-  bool m_useHF;
-  bool m_verbose;
-
-  //------------------------------------------------------
-  // CaloTower thresholds
-  //------------------------------------------------------
-
-  double m_hadThreshold;
-  double m_emThreshold ;
-
-  //------------------------------------------------------
-  // Calorimeter depth information
-  //------------------------------------------------------
-
-  double m_momHBDepth;
-  double m_momHEDepth;
-  double m_momEBDepth;
-  double m_momEEDepth;
 
   //------------------------------------------------------
   // InputTags 
@@ -59,7 +36,6 @@ private:
   
   edm::InputTag m_hcalTrigPrimTag;
   edm::InputTag m_ecalTrigPrimTag;
-  edm::InputTag m_defaultCaloTowerTag;
 
   //------------------------------------------------------
   // Geometry objects

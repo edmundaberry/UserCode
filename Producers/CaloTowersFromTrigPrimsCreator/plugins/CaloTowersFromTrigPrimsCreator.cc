@@ -1,4 +1,5 @@
 #include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTowersFromTrigPrimsCreator.h"
+#include <time.h>
 
 //------------------------------------------------------
 // Constructor, 
@@ -7,10 +8,15 @@
 //------------------------------------------------------
 
 CaloTowersFromTrigPrimsCreator::CaloTowersFromTrigPrimsCreator(const edm::ParameterSet& iConfig) :
-  m_caloTowersFromTrigPrimsAlgo(){
+  m_caloTowersFromTrigPrimsAlgo( iConfig.getUntrackedParameter<double>("hadThreshold"),
+				 iConfig.getUntrackedParameter<double>("emThreshold"),
+				 iConfig.getUntrackedParameter<bool>("useHF"),
+				 iConfig.getUntrackedParameter<bool>("verbose"))
+
+{
   
   //-----------------------------------------------------
-  // Get input from the user
+  // Get handles using input from the user
   //-----------------------------------------------------
   
   edm::InputTag d_hcalTrigPrimTag("simHcalTriggerPrimitiveDigis");
@@ -18,16 +24,6 @@ CaloTowersFromTrigPrimsCreator::CaloTowersFromTrigPrimsCreator(const edm::Parame
   m_hcalTrigPrimTag = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag",d_hcalTrigPrimTag);
   m_ecalTrigPrimTag = iConfig.getUntrackedParameter<edm::InputTag>("ecalTrigPrimTag",d_ecalTrigPrimTag);
   
-  double d_hadThreshold = -1.0;
-  double d_emThreshold  = -1.0;
-  m_hadThreshold = iConfig.getUntrackedParameter<double>("hadThreshold",d_hadThreshold);
-  m_emThreshold  = iConfig.getUntrackedParameter<double>("emThreshold", d_emThreshold );
-						
-  bool d_useHF   = true;
-  bool d_verbose = false;
-  m_useHF   = iConfig.getUntrackedParameter<bool>("useHF"  ,d_useHF  );  
-  m_verbose = iConfig.getUntrackedParameter<bool>("verbose",d_verbose);
-
   //-----------------------------------------------------
   // Tell producer what to produce
   //-----------------------------------------------------
@@ -48,6 +44,8 @@ CaloTowersFromTrigPrimsCreator::~CaloTowersFromTrigPrimsCreator(){}
 
 void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
+  using namespace std;
+
   //-----------------------------------------------------
   // Get all of your ESHandles
   //-----------------------------------------------------
@@ -59,7 +57,6 @@ void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::Even
   iSetup.get<EcalEndcapGeometryRecord>().get("EcalEndcap", m_ecalEndcapGeometry);
   iSetup.get<L1CaloEcalScaleRcd>      ().get(m_l1CaloEcalScale                 );
   iSetup.get<L1CaloHcalScaleRcd>      ().get(m_l1CaloHcalScale                 );
-  iSetup.get<EcalMappingRcd>          ().get(m_ecalElectronicsMapping          );
   
   //-----------------------------------------------------
   // Get trigger primitives from the event
@@ -89,37 +86,30 @@ void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::Even
   // Initialize the algorithm
   //-----------------------------------------------------
 
-  m_caloTowersFromTrigPrimsAlgo.setGeometry          (m_geometry.product(),
-						      m_caloTowerConstituentsMap.product(), 
-						      m_ecalTrigTowerConstituentsMap.product(),
-						      m_ecalBarrelGeometry.product(),
-						      m_ecalEndcapGeometry.product());
-    
-  m_caloTowersFromTrigPrimsAlgo.setL1CaloScales      (m_l1CaloEcalScale.product(),
-						      m_l1CaloHcalScale.product() );   
-
-  m_caloTowersFromTrigPrimsAlgo.setHadThreshold      (m_hadThreshold);
-  m_caloTowersFromTrigPrimsAlgo.setEmThreshold       (m_emThreshold );
+  m_caloTowersFromTrigPrimsAlgo.setGeometry    (m_geometry.product(),
+					        m_caloTowerConstituentsMap.product(), 
+					        m_ecalTrigTowerConstituentsMap.product(),
+					        m_ecalBarrelGeometry.product(),
+					        m_ecalEndcapGeometry.product());
   
-  m_caloTowersFromTrigPrimsAlgo.useHF                (m_useHF);
-  m_caloTowersFromTrigPrimsAlgo.setVerbose           (m_verbose);
-
-  m_caloTowersFromTrigPrimsAlgo.resetEnergy          ();
+  m_caloTowersFromTrigPrimsAlgo.setL1CaloScales(m_l1CaloEcalScale.product(),
+					        m_l1CaloHcalScale.product() );   
+  
+  m_caloTowersFromTrigPrimsAlgo.resetEnergy();
 
   //------------------------------------------------------
   // Apply the algorithm
   //------------------------------------------------------
-  
+
   m_caloTowersFromTrigPrimsAlgo.process(*ECALTrigPrimDigis);
   m_caloTowersFromTrigPrimsAlgo.process(*HCALTrigPrimDigis);
-  
+
   //------------------------------------------------------
   // Fill the empty collection
   //------------------------------------------------------
-  
-  m_caloTowersFromTrigPrimsAlgo.finish(*caloTowerCollection);
 
-    m_caloTowersFromTrigPrimsAlgo.checkEnergy();
+  m_caloTowersFromTrigPrimsAlgo.finish(*caloTowerCollection);
+  m_caloTowersFromTrigPrimsAlgo.checkEnergy();
 
   //------------------------------------------------------
   // Add the final CaloTowerCollection to the event

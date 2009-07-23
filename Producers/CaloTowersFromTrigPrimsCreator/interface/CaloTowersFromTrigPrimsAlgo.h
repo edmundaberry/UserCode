@@ -38,7 +38,11 @@ class CaloTowersFromTrigPrimsAlgo {
   // Constructor & Destructor
   //------------------------------------------------------
 
-  CaloTowersFromTrigPrimsAlgo();
+  CaloTowersFromTrigPrimsAlgo(double hadThreshold,
+			      double emThreshold,
+			      bool useHF,
+			      bool verbose);
+  
   ~CaloTowersFromTrigPrimsAlgo();
 
   //------------------------------------------------------
@@ -52,14 +56,22 @@ class CaloTowersFromTrigPrimsAlgo {
 			    const CaloSubdetectorGeometry *ecalEndcapGeometry );
     
   void setL1CaloScales    ( const L1CaloEcalScale *ecalScale, const L1CaloHcalScale *hcalScale);
-       
-  void useHF              ( bool  b ) { m_useHF        = b; }
-  void setVerbose         ( bool  v ) { m_verbose      = v; }
-  void setHadThreshold    ( float t ) { m_hadThreshold = t; }
-  void setEmThreshold     ( float t ) { m_emThreshold  = t; }
-  void setDefaultCaloTowers ( CaloTowerCollection* c ) { m_defaultCaloTowers = c; }
-  double getTPGEnergy     ()          { return m_tpgEnergy; }
-  double getCCTEnergy     ()          { return m_cctEnergy; }
+
+  //------------------------------------------------------
+  // Main public algorithm functions
+  //------------------------------------------------------
+  
+  void process(const EcalTrigPrimDigiCollection& EcalTrigPrimDigis);
+  void process(const HcalTrigPrimDigiCollection& HcalTrigPrimDigis);
+  
+  void finish (CaloTowerCollection& FinalCaloTowerCollection);
+
+  //------------------------------------------------------
+  // Optional energy checking functions
+  //------------------------------------------------------
+
+  double getTPGEnergy(){ return m_tpgEnergy; }
+  double getCCTEnergy(){ return m_cctEnergy; }
 
   void resetEnergy() { 
     m_tpgEnergy = 0.0;
@@ -67,32 +79,17 @@ class CaloTowersFromTrigPrimsAlgo {
   }
 
   void checkEnergy(){
-    if (m_tpgEnergy - m_cctEnergy > 0.001 ){
+    if (m_tpgEnergy - m_cctEnergy > 0.001 ||
+	m_tpgEnergy != m_tpgEnergy ||
+	m_cctEnergy != m_cctEnergy ){
       edm::LogError("CaloTowersFromTrigPrimsAlgo") << "Energy distribution error: " 
-						   << "TrigPrims  had " << m_tpgEnergy << " GeV in this event, but "
+						   << "TrigPrims  had " << m_tpgEnergy << " GeV in this event and " 
 						   << "CaloTowers had " << m_cctEnergy << " GeV in this event";
     }
   }
-
-  //------------------------------------------------------
-  // Main public algorithm functions
-  //------------------------------------------------------
-
-  void process(const EcalTrigPrimDigiCollection& EcalTrigPrimDigis);
-  void process(const HcalTrigPrimDigiCollection& HcalTrigPrimDigis);
-
-  void finish (CaloTowerCollection& FinalCaloTowerCollection);
-
+  
  private:
-
-  //------------------------------------------------------
-  // Verbosity
-  //------------------------------------------------------
-
-  bool m_verbose;
-
-  CaloTowerCollection *m_defaultCaloTowers;
-
+  
   //------------------------------------------------------
   // Total energy counters
   //------------------------------------------------------
@@ -127,22 +124,42 @@ class CaloTowersFromTrigPrimsAlgo {
   float m_hadThreshold, m_emThreshold;
 
   //------------------------------------------------------
-  // Use the HF?
+  // Instruction bools
   //------------------------------------------------------
   
-  bool m_useHF;
+  bool m_useHF, m_verbose;
+
+  //------------------------------------------------------
+  // Max ieta, iphi
+  //------------------------------------------------------
+
+  const int MAX_ECALTT_IETA, MAX_ECALTT_IPHI;
+  const int MAX_HCALTT_IETA, MAX_HCALTT_IPHI;  
+  const int MIN_HFTT_IETA;
+  const int MAX_CT_IETA, MAX_CT_IPHI;
+
+  //------------------------------------------------------
+  // Std::Vectors of values only needed from first event
+  //------------------------------------------------------
+  
+  std::vector < std::vector < int > > m_nDetIdsInCTFromEcal;
+  std::vector < std::vector < int > > m_nDetIdsInCTFromHcal;
+
+  std::vector < std::vector < double > > m_ecalTTMeanEta;
+  std::vector < std::vector < double > > m_hcalTTMeanEta;
+
+  std::vector < std::vector < std::vector < CaloTowerDetId > > > m_ecalTTMap;
+  std::vector < std::vector < std::vector < CaloTowerDetId > > > m_hcalTTMap;
 
   //------------------------------------------------------
   // MetaTower setup
   //------------------------------------------------------
   
-  template <typename TriggerPrimitiveDigi>
-    double assignEnergy(const TriggerPrimitiveDigi* trigPrimDigi);
-      
   struct MetaTower {
     MetaTower();
     double E, E_em, E_had, E_outer;
     std::vector< std::pair<DetId, double> > metaConstituents;
+    std::vector<DetId> metaConstituents_withoutEnergyValues;
     double emSumTimeTimesE, hadSumTimeTimesE, emSumEForTime, hadSumEForTime;
   };
   
@@ -156,10 +173,15 @@ class CaloTowersFromTrigPrimsAlgo {
   //------------------------------------------------------
   // Private algorithm functions
   //------------------------------------------------------
+
+  template <typename TriggerPrimitiveDigi>
+    double assignEnergy(const TriggerPrimitiveDigi* trigPrimDigi);
   
   CaloTower convert(const CaloTowerDetId& id, const MetaTower& mt);
 
   int compactTime(float time);
+
+  int getNDetIdsFromThisCalo (const CaloTowerDetId& id, const DetId::Detector& det);
 
   //------------------------------------------------------
   // Unpack energy from TPG's
@@ -171,28 +193,17 @@ class CaloTowersFromTrigPrimsAlgo {
   double getTrigTowerET    (const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
   double getTrigTowerET    (const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
 
-  double getMeanEta        (const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
-  double getMeanEta        (const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
-
-  EcalTrigTowerDetId getEcalPseudoTowerPartner ( EcalTrigTowerDetId id );
+  double getMeanEta        (const EcalTrigTowerDetId & id);
+  double getMeanEta        (const HcalTrigTowerDetId & id);
+  
+  EcalTrigTowerDetId getEcalPseudoTowerPartner ( const EcalTrigTowerDetId& id );
   
   //------------------------------------------------------
   // Mapping from Trigger Towers to CaloTowers
   //------------------------------------------------------
 
-  std::vector<CaloTowerDetId> getCaloTowers(HcalTrigTowerDetId hcalTrigTowerDetId);
-  std::vector<CaloTowerDetId> getCaloTowers(EcalTrigTowerDetId ecalTrigTowerDetId);
-
-  //------------------------------------------------------
-  // Shower position determination functions
-  //------------------------------------------------------
-  
-  GlobalPoint emCrystalShwrPos (DetId detId, float fracDepth); 
-  GlobalPoint hadSegmentShwrPos(DetId detId, float fracDepth);
-
-  GlobalPoint hadShwrPos(std::vector<std::pair<DetId,double> >& metaContains, float fracDepth, double hadE  );
-  GlobalPoint emShwrPos (std::vector<std::pair<DetId,double> >& metaContains, float fracDepth, double totEmE);
-
+  std::vector<CaloTowerDetId> getCaloTowers(const HcalTrigTowerDetId& hcalTrigTowerDetId);
+  std::vector<CaloTowerDetId> getCaloTowers(const EcalTrigTowerDetId& ecalTrigTowerDetId);
     
 };
 
