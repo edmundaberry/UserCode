@@ -29,6 +29,8 @@ class CaloTowersFromTrigPrimsAnalyzerTree {
   int   tpg_isHcal   [MAXNTPG];
   int   tpg_isEcal   [MAXNTPG];
   int   tpg_isHF     [MAXNTPG];
+  int   tpg_isEB     [MAXNTPG];
+  int   tpg_isEE     [MAXNTPG];
   
   int   tpg_ieta     [MAXNTPG];
   int   tpg_iphi     [MAXNTPG];
@@ -88,6 +90,8 @@ class CaloTowersFromTrigPrimsAnalyzerTree {
       tpg_isHcal   [iTPG] = -999;
       tpg_isEcal   [iTPG] = -999;
       tpg_isHF     [iTPG] = -999;   
+      tpg_isEB     [iTPG] = -999;   
+      tpg_isEE     [iTPG] = -999;   
                      
       tpg_ieta     [iTPG] = -999;
       tpg_iphi     [iTPG] = -999;

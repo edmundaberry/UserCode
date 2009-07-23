@@ -36,6 +36,8 @@ void FillCaloTowersFromTrigPrimsAnalyzerTree::init(std::string filename, CaloTow
    m_tree->Branch("tpg_isHcal"  , &(m_treePtr->tpg_isHcal  ), "tpg_isHcal[ntpg]/I"  );
    m_tree->Branch("tpg_isEcal"  , &(m_treePtr->tpg_isEcal  ), "tpg_isEcal[ntpg]/I"  );
    m_tree->Branch("tpg_isHF"    , &(m_treePtr->tpg_isHF    ), "tpg_isHF[ntpg]/I"    );
+   m_tree->Branch("tpg_isEB"    , &(m_treePtr->tpg_isEB    ), "tpg_isEB[ntpg]/I"    );
+   m_tree->Branch("tpg_isEE"    , &(m_treePtr->tpg_isEE    ), "tpg_isEE[ntpg]/I"    );
 
    m_tree->Branch("ct_ieta"     , &(m_treePtr->ct_ieta     ), "ct_ieta[nct]/I"      );
    m_tree->Branch("ct_iphi"     , &(m_treePtr->ct_iphi     ), "ct_iphi[nct]/I"      );

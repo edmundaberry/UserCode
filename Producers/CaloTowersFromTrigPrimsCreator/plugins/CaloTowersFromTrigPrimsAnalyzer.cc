@@ -419,10 +419,21 @@ float CaloTowersFromTrigPrimsAnalyzer::analyzeTPGs(const TrigPrimDigiCollection&
     int isEcal = 0;
     int isHcal = 0;
     int isHF   = 0;
+
+    int isEB   = 0;
+    int isEE   = 0;
     
     if ( (*trigPrimDigi).id().det() == DetId::Ecal ) isEcal = 1;
     if ( (*trigPrimDigi).id().det() == DetId::Hcal ) isHcal = 1;    
     if ( isHcal == 1 && ietaAbs >= 29              ) isHF   = 1;
+
+    if ( isEcal == 1 ){
+
+      EcalSubdetector subdet = (((*trigPrimDigi).id().rawId())&0x4000) ? EcalBarrel:EcalEndcap;
+      
+      if ( subdet == EcalBarrel ) isEB = 1;
+      if ( subdet == EcalEndcap ) isEE = 1;      
+    }
 
     float et      = getTrigTowerET     (*trigPrimDigi);
     float etaMean = getTrigTowerMeanEta(*trigPrimDigi);
@@ -436,6 +447,8 @@ float CaloTowersFromTrigPrimsAnalyzer::analyzeTPGs(const TrigPrimDigiCollection&
     m_caloTowersFromTrigPrimsAnalyzerTree.tpg_isHcal [nTPG] = isHcal;
     m_caloTowersFromTrigPrimsAnalyzerTree.tpg_isEcal [nTPG] = isEcal;
     m_caloTowersFromTrigPrimsAnalyzerTree.tpg_isHF   [nTPG] = isHF  ;
+    m_caloTowersFromTrigPrimsAnalyzerTree.tpg_isEB   [nTPG] = isEB  ;
+    m_caloTowersFromTrigPrimsAnalyzerTree.tpg_isEE   [nTPG] = isEE  ;
 
     m_caloTowersFromTrigPrimsAnalyzerTree.tpg_et     [nTPG] = et;
     m_caloTowersFromTrigPrimsAnalyzerTree.tpg_energy [nTPG] = energy;
