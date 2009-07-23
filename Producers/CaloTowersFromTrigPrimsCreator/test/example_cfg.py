@@ -11,7 +11,7 @@ process.load("Configuration.StandardSequences.RawToDigi_cff")
 process.load("Configuration.EventContent.EventContent_cff")
 
 ## Configure the source
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1))
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10))
 process.source = cms.Source ("PoolSource",fileNames = cms.untracked.vstring (
    '/store/relval/CMSSW_2_2_9/RelValQCD_Pt_80_120/GEN-SIM-DIGI-RAW-HLTDEBUG/IDEAL_V12_v1/0001/EEB22623-1732-DE11-AC28-000423D944F8.root'
 ))
@@ -55,5 +55,5 @@ process.schedule = cms.Schedule()
 process.schedule.append(process.TOWERS  )
 process.schedule.append(process.JETRECO )
 process.schedule.append(process.JETCORR )
-process.schedule.append(process.OUTPUT  ) 
+process.schedule.append(process.OUTPUT  )
 
