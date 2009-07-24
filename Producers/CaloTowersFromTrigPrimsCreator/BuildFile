@@ -14,7 +14,7 @@
 <use name=Geometry/EcalMapping>
 
 <use name=CondFormats/L1TObjects>
-<use name=name=ProducersCaloTowersFromTrigPrimsCreator>
+<use name=ProducersCaloTowersFromTrigPrimsCreator>
 
 <use name=boost>
 
