@@ -145,11 +145,14 @@ class CaloTowersFromTrigPrimsAlgo {
   std::vector < std::vector < int > > m_nDetIdsInCTFromEcal;
   std::vector < std::vector < int > > m_nDetIdsInCTFromHcal;
 
-  std::vector < std::vector < double > > m_ecalTTMeanEta;
-  std::vector < std::vector < double > > m_hcalTTMeanEta;
+  std::vector < std::vector < double > > m_ecalTTCoshMeanEta;
+  std::vector < std::vector < double > > m_hcalTTCoshMeanEta;
 
   std::vector < std::vector < std::vector < CaloTowerDetId > > > m_ecalTTMap;
   std::vector < std::vector < std::vector < CaloTowerDetId > > > m_hcalTTMap;
+
+  std::vector < std::vector < GlobalPoint > > m_ctGlobalPoints;
+  std::vector < std::vector < double > > m_ctCoshEta;
 
   //------------------------------------------------------
   // MetaTower setup
@@ -175,7 +178,7 @@ class CaloTowersFromTrigPrimsAlgo {
   //------------------------------------------------------
 
   template <typename TriggerPrimitiveDigi>
-    double assignEnergy(const TriggerPrimitiveDigi* trigPrimDigi);
+    void assignEnergy(const TriggerPrimitiveDigi* trigPrimDigi);
   
   CaloTower convert(const CaloTowerDetId& id, const MetaTower& mt);
 
@@ -193,8 +196,8 @@ class CaloTowersFromTrigPrimsAlgo {
   double getTrigTowerET    (const EcalTriggerPrimitiveDigi * ecalTrigPrimDigi);
   double getTrigTowerET    (const HcalTriggerPrimitiveDigi * hcalTrigPrimDigi);
 
-  double getMeanEta        (const EcalTrigTowerDetId & id);
-  double getMeanEta        (const HcalTrigTowerDetId & id);
+  double getCoshMeanEta    (const EcalTrigTowerDetId & id);
+  double getCoshMeanEta    (const HcalTrigTowerDetId & id);
   
   EcalTrigTowerDetId getEcalPseudoTowerPartner ( const EcalTrigTowerDetId& id );
   
@@ -202,8 +205,8 @@ class CaloTowersFromTrigPrimsAlgo {
   // Mapping from Trigger Towers to CaloTowers
   //------------------------------------------------------
 
-  std::vector<CaloTowerDetId> getCaloTowers(const HcalTrigTowerDetId& hcalTrigTowerDetId);
-  std::vector<CaloTowerDetId> getCaloTowers(const EcalTrigTowerDetId& ecalTrigTowerDetId);
+  void getCaloTowers(const HcalTrigTowerDetId& hcalTrigTowerDetId);
+  void getCaloTowers(const EcalTrigTowerDetId& ecalTrigTowerDetId);
     
 };
 
