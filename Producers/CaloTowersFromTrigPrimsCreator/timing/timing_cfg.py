@@ -11,7 +11,7 @@ process.options = cms.untracked.PSet(
 # Load source
 process.load("Producers.CaloTowersFromTrigPrimsCreator.RelValQCD_LowPt_cfi")
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(100)
+    input = cms.untracked.int32(500)
 )
 
 # Load geometry/detector info
@@ -33,12 +33,13 @@ process.schedule = process.MyHLTSchedule
 
 # Setup output
 process.load("Configuration.EventContent.EventContent_cff")
-process.hltPoolOutput = cms.OutputModule("PoolOutputModule",
-                                         outputCommands = cms.untracked.vstring( 'drop *', 'keep HLTPerformanceInfo_*_*_*' ),
-                                         fileName = cms.untracked.string('file:HLT.root')
-)
 
-process.HLTOutput = cms.EndPath(process.hltTimer + process.hltPoolOutput)
+## process.hltPoolOutput = cms.OutputModule("PoolOutputModule",
+##                                          outputCommands = cms.untracked.vstring( 'drop *', 'keep HLTPerformanceInfo_*_*_*' ),
+##                                          fileName = cms.untracked.string('file:HLT.root')
+## )
+
+process.HLTOutput = cms.EndPath(process.hltTimer)
 
 # Add output to the schedule
 process.schedule.append(process.HLTOutput)

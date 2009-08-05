@@ -1,16 +1,16 @@
-#ifndef PRODUCERS_CALOTOWERSFROMTRIGPRIMSCREATOR_H
-#define PRODUCERS_CALOTOWERSFROMTRIGPRIMSCREATOR_H
+#ifndef PRODUCERS_CALOTOWERSFROMTRIGPRIMSCREATOR_CALOTOWERSFROMTRIGPRIMSCREATOR_H
+#define PRODUCERS_CALOTOWERSFROMTRIGPRIMSCREATOR_CALOTOWERSFROMTRIGPRIMSCREATOR_H
 
 //------------------------------------------------------
 // Include files
 //------------------------------------------------------
 
-#include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/EDProducer.h"
+#include "DataFormats/Common/interface/EDProduct.h"
 #include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#include "FWCore/Framework/interface/ESHandle.h"
+#include "DataFormats/Common/interface/Handle.h"
+#include "FWCore/Framework/interface/EventSetup.h"
 
 // Algorithm
 #include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTowersFromTrigPrimsAlgo.h"
@@ -36,36 +36,12 @@ private:
   
   edm::InputTag m_hcalTrigPrimTag;
   edm::InputTag m_ecalTrigPrimTag;
-
-  //------------------------------------------------------
-  // Geometry objects
-  //------------------------------------------------------
   
-  edm::ESHandle<EcalElectronicsMapping>       m_ecalElectronicsMapping;
-  edm::ESHandle<CaloGeometry>                 m_geometry;
-  edm::ESHandle<CaloSubdetectorGeometry>      m_ecalBarrelGeometry;
-  edm::ESHandle<CaloSubdetectorGeometry>      m_ecalEndcapGeometry;
-  HcalTrigTowerGeometry                       m_trigTowerGeometry;
-
-  //------------------------------------------------------
-  // Constituent mappings
-  //------------------------------------------------------
-  
-  edm::ESHandle<EcalTrigTowerConstituentsMap> m_ecalTrigTowerConstituentsMap;
-  edm::ESHandle<CaloTowerConstituentsMap>     m_caloTowerConstituentsMap;
-
-  //------------------------------------------------------
-  // Energy scales
-  //------------------------------------------------------
-
-  edm::ESHandle<L1CaloEcalScale>   m_l1CaloEcalScale;
-  edm::ESHandle<L1CaloHcalScale>   m_l1CaloHcalScale;
-
   //------------------------------------------------------
   // Algorithm
   //------------------------------------------------------
 
-  CaloTowersFromTrigPrimsAlgo m_caloTowersFromTrigPrimsAlgo;
+  CaloTowersFromTrigPrimsAlgo * m_caloTowersFromTrigPrimsAlgo;
 
 };
 

@@ -157,8 +157,8 @@ void CaloTowersFromTrigPrimsAlgo::assignEnergy(const TriggerPrimitiveDigi* trigP
 //    into the Collection
 //----------------------------------------------------
 
-//void CaloTowersFromTrigPrimsAlgo::finish(CaloTowerCollection& result){					
-void CaloTowersFromTrigPrimsAlgo::finish(CaloTowerNonSortedCollection& result){					
+void CaloTowersFromTrigPrimsAlgo::finish(CaloTowerCollection& result){					
+//void CaloTowersFromTrigPrimsAlgo::finish(CaloTowerNonSortedCollection& result){					
   
   MetaTowerMap::const_iterator mapItr = m_metaTowerMap.begin();
   MetaTowerMap::const_iterator mapItr_end = m_metaTowerMap.end();

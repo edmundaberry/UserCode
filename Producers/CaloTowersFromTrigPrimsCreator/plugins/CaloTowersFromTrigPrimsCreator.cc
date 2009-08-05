@@ -53,7 +53,7 @@ void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::Even
   //-----------------------------------------------------
   // Get all of your ESHandles
   //-----------------------------------------------------
-
+  
   edm::ESHandle<CaloGeometry>                 geometry;
   edm::ESHandle<CaloSubdetectorGeometry>      ecalBarrelGeometry;
   edm::ESHandle<CaloSubdetectorGeometry>      ecalEndcapGeometry;

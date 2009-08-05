@@ -1,9 +1,13 @@
 import FWCore.ParameterSet.Config as cms
 
-## Load the full HLT menu and my CaloTower producer
+## Load the full HLT menu
 from HLTrigger.Configuration.HLT_2E30_cff import *
+
+## Load my CaloTower producer
 from Producers.CaloTowersFromTrigPrimsCreator.calotowersfromtrigprimscreator_cfi import *
 
+## Load my mini analyzer to get the HCAL/ECAL trigger primitives
+from Producers.CaloTowersFromTrigPrimsCreator.hltgetcalotrigprims_cfi import *
 
 ## Reconstruct jets from my CaloTowers
 hltIterativeCone5TPGJets = hltIterativeCone5CaloJets.clone()
@@ -23,18 +27,23 @@ MyDoHLTCaloJetsSequence = cms.Sequence (HLTDoCaloSequence +             ## Calor
 
 
 ## Declare my HLT TPG jet sequence
-MyDoHLTTPGJetsSequence = cms.Sequence (caloTowersFromTrigPrimsCreator + ## My CaloTower producer
-                                       HLTDoTPGJetRecoSequence)         ## IterativeCone5 jet reconstruction and correction
+MyDoHLTTPGJetsSequence = cms.Sequence (
+    ## hltGetCaloTrigPrims +
+    ## caloTowersFromTrigPrimsCreator +
+    caloTowersFromTrigPrimsCreator ## + ## My CaloTower producer
+    ## HLTDoTPGJetRecoSequence
+)         ## IterativeCone5 jet reconstruction and correction
 
+MyHLTBeginSequence = cms.Sequence ( HLTBeginSequence + hltGetCaloTrigPrims )
 
 ## Declare trigger paths
-MyHLTriggerFirstPath   = cms.Path ( HLTBeginSequence + hltGetRaw + hltPreFirstPath + hltBoolFirstPath + HLTEndSequence )
+## MyHLTriggerFirstPath   = cms.Path ( HLTBeginSequence + hltGetRaw + hltPreFirstPath + hltBoolFirstPath + HLTEndSequence )
 MyHLTriggerTPGJetPath  = cms.Path ( HLTBeginSequence + MyDoHLTTPGJetsSequence  + HLTEndSequence )
-MyHLTriggerCaloJetPath = cms.Path ( HLTBeginSequence + MyDoHLTCaloJetsSequence + HLTEndSequence )
+## MyHLTriggerCaloJetPath = cms.Path ( HLTBeginSequence + MyDoHLTCaloJetsSequence + HLTEndSequence )
 
 MyHLTSchedule = cms.Schedule()
-MyHLTSchedule.append( MyHLTriggerFirstPath   )
+## MyHLTSchedule.append( MyHLTriggerFirstPath   )
 MyHLTSchedule.append( MyHLTriggerTPGJetPath  )
-MyHLTSchedule.append( MyHLTriggerCaloJetPath )
+## MyHLTSchedule.append( MyHLTriggerCaloJetPath )
 
 

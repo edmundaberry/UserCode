@@ -6,29 +6,25 @@
 #include <map>
 
 // Data collections
+#include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTowerNonSortedCollection.h"
+#include "DataFormats/CaloTowers/interface/CaloTowerCollection.h"
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
-#include "DataFormats/CaloTowers/interface/CaloTowerCollection.h"
-#include "DataFormats/CaloTowers/interface/CaloTowerDetId.h"
 
 // Mapping/Geometry info
-#include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
-#include "Geometry/CaloTopology/interface/EcalTrigTowerConstituentsMap.h"
-#include "Geometry/CaloTopology/interface/CaloTowerConstituentsMap.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
+#include "Geometry/CaloTopology/interface/CaloTowerConstituentsMap.h"
+#include "Geometry/CaloTopology/interface/EcalTrigTowerConstituentsMap.h"
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
-#include "Geometry/Records/interface/CaloGeometryRecord.h"
-#include "Geometry/EcalMapping/interface/EcalElectronicsMapping.h"
-#include "Geometry/EcalMapping/interface/EcalMappingRcd.h"
+#include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
 
 // Energy scaling
 #include "CondFormats/L1TObjects/interface/L1CaloEcalScale.h"
-#include "CondFormats/DataRecord/interface/L1CaloEcalScaleRcd.h"
 #include "CondFormats/L1TObjects/interface/L1CaloHcalScale.h"
-#include "CondFormats/DataRecord/interface/L1CaloHcalScaleRcd.h"
-
+ 
 // Framework
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+
 
 class CaloTowersFromTrigPrimsAlgo {
 
@@ -65,7 +61,8 @@ class CaloTowersFromTrigPrimsAlgo {
   void process(const HcalTrigPrimDigiCollection& HcalTrigPrimDigis);
   
   void finish (CaloTowerCollection& FinalCaloTowerCollection);
-
+  //void finish (CaloTowerNonSortedCollection& FinalCaloTowerCollection);
+  
   //------------------------------------------------------
   // Optional energy checking functions
   //------------------------------------------------------
@@ -73,23 +70,11 @@ class CaloTowersFromTrigPrimsAlgo {
   double getTPGEnergy(){ return m_tpgEnergy; }
   double getCCTEnergy(){ return m_cctEnergy; }
 
-  void resetEnergy() { 
-    m_tpgEnergy = 0.0;
-    m_cctEnergy = 0.0;
-  }
-
-  void checkEnergy(){
-    if (m_tpgEnergy - m_cctEnergy > 0.001 ||
-	m_tpgEnergy != m_tpgEnergy ||
-	m_cctEnergy != m_cctEnergy ){
-      edm::LogError("CaloTowersFromTrigPrimsAlgo") << "Energy distribution error: " 
-						   << "TrigPrims  had " << m_tpgEnergy << " GeV in this event and " 
-						   << "CaloTowers had " << m_cctEnergy << " GeV in this event";
-    }
-  }
+  void resetEnergy();
+  void checkEnergy();
   
  private:
-  
+
   //------------------------------------------------------
   // Total energy counters
   //------------------------------------------------------
@@ -168,14 +153,12 @@ class CaloTowersFromTrigPrimsAlgo {
   
   typedef std::map<CaloTowerDetId, MetaTower> MetaTowerMap;
   MetaTowerMap m_metaTowerMap;
-  
-  MetaTower & find(const CaloTowerDetId &id);
-
- private:
 
   //------------------------------------------------------
   // Private algorithm functions
   //------------------------------------------------------
+
+  MetaTower & find(const CaloTowerDetId &id);
 
   template <typename TriggerPrimitiveDigi>
     void assignEnergy(const TriggerPrimitiveDigi* trigPrimDigi);
