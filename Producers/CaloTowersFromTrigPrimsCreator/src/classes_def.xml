@@ -1,0 +1,6 @@
+<lcgdict>
+  <class name="CaloTower"/>
+  <class name="std::vector<CaloTower>"/>
+  <class name="edm::EDCollection<CaloTower>"/>
+  <class name="edm::Wrapper<edm::EDCollection<CaloTower> >"/>
+</lcgdict>
