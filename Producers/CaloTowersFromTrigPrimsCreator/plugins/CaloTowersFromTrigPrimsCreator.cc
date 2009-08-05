@@ -1,5 +1,23 @@
+#include <memory>
+#include <string>
+
 #include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTowersFromTrigPrimsCreator.h"
-#include <time.h>
+#include "Producers/CaloTowersFromTrigPrimsCreator/interface/CaloTowerNonSortedCollection.h"
+
+#include "DataFormats/CaloTowers/interface/CaloTowerCollection.h"
+#include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
+#include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
+
+#include "FWCore/Utilities/interface/CPUTimer.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/Framework/interface/ESHandle.h"
+
+#include "CondFormats/DataRecord/interface/L1CaloHcalScaleRcd.h"
+#include "CondFormats/DataRecord/interface/L1CaloEcalScaleRcd.h"
+#include "Geometry/EcalMapping/interface/EcalMappingRcd.h"
+#include "Geometry/Records/interface/CaloGeometryRecord.h"
+
+#include "RecoLocalCalo/CaloTowersCreator/interface/EScales.h"
 
 //------------------------------------------------------
 // Constructor, 
@@ -8,35 +26,23 @@
 //------------------------------------------------------
 
 CaloTowersFromTrigPrimsCreator::CaloTowersFromTrigPrimsCreator(const edm::ParameterSet& iConfig) :
-  m_caloTowersFromTrigPrimsAlgo( iConfig.getUntrackedParameter<double>("hadThreshold"),
-				 iConfig.getUntrackedParameter<double>("emThreshold"),
-				 iConfig.getUntrackedParameter<bool>("useHF"),
-				 iConfig.getUntrackedParameter<bool>("verbose"))
-
-{
+  m_hcalTrigPrimTag ( iConfig.getParameter<edm::InputTag>("hcalTrigPrimTag")),
+  m_ecalTrigPrimTag ( iConfig.getParameter<edm::InputTag>("ecalTrigPrimTag")),
+  m_caloTowersFromTrigPrimsAlgo( new CaloTowersFromTrigPrimsAlgo (iConfig.getParameter<double>("hadThreshold"),
+								  iConfig.getParameter<double>("emThreshold"),
+								  iConfig.getParameter<bool>("useHF"),
+								  iConfig.getParameter<bool>("verbose")))
   
-  //-----------------------------------------------------
-  // Get handles using input from the user
-  //-----------------------------------------------------
-  
-  edm::InputTag d_hcalTrigPrimTag("simHcalTriggerPrimitiveDigis");
-  edm::InputTag d_ecalTrigPrimTag("simEcalTriggerPrimitiveDigis");
-  m_hcalTrigPrimTag = iConfig.getUntrackedParameter<edm::InputTag>("hcalTrigPrimTag",d_hcalTrigPrimTag);
-  m_ecalTrigPrimTag = iConfig.getUntrackedParameter<edm::InputTag>("ecalTrigPrimTag",d_ecalTrigPrimTag);
-  
-  //-----------------------------------------------------
-  // Tell producer what to produce
-  //-----------------------------------------------------
-
-  produces<CaloTowerCollection>();
-
-}
+  //{ produces<CaloTowerNonSortedCollection>("CaloTowerNonSortedCollection"); }
+{ produces<CaloTowerCollection>(""); }
 
 //------------------------------------------------------
 // Destructor
 //------------------------------------------------------
 
-CaloTowersFromTrigPrimsCreator::~CaloTowersFromTrigPrimsCreator(){}
+CaloTowersFromTrigPrimsCreator::~CaloTowersFromTrigPrimsCreator(){
+  if ( m_caloTowersFromTrigPrimsAlgo != 0 ) delete m_caloTowersFromTrigPrimsAlgo;
+}
 
 //------------------------------------------------------
 // Main production function
@@ -44,37 +50,35 @@ CaloTowersFromTrigPrimsCreator::~CaloTowersFromTrigPrimsCreator(){}
 
 void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
-  using namespace std;
-
   //-----------------------------------------------------
   // Get all of your ESHandles
   //-----------------------------------------------------
 
-  iSetup.get<CaloGeometryRecord>      ().get(m_geometry                        );
-  iSetup.get<IdealGeometryRecord>     ().get(m_caloTowerConstituentsMap        );
-  iSetup.get<IdealGeometryRecord>     ().get(m_ecalTrigTowerConstituentsMap    );
-  iSetup.get<EcalBarrelGeometryRecord>().get("EcalBarrel", m_ecalBarrelGeometry);
-  iSetup.get<EcalEndcapGeometryRecord>().get("EcalEndcap", m_ecalEndcapGeometry);
-  iSetup.get<L1CaloEcalScaleRcd>      ().get(m_l1CaloEcalScale                 );
-  iSetup.get<L1CaloHcalScaleRcd>      ().get(m_l1CaloHcalScale                 );
+  edm::ESHandle<CaloGeometry>                 geometry;
+  edm::ESHandle<CaloSubdetectorGeometry>      ecalBarrelGeometry;
+  edm::ESHandle<CaloSubdetectorGeometry>      ecalEndcapGeometry;
+  edm::ESHandle<EcalTrigTowerConstituentsMap> ecalTrigTowerConstituentsMap;
+  edm::ESHandle<CaloTowerConstituentsMap>     caloTowerConstituentsMap;
+  edm::ESHandle<L1CaloEcalScale>              l1CaloEcalScale;
+  edm::ESHandle<L1CaloHcalScale>              l1CaloHcalScale;
+  
+  iSetup.get<CaloGeometryRecord>      ().get(geometry                        );
+  iSetup.get<IdealGeometryRecord>     ().get(caloTowerConstituentsMap        );
+  iSetup.get<IdealGeometryRecord>     ().get(ecalTrigTowerConstituentsMap    );
+  iSetup.get<EcalBarrelGeometryRecord>().get("EcalBarrel", ecalBarrelGeometry);
+  iSetup.get<EcalEndcapGeometryRecord>().get("EcalEndcap", ecalEndcapGeometry);
+  iSetup.get<L1CaloEcalScaleRcd>      ().get(l1CaloEcalScale                 );
+  iSetup.get<L1CaloHcalScaleRcd>      ().get(l1CaloHcalScale                 );
   
   //-----------------------------------------------------
   // Get trigger primitives from the event
   //-----------------------------------------------------
-  
-  edm::Handle<HcalTrigPrimDigiCollection> HCALTrigPrimDigis;
-  bool hcalTrigPrimDigiTagExists = iEvent.getByLabel(m_hcalTrigPrimTag,HCALTrigPrimDigis);
-  if (!hcalTrigPrimDigiTagExists){
-    edm::LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract HCAL trigger primitives with " << m_hcalTrigPrimTag;
-    return;
-  }
 
+  edm::Handle<HcalTrigPrimDigiCollection> HCALTrigPrimDigis;
   edm::Handle<EcalTrigPrimDigiCollection> ECALTrigPrimDigis;
-  bool ecalTrigPrimDigiTagExists = iEvent.getByLabel(m_ecalTrigPrimTag,ECALTrigPrimDigis);
-  if (!ecalTrigPrimDigiTagExists){
-    edm::LogWarning("CaloTowersFromTrigPrimsCreator") << "Could not extract ECAL trigger primitives with " << m_ecalTrigPrimTag;
-    return;
-  }
+
+  iEvent.getByLabel(m_hcalTrigPrimTag, HCALTrigPrimDigis );
+  iEvent.getByLabel(m_ecalTrigPrimTag, ECALTrigPrimDigis );
   
   //------------------------------------------------------
   // Create an empty collection
@@ -86,35 +90,37 @@ void CaloTowersFromTrigPrimsCreator::produce(edm::Event& iEvent, const edm::Even
   // Initialize the algorithm
   //-----------------------------------------------------
 
-  m_caloTowersFromTrigPrimsAlgo.setGeometry    (m_geometry.product(),
-					        m_caloTowerConstituentsMap.product(), 
-					        m_ecalTrigTowerConstituentsMap.product(),
-					        m_ecalBarrelGeometry.product(),
-					        m_ecalEndcapGeometry.product());
+  m_caloTowersFromTrigPrimsAlgo -> setGeometry    (geometry.product(),
+						   caloTowerConstituentsMap.product(), 
+						   ecalTrigTowerConstituentsMap.product(),
+						   ecalBarrelGeometry.product(),
+						   ecalEndcapGeometry.product());
   
-  m_caloTowersFromTrigPrimsAlgo.setL1CaloScales(m_l1CaloEcalScale.product(),
-					        m_l1CaloHcalScale.product() );   
+  m_caloTowersFromTrigPrimsAlgo -> setL1CaloScales(l1CaloEcalScale.product(),
+						   l1CaloHcalScale.product() );   
   
-  m_caloTowersFromTrigPrimsAlgo.resetEnergy();
-
+  
+  m_caloTowersFromTrigPrimsAlgo -> resetEnergy();
+  
   //------------------------------------------------------
   // Apply the algorithm
   //------------------------------------------------------
-
-  m_caloTowersFromTrigPrimsAlgo.process(*ECALTrigPrimDigis);
-  m_caloTowersFromTrigPrimsAlgo.process(*HCALTrigPrimDigis);
+  
+  m_caloTowersFromTrigPrimsAlgo -> process(*ECALTrigPrimDigis);
+  m_caloTowersFromTrigPrimsAlgo -> process(*HCALTrigPrimDigis);
 
   //------------------------------------------------------
   // Fill the empty collection
   //------------------------------------------------------
 
-  m_caloTowersFromTrigPrimsAlgo.finish(*caloTowerCollection);
-  m_caloTowersFromTrigPrimsAlgo.checkEnergy();
+  m_caloTowersFromTrigPrimsAlgo -> finish(*caloTowerCollection);
+  m_caloTowersFromTrigPrimsAlgo -> checkEnergy();
 
   //------------------------------------------------------
   // Add the final CaloTowerCollection to the event
   //------------------------------------------------------
 
+  //iEvent.put(caloTowerCollection,"CaloTowerNonSortedCollection");
   iEvent.put(caloTowerCollection);
 
 }
