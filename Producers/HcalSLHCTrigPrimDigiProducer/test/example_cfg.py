@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("HcalSLHCTPG")
+process = cms.Process("HcalUpgradeTPG")
 
 ## Load setup python files
 process.load("FWCore.MessageService.MessageLogger_cfi")
