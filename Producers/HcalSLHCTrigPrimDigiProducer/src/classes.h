@@ -5,6 +5,7 @@ namespace {
 
   struct dictionary {
     
+    std::vector<HcalSLHCTriggerPrimitiveSample> vTPS_;
     HcalSLHCTrigPrimDigiCollection theHTP_; 
     std::vector<HcalSLHCTriggerPrimitiveDigi> theVecHTP_;
     edm::SortedCollection<HcalSLHCTriggerPrimitiveDigi> vHTP_;

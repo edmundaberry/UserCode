@@ -1,5 +1,7 @@
 <lcgdict>
+  <class name="HcalSLHCTriggerPrimitiveSample"/>
   <class name="HcalSLHCTriggerPrimitiveDigi"/>
+  <class name="std::vector<HcalSLHCTriggerPrimitiveSample>"/>
   <class name="std::vector<HcalSLHCTriggerPrimitiveDigi>"/>
   <class name="edm::SortedCollection<HcalSLHCTriggerPrimitiveDigi,edm::StrictWeakOrdering<HcalSLHCTriggerPrimitiveDigi> >"/>
   <class name="edm::Wrapper<edm::SortedCollection<HcalSLHCTriggerPrimitiveDigi,edm::StrictWeakOrdering<HcalSLHCTriggerPrimitiveDigi> > >" splitLevel="0"/>
