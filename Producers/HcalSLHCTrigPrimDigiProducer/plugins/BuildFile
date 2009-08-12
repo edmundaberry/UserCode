@@ -1,0 +1,10 @@
+<library name=ProducersHcalSLHCTrigPrimDigiProducer_plugins file=*.cc>
+<use name=Producers/HcalSLHCTrigPrimDigiProducer>
+<use name=FWCore/ServiceRegistry>
+<use name=FWCore/Framework>
+<use name=FWCore/PluginManager>
+<use name=FWCore/ParameterSet>
+
+<flags EDM_PLUGIN=1>			
+
+</library>

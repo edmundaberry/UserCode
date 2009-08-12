@@ -1,0 +1,9 @@
+#ifndef PRODUCERS_HCALSLHCTRIGPRIMDIGIPRODUCER_HCALSLHCTRIGPRIMDIGICOLLECTION_H
+#define PRODUCERS_HCALSLHCTRIGPRIMDIGIPRODUCER_HCALSLHCTRIGPRIMDIGICOLLECTION_H
+
+#include "DataFormats/Common/interface/SortedCollection.h"
+#include "Producers/HcalSLHCTrigPrimDigiProducer/interface/HcalSLHCTriggerPrimitiveDigi.h"
+
+typedef edm::SortedCollection<HcalSLHCTriggerPrimitiveDigi> HcalSLHCTrigPrimDigiCollection;
+
+#endif
