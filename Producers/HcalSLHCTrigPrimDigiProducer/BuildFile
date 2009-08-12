@@ -3,6 +3,8 @@
 <use name=FWCore/ParameterSet>
 
 <use name=DataFormats/HcalDetId>
+<use name=CalibFormats/HcalObjects>
+<use name=CalibFormats/CaloTPG>
 
 <use name=boost>
 <use name=rootrflx>
