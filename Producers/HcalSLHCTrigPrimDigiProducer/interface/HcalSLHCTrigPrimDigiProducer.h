@@ -29,13 +29,14 @@ private:
   virtual void beginJob() ;
   virtual void produce(edm::Event&, const edm::EventSetup&);
   virtual void endJob() ;  
-
+  
   //------------------------------------------------------
   // InputTags
   //------------------------------------------------------
   
+  edm::InputTag m_hbheDigisTag;
+  edm::InputTag m_hfDigisTag  ;
   
-
   //------------------------------------------------------
   // Algorithm
   //------------------------------------------------------
