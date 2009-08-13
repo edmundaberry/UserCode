@@ -38,7 +38,7 @@ HcalSLHCTrigPrimDigiProducer::HcalSLHCTrigPrimDigiProducer(const edm::ParameterS
 								    iConfig.getParameter<int>("TPSize"),
 								    iConfig.getParameter<int>("minIsoDepth"),
 								    iConfig.getParameter<int>("maxIsoDepth")))				   
-{ produces<HcalSLHCTrigPrimDigiCollection>("HcalSLHCTrigPrimDigiCollection"); }
+{ produces<HcalSLHCTrigPrimDigiCollection>(""); }
 
 //------------------------------------------------------
 // Destructor
@@ -104,7 +104,7 @@ void HcalSLHCTrigPrimDigiProducer::produce(edm::Event& iEvent, const edm::EventS
   // Add the final CaloTowerCollection to the event
   //------------------------------------------------------
   
-  iEvent.put(result,"HcalSLHCTrigPrimDigiCollection");
+  iEvent.put(result);
 
   outTranscoder->releaseSetup();
 
