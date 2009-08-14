@@ -1,6 +1,8 @@
 #ifndef HcalSimAlgos_HcalTriggerPrimitiveAlgo_h
 #define HcalSimAlgos_HcalTriggerPrimitiveAlgo_h
 
+#include <map>
+#include <vector>
 #include "DataFormats/HcalDetId/interface/HcalTrigTowerDetId.h"
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
@@ -11,18 +13,25 @@
 
 #include "Producers/HcalSLHCTrigPrimDigiProducer/interface/HcalSLHCTrigPrimDigiCollection.h"
 
-#include <map>
-#include <vector>
 class CaloGeometry;
 class IntegerCaloSamples;
 
 class HcalSLHCTriggerPrimitiveAlgo {
 public:
+  
+  //------------------------------------------------------
+  // Constructor/destructor
+  //------------------------------------------------------
+  
   HcalSLHCTriggerPrimitiveAlgo(bool pf, const std::vector<double>& w, 
-			       int latency, uint32_t FG_threshold, 
-			       uint32_t ZS_threshold, int firstTPSample, int TPSize,
-			       int minIsoDepth, int maxIsoDepth );
+			       int latency, 
+			       int firstTPSample, int TPSize,
+			       int minIsoDepth, int maxIsoDepth, bool excludeDepth5 );
   ~HcalSLHCTriggerPrimitiveAlgo();
+
+  //------------------------------------------------------
+  // Event-by-event algorithm run function
+  //------------------------------------------------------
 
   void run(const HcalTPGCoder * incoder,
 	   const HcalTPGCompressor * outcoder,
@@ -31,61 +40,85 @@ public:
            HcalSLHCTrigPrimDigiCollection & result);
  private:
 
-  typedef std::pair <IntegerCaloSamples, IntegerCaloSamples> IntegerCaloSamplesPair;
-  
-  typedef std::map<HcalTrigTowerDetId, IntegerCaloSamplesPair> SumMap;
-  typedef std::map<uint32_t, IntegerCaloSamples> SumMapFG;
-  typedef std::multimap<HcalTrigTowerDetId, IntegerCaloSamples> TowerMapFG;
+  //------------------------------------------------------
+  // Mapping typedefs
+  //------------------------------------------------------
 
-  /// adds the signal to the map
+  typedef std::pair <IntegerCaloSamples, IntegerCaloSamples> IntegerCaloSamplesPair;
+  typedef std::map<HcalTrigTowerDetId, IntegerCaloSamplesPair> SumMap;
+
+  //------------------------------------------------------
+  /// These convert from HBHEDataFrame & HFDataFrame to 
+  //  linear IntegerCaloSamples add the linear signal to the map
+  //------------------------------------------------------
+  
   void addSignal  (const HBHEDataFrame      & frame  );
   void addSignal  (const HFDataFrame        & frame  );
   void addSignal  (const IntegerCaloSamples & samples, int depth );
-  void addSignalFG(const IntegerCaloSamples & samples);
-  /// adds the actual RecHits
-  void analyze  (IntegerCaloSamplesPair & samplesPair, HcalSLHCTriggerPrimitiveDigi & result);
-  void analyzeHF(IntegerCaloSamplesPair & samplesPair, HcalSLHCTriggerPrimitiveDigi & result);
-  
-  
-  bool doSampleSum (const IntegerCaloSamples& inputSamples,
-		    IntegerCaloSamples& summedSamples,
-		    int outlength);
 
+  //------------------------------------------------------
+  /// These convert from linear IntegerCaloSamples to
+  // compressed trigger primitive digis
+  //------------------------------------------------------
+  
+  void analyze  (IntegerCaloSamplesPair & samplesPair, HcalSLHCTriggerPrimitiveDigi & result);
+  void analyzeHF(IntegerCaloSamplesPair & samplesPair, HcalSLHCTriggerPrimitiveDigi & result);  
+  
+  //------------------------------------------------------
+  // Conversion methods for HB & HE (for analyze function)
+  //------------------------------------------------------
+
+  // Weighted sum
+  bool doSampleSum      (const IntegerCaloSamples& inputSamples,
+			 IntegerCaloSamples& summedSamples,
+			 int outlength);
+  
+  // Collapse/peakfinding
   void doSampleCollapse (const IntegerCaloSamples& originalSamples,
 			 const IntegerCaloSamples& summedSamples,
 			 IntegerCaloSamples& collapsedSamples,
 			 int newprelength,
 			 bool SOI_pegged);
-
-  // Performs compression and fills HcalSLHCTriggerPrimitiveDigis
-  void compress (const IntegerCaloSamples& etSamples,
-		 const IntegerCaloSamples& isoSamples,
-		 const std::vector<int>& fineGrainSamples,
-		 HcalSLHCTriggerPrimitiveDigi & digi);
   
-  std::vector<HcalTrigTowerDetId> towerIds(const HcalDetId & id) const;
+  // Compression using LUT's
+  void doSampleCompress (const IntegerCaloSamples& etSamples,
+			 const IntegerCaloSamples& isoSamples,
+			 const std::vector<int>& fineGrainSamples,
+			 HcalSLHCTriggerPrimitiveDigi & digi);
 
-  HcalTrigTowerGeometry theTrigTowerGeometry; // from event setup eventually?
+  //------------------------------------------------------
+  // Trig tower geometry
+  //------------------------------------------------------
+
+  HcalTrigTowerGeometry theTrigTowerGeometry;
+
+  //------------------------------------------------------
+  // Coders
+  //------------------------------------------------------
 
   const HcalTPGCoder * incoder_;
   const HcalTPGCompressor * outcoder_;
 
-  SumMap     theSumMap;  
-  SumMap     theIsoSumMap;
-  SumMapFG   theFGSumMap;
-  TowerMapFG theTowerMapFG;
+  //------------------------------------------------------
+  // Energy sum mapping
+  //------------------------------------------------------
+
+  SumMap theSumMap;  
+  
+  //------------------------------------------------------
+  // Python file input
+  //------------------------------------------------------
 
   double theThreshold;
   bool peakfind_;
   std::vector<double> weights_;
   int latency_;
-  uint32_t FG_threshold_;
-  uint32_t ZS_threshold_;
   int firstTPSample_;
-  int TPSize_;
-  
+  int TPSize_;  
   int minIsoDepth_;
   int maxIsoDepth_;
+  
+  bool excludeDepth5_;
 };
 
 
