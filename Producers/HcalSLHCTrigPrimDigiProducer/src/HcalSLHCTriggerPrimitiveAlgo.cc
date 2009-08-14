@@ -1,28 +1,24 @@
-#include "Producers/HcalSLHCTrigPrimDigiProducer/interface/HcalSLHCTriggerPrimitiveAlgo.h"
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
-
 #include <iostream>
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "Geometry/HcalTowerAlgo/interface/HcalTrigTowerGeometry.h"
 #include "DataFormats/HcalDetId/interface/HcalTrigTowerDetId.h"
-using namespace std;
+#include "Producers/HcalSLHCTrigPrimDigiProducer/interface/HcalSLHCTriggerPrimitiveAlgo.h"
 
 HcalSLHCTriggerPrimitiveAlgo::HcalSLHCTriggerPrimitiveAlgo(bool pf, const std::vector<double>& w,
-							   int latency, uint32_t FG_threshold, 
-							   uint32_t ZS_threshold, int firstTPSample, int TPSize,
-							   int minIsoDepth, int maxIsoDepth ):
+							   int latency, 
+							   int firstTPSample, int TPSize,
+							   int minIsoDepth, int maxIsoDepth, bool excludeDepth5 ):
   incoder_(0), 
   outcoder_(0), 
   theThreshold(0),
   peakfind_(pf), 
   weights_(w), 
   latency_(latency), 
-  FG_threshold_(FG_threshold), 
-  ZS_threshold_(ZS_threshold), 
   firstTPSample_(firstTPSample), 
   TPSize_(TPSize),
   minIsoDepth_(minIsoDepth),
-  maxIsoDepth_(maxIsoDepth)
+  maxIsoDepth_(maxIsoDepth),
+  excludeDepth5_(excludeDepth5)
 {}
 
 HcalSLHCTriggerPrimitiveAlgo::~HcalSLHCTriggerPrimitiveAlgo(){}
@@ -41,8 +37,6 @@ void HcalSLHCTriggerPrimitiveAlgo::run(const HcalTPGCoder * incoder,
   outcoder_=outcoder;
 
   theSumMap.clear();      
-  theFGSumMap.clear();    
-  theTowerMapFG.clear();  
 
   //------------------------------------------------------
   // Loop over the digi collections and fill energy maps
@@ -54,7 +48,6 @@ void HcalSLHCTriggerPrimitiveAlgo::run(const HcalTPGCoder * incoder,
   HFDigiCollection::const_iterator hfItr     = hfDigis.begin();
   HFDigiCollection::const_iterator hfItr_end = hfDigis.end();
   
-  // this is ok
   for(; hbheItr != hbheItr_end; ++hbheItr)
     addSignal(*hbheItr);
   
@@ -66,7 +59,6 @@ void HcalSLHCTriggerPrimitiveAlgo::run(const HcalTPGCoder * incoder,
   //   1 - Loop over entries in the energy sum map
   //   2 - Convert summed IntegerCaloSamples to TP's
   //------------------------------------------------------
-
   
   for(SumMap::iterator mapItr = theSumMap.begin(); mapItr != theSumMap.end(); ++mapItr){
       
@@ -100,8 +92,12 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const HBHEDataFrame & frame) {
 
   int depth = frame.id().depth();
   
-  //Hack for 300_pre10, should be removed.
-  if (frame.id().depth()==5) return;
+  //------------------------------------------------------
+  // "Hack for 300_pre10" from the original code.
+  // User can turn this off in the python cfg file.
+  //------------------------------------------------------
+  
+  if (excludeDepth5_ && frame.id().depth()==5) return;
   
   //------------------------------------------------------
   // Get the trigger tower id(s) for this digi
@@ -123,11 +119,12 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const HBHEDataFrame & frame) {
   if(ids.size() == 2) {
     
     IntegerCaloSamples samples2(ids[1], samples1.size());
-    for(int i = 0; i < samples1.size(); ++i) 
-      {
-	samples1[i] = uint32_t(samples1[i]*0.5);
-	samples2[i] = samples1[i];
-      }
+
+    for(int i = 0; i < samples1.size(); ++i) {
+      samples1[i] = uint32_t(samples1[i]*0.5);
+      samples2[i] = samples1[i];
+    }
+    
     samples2.setPresamples(frame.presamples());
     addSignal(samples2, depth);
   }
@@ -153,34 +150,7 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const HFDataFrame & frame) {
     incoder_->adc2Linear(frame, samples);
     
     addSignal(samples, depth);
-        
-    uint32_t fgid;
 
-    // Mask off depths: fgid is the same for both depths
-    
-    fgid = (frame.id().rawId() | 0x1c000) ;
-	 
-    SumMapFG::iterator itr = theFGSumMap.find(fgid);
-   
-    if(itr == theFGSumMap.end()) {
-      theFGSumMap.insert(std::make_pair(fgid, samples));
-    } 
-    else {
-      // wish CaloSamples had a +=
-      for(int i = 0; i < samples.size(); ++i) {
-	(itr->second)[i] += samples[i];        
-      }      
-    }
-
-    // Depth =2 is the second entry in map (sum). Use its original Hcal Det Id to obtain trigger tower
-    if (frame.id().depth()==2)
-      {      
-      for(unsigned int n = 0; n < ids.size(); n++)
-      	  {
-          theTowerMapFG.insert(TowerMapFG::value_type(ids[n],itr->second));
-	  }
-      }
-    
   }
 }
   
@@ -209,13 +179,13 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const IntegerCaloSamples & samples,
   SumMap::iterator itr = theSumMap.find(id);
   if(itr == theSumMap.end()) {
     if (hasIsoDepth) 
-      theSumMap.insert(std::make_pair(id, make_pair(samples, samples)));
+      theSumMap.insert(std::make_pair(id, std::make_pair(samples, samples)));
     else {
 
       IntegerCaloSamples emptySamples(id, samples.size());
       emptySamples.setPresamples (samples.presamples());
 
-      theSumMap.insert(std::make_pair(id, make_pair(samples, emptySamples)));
+      theSumMap.insert(std::make_pair(id, std::make_pair(samples, emptySamples)));
 
     }
   } 
@@ -232,6 +202,10 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const IntegerCaloSamples & samples,
   }
 }
 
+//------------------------------------------------------
+// Go from an IntegerCaloSamples to a TP digi (for HBHE)
+//------------------------------------------------------
+
 void HcalSLHCTriggerPrimitiveAlgo::analyze(IntegerCaloSamplesPair & samples, 
 					   HcalSLHCTriggerPrimitiveDigi & result){
 
@@ -243,28 +217,34 @@ void HcalSLHCTriggerPrimitiveAlgo::analyze(IntegerCaloSamplesPair & samples,
   int outlength    = samples.first.size() - shrink;
   int newprelength = ((samples.first.presamples()+1)-weights_.size())+latency_;
   
-  std::vector<bool>  finegrain(TPSize_,false);
-  
+  //------------------------------------------------------
+  // Declare all IntegerCaloSamples required
+  // NOTE: this is a really inefficient way of doing this.  
+  // Must be fixed.
+  //------------------------------------------------------
+
+  IntegerCaloSamples allSum(samples.first.id(), outlength);
+  IntegerCaloSamples isoSum(samples.first.id(), outlength);
+
+  IntegerCaloSamples allCollapsed (samples.first.id(), TPSize_  );  
+  IntegerCaloSamples isoCollapsed (samples.first.id(), TPSize_  );
+
+  std::vector<int> nullFineGrain ( allCollapsed.size(), 0 );
+
   //------------------------------------------------------
   // Sum over all samples and make a summed sample
   // 
   // doSampleSum returns a bool that says if the input
-  //   IntegerCaloSample is above the threshold value
+  //   IntegerCaloSample is saturated
   //------------------------------------------------------
-  
-  IntegerCaloSamples allSum(samples.first.id(), outlength);
-  IntegerCaloSamples isoSum(samples.first.id(), outlength);
   
   bool allSOI_pegged = doSampleSum (samples.first , allSum, outlength);
   bool isoSOI_pegged = doSampleSum (samples.second, isoSum, outlength);
   
   //------------------------------------------------------
-  // Collapse the sample
+  // Collapse the sample.  Peakfinder is here.
   //------------------------------------------------------
-  
-  IntegerCaloSamples allCollapsed (samples.first.id(), TPSize_  );  
-  IntegerCaloSamples isoCollapsed (samples.first.id(), TPSize_  );
-  
+    
   doSampleCollapse (samples.first , allSum, allCollapsed, newprelength, allSOI_pegged);
   doSampleCollapse (samples.second, isoSum, isoCollapsed, newprelength, isoSOI_pegged);
   
@@ -274,63 +254,59 @@ void HcalSLHCTriggerPrimitiveAlgo::analyze(IntegerCaloSamplesPair & samples,
   // be filled in later.
   //------------------------------------------------------
   
-  std::vector<int> nullFineGrain ( allCollapsed.size(), 0 );
-
-  compress ( allCollapsed, isoCollapsed, nullFineGrain, result );
+  doSampleCompress ( allCollapsed, isoCollapsed, nullFineGrain, result );
   
 }
 
+//------------------------------------------------------
+// Go from an IntegerCaloSamples to a TP digi (for HF)
+//------------------------------------------------------
 
 void HcalSLHCTriggerPrimitiveAlgo::analyzeHF(IntegerCaloSamplesPair & samples, 
 					     HcalSLHCTriggerPrimitiveDigi & result){
   
-  /*
-  std::vector<bool> finegrain(TPSize_,false);
+  //------------------------------------------------------
+  // Declare needed IntegerCaloSamples 
+  //------------------------------------------------------
   
-  HcalTrigTowerDetId detId_(samples.id()); 
-   
-  // get information from Tower map
-  for(TowerMapFG::iterator mapItr = theTowerMapFG.begin(); mapItr != theTowerMapFG.end(); ++mapItr){
-
-    HcalTrigTowerDetId detId(mapItr->first);
-    if (detId == detId_) {
-   
-      for (int i=firstTPSample_; i < firstTPSample_+TPSize_; ++i) {
-	bool set_fg = false;
-	mapItr->second[i] >= FG_threshold_ ? set_fg = true : false;
-	finegrain[i - firstTPSample_] = (finegrain[i - firstTPSample_] || set_fg);
-      }
-    }
-  }  
-
-  */
-
   IntegerCaloSamples output(samples.first.id(),TPSize_);
-
   output.setPresamples(samples.first.presamples() - firstTPSample_);
 
+  //------------------------------------------------------
+  // "Collapse" algorithm for HF is just a scaling
+  // Saturation is at 8 bits    
+  //------------------------------------------------------
+  
   for(int ibin2 = 0; ibin2 < TPSize_; ++ibin2) {    
-    output[ibin2]=samples.first[ibin2+firstTPSample_]/4;
-    if (output[ibin2] > 0x3FF) output[ibin2] = 0x3FF;  //Compression is 1 to 1 with saturation at 8 bits
-    
+    output[ibin2]=samples.first[ibin2+firstTPSample_]/4;  // Scaling
+    if (output[ibin2] > 0x3FF) output[ibin2] = 0x3FF;     // Saturation
   }
 
+  //------------------------------------------------------
   // Get null isolation sample and null fine grain
-  IntegerCaloSamples nullIsoSamples( samples.first.id(), output.size() );
-  nullIsoSamples.setPresamples(samples.first.presamples());
+  //------------------------------------------------------
 
   std::vector<int>   nullFineGrain ( samples.first.size(), 0 );
+  IntegerCaloSamples nullIsoSamples( samples.first.id(), output.size() );
+  nullIsoSamples.setPresamples(samples.first.presamples());
   
-  compress ( output, nullIsoSamples, nullFineGrain, result );  
+  doSampleCompress ( output, nullIsoSamples, nullFineGrain, result );  
 
 }
 
+//------------------------------------------------------
+// "Collapse" method for HBHE.  Peakfinder is here.
+//------------------------------------------------------
 
 void HcalSLHCTriggerPrimitiveAlgo::doSampleCollapse (const IntegerCaloSamples& originalSamples,
 						     const IntegerCaloSamples& summedSamples,
 						     IntegerCaloSamples& collapsedSamples,
 						     int newprelength, bool SOI_pegged ){
   
+  //------------------------------------------------------
+  // ...with peakfinding
+  //------------------------------------------------------
+
   if(peakfind_) {    
     
     collapsedSamples.setPresamples(newprelength - firstTPSample_);
@@ -339,38 +315,46 @@ void HcalSLHCTriggerPrimitiveAlgo::doSampleCollapse (const IntegerCaloSamples& o
       
       int idx = firstTPSample_ + ibin2;
       
-      //if peak found
+      // peak found
       if ( originalSamples[idx] >  originalSamples[idx-1] && 
 	   originalSamples[idx] >= originalSamples[idx+1] && 
 	   originalSamples[idx] >  theThreshold) 	 
 	collapsedSamples[ibin2]=summedSamples[idx];
       
-      //if no peak
+      // no peak found
       else collapsedSamples[ibin2]=0; 
     }
     
+    // saturation
     if(SOI_pegged == true){
       collapsedSamples[collapsedSamples.presamples()] = 0x3FF;
     }        
   }
   
-  //No peak finding
+  //------------------------------------------------------
+  // ... without peakfinding (just pass everything)
+  //------------------------------------------------------
+  
   else {
     
     collapsedSamples.setPresamples(newprelength - firstTPSample_ +1);
     
     for(int ibin2 = 0; ibin2 < TPSize_; ++ibin2) 
-      collapsedSamples[ibin2]=summedSamples[ibin2+firstTPSample_];//just pass value  
+      collapsedSamples[ibin2]=summedSamples[ibin2+firstTPSample_];
     
   }   
   
 }
 
+//------------------------------------------------------
+// Weighted sum method
+//------------------------------------------------------
+
 bool HcalSLHCTriggerPrimitiveAlgo::doSampleSum (const IntegerCaloSamples& inputSamples, 
 						IntegerCaloSamples& summedSamples,
 						int outlength ){
   
-  //Test is SOI input is pegged (saturated) before summing
+  
   bool SOI_pegged = (inputSamples[inputSamples.presamples()] > 0x3FF);
   
   //slide algo window
@@ -391,14 +375,19 @@ bool HcalSLHCTriggerPrimitiveAlgo::doSampleSum (const IntegerCaloSamples& inputS
 
 }
 
-void HcalSLHCTriggerPrimitiveAlgo::compress (const IntegerCaloSamples& etSamples,
-					     const IntegerCaloSamples& isoSamples,
-					     const vector<int> & fineGrainSamples,
-					     HcalSLHCTriggerPrimitiveDigi & digi){
+//------------------------------------------------------
+// Compression method (for HBHE and HF)
+//------------------------------------------------------
+
+void HcalSLHCTriggerPrimitiveAlgo::doSampleCompress (const IntegerCaloSamples& etSamples,
+						     const IntegerCaloSamples& isoSamples,
+						     const std::vector<int> & fineGrainSamples,
+						     HcalSLHCTriggerPrimitiveDigi & digi){
   
-  // We have to go through HcalTriggerPrimitiveSample to do this
-  //   (CaloTPGTranscoder::hcalCompress returns an HcalTriggerPrimitiveSample)
-  // I don't know of any other way to do the compression without editing the LUT storage class
+  //------------------------------------------------------
+  // Looks like we have to go through 
+  //   HcalTriggerPrimitiveSample in order to compress.
+  //------------------------------------------------------
 
   for (int i = 0; i < etSamples.size(); ++i){
     
