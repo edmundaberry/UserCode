@@ -1,2 +1,0 @@
-Use this to make adding new folders to CVS easier
-

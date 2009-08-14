@@ -1,7 +1,0 @@
-#!/bin/tcsh
-
-set njobs           = 50
-set nevents         = 20
-
-./qsub_MiddleElectronGun_RAW-DIGI-RECO 1 ${njobs} ${nevents} "100GeV-Focused"
-

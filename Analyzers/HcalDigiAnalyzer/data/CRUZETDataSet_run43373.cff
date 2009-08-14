@@ -1,8 +1,0 @@
-replace PoolSource.fileNames = {
-'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/2699C573-1B1C-DD11-8518-000423D94E1C.root',
-'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/AA2DCF0F-211C-DD11-9808-001617E30CD4.root',
-'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/EE528979-1B1C-DD11-ADA8-001617C3B77C.root',
-'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/F2E24E05-131C-DD11-BC60-000423D99996.root',
-'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/F40B5105-131C-DD11-9745-000423D94A04.root',
-'/store/data/2008/5/6/T0PromptReco-GlobalCruzet1-A-v1/0000/F8387B74-1B1C-DD11-9909-000423D99614.root'
-}

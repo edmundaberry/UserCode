@@ -1,7 +1,0 @@
-<library name=ProducersCaloTowersFromTrigPrimsCreator_plugins file=*.cc>
-<use name=Producers/CaloTowersFromTrigPrimsCreator>	
-<use name=FWCore/ServiceRegistry>
-<use name=CondFormats/L1TObjects>
-<use name=CondFormats/DataRecord>
-<flags EDM_PLUGIN=1>			
-</library>

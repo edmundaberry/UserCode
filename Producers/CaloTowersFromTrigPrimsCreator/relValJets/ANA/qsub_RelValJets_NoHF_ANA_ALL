@@ -1,7 +1,0 @@
-#!/bin/tcsh
-
-set njobs           = 100
-set nevents         = 50
-
-./qsub_RelValJets_NoHF_ANA 1 ${njobs} ${nevents} "WithoutHF"
-

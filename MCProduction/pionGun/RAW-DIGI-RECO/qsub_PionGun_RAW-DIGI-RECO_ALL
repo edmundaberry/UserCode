@@ -1,8 +1,0 @@
-#!/bin/tcsh
-
-set njobs           = 50
-set nevents_per_job = 20
-set suffix          = "5000GeV-Focused"
-
-./qsub_PionGun_RAW-DIGI-RECO 1 ${njobs} ${nevents_per_job} ${suffix}
-

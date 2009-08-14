@@ -1,7 +1,0 @@
-#!/bin/tcsh
-
-set njobs           = 1
-set nevents         = 1000
-
-./qsub_MiddleElectronGun_ANA 1 ${njobs} ${nevents} "100GeV-Focused"
-

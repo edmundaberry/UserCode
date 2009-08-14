@@ -1,6 +1,0 @@
-#!/bin/tcsh
-
-set njobs           = 100
-set nevents         = 20
-
-./qsub_ConstPhiSprayElectronGun_GEN-SIM-DIGI-RAW 1 ${njobs} ${nevents} "100GeV-Focused"
