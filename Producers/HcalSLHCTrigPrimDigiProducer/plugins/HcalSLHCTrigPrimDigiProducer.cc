@@ -8,7 +8,6 @@
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 
 #include "CalibFormats/HcalObjects/interface/HcalTPGRecord.h"
@@ -32,12 +31,11 @@ HcalSLHCTrigPrimDigiProducer::HcalSLHCTrigPrimDigiProducer(const edm::ParameterS
   m_hcalSLHCTriggerPrimitiveAlgo ( new HcalSLHCTriggerPrimitiveAlgo(iConfig.getParameter<bool>("peakFilter"),
 								    iConfig.getParameter<std::vector<double> >("weights"),
 								    iConfig.getParameter<int>("latency"),
-								    iConfig.getParameter<uint32_t>("FG_threshold"),
-								    iConfig.getParameter<uint32_t>("ZS_threshold"),
 								    iConfig.getParameter<int>("firstTPSample"),
 								    iConfig.getParameter<int>("TPSize"),
 								    iConfig.getParameter<int>("minIsoDepth"),
-								    iConfig.getParameter<int>("maxIsoDepth")))				   
+								    iConfig.getParameter<int>("maxIsoDepth"),
+								    iConfig.getParameter<bool>("excludeDepth5")))
 { produces<HcalSLHCTrigPrimDigiCollection>(""); }
 
 //------------------------------------------------------
