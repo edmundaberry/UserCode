@@ -22,6 +22,9 @@ class HcalSLHCTrigPrimDigiComparer : public edm::EDAnalyzer {
       virtual void analyze(const edm::Event&, const edm::EventSetup&);
       virtual void endJob() ;
 
+      edm::InputTag m_upgradeDigisTag;
+      edm::InputTag m_defaultDigisTag;
+
 };
 
 #endif
