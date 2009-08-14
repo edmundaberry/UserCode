@@ -130,13 +130,11 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const HBHEDataFrame & frame) {
       }
     samples2.setPresamples(frame.presamples());
     addSignal(samples2, depth);
-    if (depth > minIsoDepth_ && 
-	depth < maxIsoDepth_ ) addSignal(samples2, depth);
+
   }
   
   addSignal(samples1, depth);
-  if (depth > minIsoDepth_ && 
-      depth < maxIsoDepth_ ) addSignal(samples1, depth);
+
 }
 
 
