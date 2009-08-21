@@ -1,0 +1,18 @@
+<use name=FWCore/Framework>
+<use name=FWCore/PluginManager>
+<use name=FWCore/ParameterSet>
+
+<use name=L1Trigger/CSCTrackFinder>
+
+<use name=boost>
+<use name=rootrflx>
+
+<flags EDM_PLUGIN=0>
+
+<export>
+   <lib name=AnalyzersCSCTFMuonPtAnalyzer>
+   <use name=FWCore/Framework>
+   <use name=FWCore/PluginManager>
+   <use name=FWCore/ParameterSet>
+   <use name=boost>
+</export>
