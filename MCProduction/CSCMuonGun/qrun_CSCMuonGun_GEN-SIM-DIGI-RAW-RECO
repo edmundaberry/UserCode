@@ -1,0 +1,166 @@
+#!/bin/bash
+
+## Set release base and version
+MY_RELEASE_BASE="/uscms/home/eberry/MuonMomentumStudy/"
+CMSSW_VERSION="CMSSW_3_2_4"
+TAG="STARTUP31X_V4"
+TEST="false"
+
+## Set variables
+job=$1
+numevents=$2
+
+if [ -n $3 ]; then
+    suffix=${3}
+else
+    suffix=_${3}
+fi
+
+if [ $TEST = "true" ]; then
+    job=1
+    numevents=1
+    suffix="_TEST"
+fi
+
+## Set some seeds from the date
+seed1=`date +%S%N | head -c 8 | sed 's/0*//'`
+sleep 0.0345
+seed2=`date +%S%N | head -c 8 | sed 's/0*//'`
+sleep 0.1882
+seed3=`date +%S%N | head -c 8 | sed 's/0*//'`
+sleep 0.2534
+seed4=`date +%S%N | head -c 8 | sed 's/0*//'`
+sleep 0.1141
+seed5=`date +%S%N | head -c 8 | sed 's/0*//'`
+sleep 0.2341
+seed6=`date +%S%N | head -c 8 | sed 's/0*//'`
+sleep 0.1342
+seed7=`date +%S%N | head -c 8 | sed 's/0*//'`
+sleep 0.1942
+seed8=`date +%S%N | head -c 8 | sed 's/0*//'`
+sleep 0.0934
+seed9=`date +%S%N | head -c 8 | sed 's/0*//'`
+sleep 0.0349
+seed10=`date +%S%N | head -c 8 | sed 's/0*//'`
+sleep 0.1113
+seed11=`date +%S%N | head -c 8 | sed 's/0*//'`
+
+## Set file names
+cfgFile=CSCMuonGun_job${job}_${numevents}events${suffix}_cfg.py
+
+if [ $TEST != "true" ]; then
+
+    ## Load the environment
+    source /uscmst1/prod/sw/cms/shrc uaf
+    
+    ## Go to the work directory
+    cd ${MY_RELEASE_BASE}/${CMSSW_VERSION}/src/
+    
+    ## Setup the environment
+    eval `scram runtime -sh`
+
+    ## Go to the scratch directory
+    cd ${_CONDOR_SCRATCH_DIR}
+
+    ## Show what we're working with from CVS
+    showtags
+
+fi
+
+## Tell the log file what you're going to do
+echo I am going to perform MC steps GEN, SIM, DIGI, and L1 on a muon particle gun
+echo I am using CMSSW version: ${CMSSW_VERSION}
+echo I am making python cfg file: ${cfgFile}
+echo I am going to analyze ${numevents} events
+echo I am using the suffix ${3}
+echo This is job ${job}, and I have to do ${numevents} events/job
+
+## Make the config file
+
+cat > ${cfgFile}<<EOF
+
+import FWCore.ParameterSet.Config as cms
+
+process = cms.Process("GEN-SIM-DIGI-RAW-RECO")
+
+process.load("FWCore.MessageService.MessageLogger_cfi")
+process.load("Configuration.StandardSequences.Services_cff")
+process.load("Configuration.StandardSequences.Geometry_cff")
+process.load("Configuration.StandardSequences.SimulationRandomNumberGeneratorSeeds_cff")
+process.load("Configuration.StandardSequences.VtxSmearedBetafuncEarlyCollision_cff")
+process.load("Configuration.StandardSequences.Generator_cff")
+process.load("Configuration.StandardSequences.Simulation_cff")
+process.load("Configuration.StandardSequences.L1Emulator_cff")
+process.load("Configuration.StandardSequences.DigiToRaw_cff")
+process.load("Configuration.StandardSequences.RawToDigi_cff")
+process.load("Configuration.StandardSequences.Reconstruction_cff")
+process.load("Configuration.StandardSequences.MagneticField_38T_cff")
+process.load("Configuration.StandardSequences.MixingNoPileUp_cff")
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
+process.load("Configuration.EventContent.EventContent_cff")
+
+process.GlobalTag.globaltag = "${TAG}::All"
+
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(${numevents}) )
+process.source = cms.Source("EmptySource", firstRun = cms.untracked.uint32(${job}))
+process.generator = cms.EDProducer("FlatRandomPtGunProducer",
+    PGunParameters = cms.PSet(
+        MaxPt = cms.double(140),
+        MinPt = cms.double(10),
+        PartID = cms.vint32(13),
+        MaxEta = cms.double(1.8),
+        MaxPhi = cms.double(3.14159265359),
+        MinEta = cms.double(0.9),
+        MinPhi = cms.double(-3.14159265359) ## in radians
+
+    ),
+    Verbosity = cms.untracked.int32(0), ## set to 1 (or greater)  for printouts
+    psethack = cms.string('single mu pt 100'),
+    AddAntiParticle = cms.bool(False),
+    firstRun = cms.untracked.uint32(${job})
+)
+
+process.RandomNumberGeneratorService = cms.Service("RandomNumberGeneratorService")
+
+process.RandomNumberGeneratorService.sourceSeed = cms.untracked.uint32(${seed1})
+process.RandomNumberGeneratorService.moduleSeeds = cms.PSet(
+	g4SimHits = cms.untracked.uint32(${seed2}),
+	VtxSmeared = cms.untracked.uint32(${seed3}),
+	simSiPixelDigis = cms.untracked.uint32(${seed4}),
+	simSiStripDigis = cms.untracked.uint32(${seed5}),
+	simEcalUnsuppressedDigis = cms.untracked.uint32(${seed6}),
+	simHcalUnsuppressedDigis = cms.untracked.uint32(${seed7}),
+	simMuonDTDigis = cms.untracked.uint32(${seed8}),
+	simMuonRPCDigis = cms.untracked.uint32(${seed9}),
+	simMuonCSCDigis = cms.untracked.uint32(${seed10}),
+        generator = cms.untracked.uint32(${seed11})
+)
+
+process.out = cms.OutputModule("PoolOutputModule",                               
+        outputCommands = cms.untracked.vstring( 'keep *' ),
+        fileName = cms.untracked.string('CSCMuonGun_${TAG}_GEN-SIM-DIGI-RAW-RECO_job${job}_${numevents}events${suffix}.root')
+)
+
+process.GEN  = cms.Path(process.generator + process.pgen)
+process.SIM  = cms.Path(process.psim)
+process.DIGI = cms.Path(process.pdigi)
+process.L1   = cms.Path(process.SimL1Emulator)
+process.RAW  = cms.Path(process.DigiToRaw  + process.RawToDigi)
+process.RECO = cms.Path(process.reconstruction)
+process.OUT  = cms.EndPath(process.out)
+
+process.schedule = cms.Schedule()
+process.schedule.append( process.GEN  )
+process.schedule.append( process.SIM  )
+process.schedule.append( process.DIGI )
+process.schedule.append( process.L1   )
+process.schedule.append( process.RAW  )
+process.schedule.append( process.RECO )
+process.schedule.append( process.OUT  )
+
+EOF
+ 
+## Run the .cfg file
+cmsRun ${cfgFile}
+## rm ${cfgFile} 

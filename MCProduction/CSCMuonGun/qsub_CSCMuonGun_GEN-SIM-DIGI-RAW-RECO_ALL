@@ -1,0 +1,7 @@
+#!/bin/tcsh
+
+set min_job = 1
+set max_job = 100
+set nevents = 100
+
+./qsub_CSCMuonGun_GEN-SIM-DIGI-RAW-RECO ${min_job} ${max_job} ${nevents} "0-140GeV"
