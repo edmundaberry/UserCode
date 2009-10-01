@@ -1,0 +1,135 @@
+#!/bin/bash
+
+## Set release base and version
+MY_RELEASE_BASE="/uscms/home/eberry/MuonMomentumStudy/"
+CMSSW_VERSION="CMSSW_3_2_4"
+TEST="false"
+DATA_FOLDER="/pnfs/cms/WAX/resilient/eberry/CMSSW_ROOT_Files/ParticleGun/CSCMuonGun/GEN-SIM-DIGI-L1_ForMeasurement/"
+            
+## Set variables
+ptBin=$1
+numevents=$2
+nFiles=$3
+ 
+if [ -z $4 ]; then
+    suffix=${4}
+else
+    suffix=_${4}
+fi
+
+if [ $TEST = "true" ]; then
+    ptBin=10
+    numevents=1000
+    suffix="_TEST"
+    nFiles=10
+fi
+
+## Get list of files to use
+
+FILE_LIST=`ls -t ${DATA_FOLDER}*CSCMuonGun_STARTUP31X_V4_GEN-SIM-DIGI-L1_job*_1000events_*PtBin${ptBin}_ForMeasurement.root | head -${nFiles}`
+
+LIST_SIZE=`echo $FILE_LIST | wc -w`
+
+# Format a list of data files
+FILE_NUMBER=1
+for file in $FILE_LIST
+do
+    THIS_FILE="'dcache:${file}'"
+    
+    if [ $FILE_NUMBER == $LIST_SIZE ]; then
+	
+	DATA_FILES="${DATA_FILES}
+${THIS_FILE}"
+	
+    elif [ $FILE_NUMBER == 1 ];  then 
+	DATA_FILES="${THIS_FILE},"
+    
+    else 
+    
+	DATA_FILES="${DATA_FILES}
+${THIS_FILE},"
+    
+    fi
+    
+    FILE_NUMBER=$(expr $FILE_NUMBER + 1)
+done
+
+## Set file names
+cfgFile=CSCMuonGun_Binning_ptBin${ptBin}_${numevents}events${suffix}_cfg.py
+
+if [ $TEST != "true" ]; then
+
+    ## Load the environment
+    source /uscmst1/prod/sw/cms/shrc uaf
+    
+    ## Go to the work directory
+    cd ${MY_RELEASE_BASE}/${CMSSW_VERSION}/src/
+    
+    ## Setup the environment
+    eval `scram runtime -sh`
+
+    ## Go to the scratch directory
+    cd ${_CONDOR_SCRATCH_DIR} 
+
+    ## Show what we're working with from CVS
+    showtags
+
+fi
+
+## Tell the log file what you're going to do
+echo "I am going to do some binning"
+echo "I am using CMSSW version: ${CMSSW_VERSION}"
+echo "I am making python cfg file: ${cfgFile}"
+echo "I am going to analyze ${numevents} events"
+echo "I am looking at ptBin ${ptBin}"
+echo "I am using the suffix ${4}"
+
+cat > ${cfgFile}<<EOF
+
+import FWCore.ParameterSet.Config as cms
+process = cms.Process ("AnalyzeMuonPt")
+
+## Load setup python files
+## process.load("FWCore.MessageService.MessageLogger_cfi")
+MessageLogger = cms.Service("MessageLogger",
+ infoModules = cms.untracked.vstring('CSCTFMuonPtAnalyzer'),
+ debugModules = cms.untracked.vstring('CSCTFMuonPtAnalyzer'),
+ cout = cms.untracked.PSet(
+    threshold = cms.untracked.string('INFO')
+ ),
+ destinations = cms.untracked.vstring('cout')
+)
+ 
+## process.load("Configuration.StandardSequences.Geometry_cff")
+## process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
+## process.GlobalTag.globaltag = "STARTUP31X_V4::All"
+
+
+## Configure the source
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(${numevents}))
+process.source = cms.Source("PoolSource",
+                            fileNames = cms.untracked.vstring(
+${DATA_FILES}
+, duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
+))
+
+## Load my analyzer
+process.load("Analyzers.CSCTFMuonPtAnalyzer.csctfmuonptanalyzer_cfi")
+process.csctfMuonPtAnalyzer.NEtaBins = 26
+process.csctfMuonPtAnalyzer.FileName = cms.string("FileName_ptBin${ptBin}_${numevents}events${suffix}.root")
+process.csctfMuonPtAnalyzer.HistName = cms.string("HistName_ptBin${ptBin}_${numevents}events${suffix}.root")
+
+## Configure paths
+process.ANALYZE = cms.Path ( process.csctfMuonPtAnalyzer )
+
+## Schedule paths
+process.schedule = cms.Schedule()
+process.schedule.append( process.ANALYZE )
+
+EOF
+
+cmsRun ${cfgFile}
+
+if [ $TEST != "true" ]; then
+    rm $cfgFile
+fi

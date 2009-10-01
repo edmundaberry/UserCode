@@ -1,0 +1,9 @@
+#!/bin/bash
+
+min_ptBin=0
+max_ptBin=29
+min_job=1
+max_job=10
+nevents=100000
+    
+./qsub_singleBin_dcache ${min_job} ${max_job} ${min_ptBin} ${max_ptBin} ${nevents} "16EtaBin"

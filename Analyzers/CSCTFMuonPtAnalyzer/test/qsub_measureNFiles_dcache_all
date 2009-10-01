@@ -1,0 +1,8 @@
+#!/bin/bash
+
+min_ptBin=0
+max_ptBin=29
+nFiles=10
+nevents="-1"
+    
+./qsub_measureNFiles_dcache ${min_ptBin} ${max_ptBin} ${nevents} ${nFiles} "Measurement"
