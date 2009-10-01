@@ -1,4 +1,6 @@
+<flags CXXFLAGS="-O0 -g">
 <library name=AnalyzersCSCTFMuonPtAnalyzer_plugins file=*.cc>
+<flags CXXFLAGS="-O0 -g">
 <use name=Analyzers/CSCTFMuonPtAnalyzer>
 <use name=FWCore/ServiceRegistry>
 <use name=FWCore/Framework>
