@@ -8,19 +8,21 @@
 
 class MuonBinnedPlotStorage {
  public:
-  MuonBinnedPlotStorage(int nCombos, int nPtBins, const char* fileName);
+  MuonBinnedPlotStorage(int nHitCombos, int nFRBCombos, int nPtBins, int nEtaBins, const std::string & fileName);
   ~MuonBinnedPlotStorage();
 
-  void fill(int combo, int ptBin, float deltaPhi);
+  void fill(int hitCombo, int frbCombo, int ptBin, int etaBin, int isFirstCombo, int deltaPhi);
   void save();
 
  private:
   
-  const int m_nCombos;
+  const int m_nHitCombos;
+  const int m_nFRBCombos;
   const int m_nPtBins;
-  const char* m_fileName;
-  
-  std::vector< std::vector <TH1F*> > m_hists;
+  const int m_nEtaBins;
+  const std::string m_fileName;
+
+  std::vector <std::vector< std::vector < std::vector< std::vector <TH1F*> > > > > m_hists;
 };
 
 #endif

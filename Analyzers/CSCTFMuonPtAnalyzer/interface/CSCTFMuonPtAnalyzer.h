@@ -1,8 +1,16 @@
 #ifndef ANALYZERS_CSCTFMUONPTANALYZER_CSCTFMUONPTANALYZER_H
 #define ANALYZERS_CSCTFMUONPTANALYZER_CSCTFMUONPTANALYZER_H
 
+// Framework
+#include "FWCore/Framework/interface/ESHandle.h"
+
+// LUTs
 #include "L1Trigger/CSCTrackFinder/interface/CSCSectorReceiverLUT.h"
+
+// My headers
 #include "Analyzers/CSCTFMuonPtAnalyzer/interface/MuonBinnedPlotStorage.h"
+#include "Analyzers/CSCTFMuonPtAnalyzer/interface/FillCSCTFMuonTree.h"
+#include "Analyzers/CSCTFMuonPtAnalyzer/interface/CSCTFMuonTree.h"
 
 class CSCTFMuonPtAnalyzer : public edm::EDAnalyzer {
 public:
@@ -21,12 +29,64 @@ private:
   virtual void endJob() ;
 
   //--------------------------------------------------
+  // Conditions getter function
+  //--------------------------------------------------
+
+  void getConditions();
+
+  //--------------------------------------------------
   // My analysis functions
   //--------------------------------------------------
   
   void analyzeGenMuons();
   void analyzeDataMuons();
   void analyzeCSCTrigPrims();
+  void analyzeCSCSimHits();
+
+  //--------------------------------------------------
+  // Helper functions
+  //--------------------------------------------------
+  
+  int reducedComboHitId ( const int stationId1, const int stationId2);
+  int reducedComboFRBId ( const int frbit1    , const int frbit2    );
+
+  void int2bin (uint32_t val, char* string);
+  
+  //--------------------------------------------------
+  // Build objects in the constructor
+  //--------------------------------------------------
+  
+  void buildSRLUTs();
+
+  //--------------------------------------------------
+  // Binning functions
+  //--------------------------------------------------
+
+  int getPtBin ( float pt  );
+  int getEtaBin( float eta );
+
+  //--------------------------------------------------
+  // Get the global eta and phi coordinates of a digi
+  //--------------------------------------------------
+
+  void getHitCoordinates (const CSCDetId& detId , const CSCCorrelatedLCTDigi& digi,
+			  int& lclPhi_phi_bend, int& lclPhi_phi, int& gblPhi_phi, int& gblEta_eta,
+			  float& cms_eta, float& cms_phi, bool& bad_phi );
+  
+  //--------------------------------------------------
+  // trig prim information storage
+  //--------------------------------------------------  
+
+  struct CSCTPInfo {
+    int station;
+    int ring;
+    int sector;
+    int frBit;    
+    int gblPhi;
+    float eta;
+  };
+
+  void analyzeCombos( const std::vector < std::vector < CSCTPInfo > > & v_tpInfo );
 
   //--------------------------------------------------
   // Event and setup pointers
@@ -36,57 +96,33 @@ private:
   const edm::EventSetup* m_setup;
 
   //--------------------------------------------------
-  // Muon information storage struct
-  //--------------------------------------------------
-  
-  struct RealMuon {
-    
-    RealMuon(double temp_eta, double temp_phi, double temp_pt, int temp_ptBin );
-    double eta, phi, pt;
-    int ptBin;
-
-  };
-  
-  void fillHist ( const std::vector<float> & station_average_phi,
-		  const std::vector<float> & station_average_eta,
-		  const int comboId, const int ptBin );
-  
-  int reducedComboId ( const int stationId1, const int stationId2);
-
-  void int2bin (uint32_t val, char* string);
-  
-  //--------------------------------------------------
-  // Build objects in the constructor
-  //--------------------------------------------------
-  
-  void buildSRLUTs();
-  void buildPtBins();
-
-  //--------------------------------------------------
-  // Binning functions
-  //--------------------------------------------------
-
-  int getPtBin( double pt );
-
-  //--------------------------------------------------
-  // Get the global eta and phi coordinates of a digi
-  //--------------------------------------------------
-
-  void getHitCoordinates( const CSCDetId& digi,  const CSCCorrelatedLCTDigi& digi, float& eta, float& phi );
-  
-  //--------------------------------------------------
-  // List of "real" muons
-  //--------------------------------------------------
-
-  std::vector<RealMuon> m_realMuonList;
-      
-  //--------------------------------------------------
   // edm::InputTag's
   //--------------------------------------------------
 
-  edm::InputTag m_cscCorrLCTDigiTag;
-  edm::InputTag m_genParticlesTag;
+  const edm::InputTag m_cscCorrLCTDigiTag;
+  const edm::InputTag m_genParticlesTag;
+  const edm::InputTag m_simHitsTag;
+  const edm::InputTag m_simTracksTag;
 
+  //--------------------------------------------------
+  // Conditions information
+  //--------------------------------------------------
+
+  edm::ESHandle<CSCGeometry> m_geometry;
+
+  //--------------------------------------------------
+  // GEN muon info
+  //--------------------------------------------------
+  
+  float m_gen_muon_pt;
+
+  //---------------------------------------------
+  // ROOT tree objects
+  //---------------------------------------------
+  
+  FillCSCTFMuonTree m_fillTree;
+  CSCTFMuonTree     m_tree;
+  
   //--------------------------------------------------
   // Which muons to analyze? (User-set)
   //--------------------------------------------------
@@ -95,38 +131,36 @@ private:
   const bool m_analyzeDataMuons;
 
   //--------------------------------------------------
-  // Binning info
+  // Verbosity bool
   //--------------------------------------------------
 
-  const int m_nPtBins;
-  const double m_minBinnablePt;
-  const double m_maxBinnablePt;
+  const bool m_verbose;
+
+  //--------------------------------------------------
+  // Binning info
+  //--------------------------------------------------
+  
   std::vector<double> m_ptBins;
+  std::vector<double> m_etaBins;
+
+  //--------------------------------------------------
+  // File names
+  //--------------------------------------------------
+
+  std::string m_fileName;
+  std::string m_histName;
 
   //--------------------------------------------------
   // Plot Storage
   //--------------------------------------------------
   
-  MuonBinnedPlotStorage m_plotStorage;
+  MuonBinnedPlotStorage* m_plotStorage;
 
   //--------------------------------------------------
-  // CSC Sector-receiver LUT's
-  //--------------------------------------------------
-
-  CSCSectorReceiverLUT * m_srLUTs[5][2];
-
-  //--------------------------------------------------
-  // Assume all sectors are identical,
-  // So we only declare one sector variable
-  //--------------------------------------------------
-
-  const int m_sector;
-
-  //--------------------------------------------------
-  // Trigger Mother Board (TMB) firmware variable
+  // Various LUTs
   //--------------------------------------------------
   
-  const bool m_TMB07;
+  CSCSectorReceiverLUT * m_srLUTs[6][2];
 
 };
 
