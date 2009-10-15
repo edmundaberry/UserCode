@@ -4,8 +4,15 @@
 // Framework
 #include "FWCore/Framework/interface/ESHandle.h"
 
-// LUTs
+// Sector receivers and LUTs
 #include "L1Trigger/CSCTrackFinder/interface/CSCSectorReceiverLUT.h"
+#include "L1Trigger/CSCTrackFinder/src/CSCTFDTReceiver.h"
+
+// Data formats
+#include "DataFormats/CSCDigi/interface/CSCCorrelatedLCTDigiCollection.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambPhContainer.h"
+#include "DataFormats/L1CSCTrackFinder/interface/CSCTriggerContainer.h"
+#include "DataFormats/L1CSCTrackFinder/interface/TrackStub.h"
 
 // My headers
 #include "Analyzers/CSCTFMuonPtAnalyzer/interface/MuonBinnedPlotStorage.h"
@@ -21,59 +28,6 @@ public:
 private:
 
   //--------------------------------------------------
-  // Standard analysis functions
-  //--------------------------------------------------
-  
-  virtual void beginJob() ;
-  virtual void analyze(const edm::Event&, const edm::EventSetup&);
-  virtual void endJob() ;
-
-  //--------------------------------------------------
-  // Conditions getter function
-  //--------------------------------------------------
-
-  void getConditions();
-
-  //--------------------------------------------------
-  // My analysis functions
-  //--------------------------------------------------
-  
-  void analyzeGenMuons();
-  void analyzeDataMuons();
-  void analyzeCSCTrigPrims();
-  void analyzeCSCSimHits();
-
-  //--------------------------------------------------
-  // Helper functions
-  //--------------------------------------------------
-  
-  int reducedComboHitId ( const int stationId1, const int stationId2);
-  int reducedComboFRBId ( const int frbit1    , const int frbit2    );
-
-  void int2bin (uint32_t val, char* string);
-  
-  //--------------------------------------------------
-  // Build objects in the constructor
-  //--------------------------------------------------
-  
-  void buildSRLUTs();
-
-  //--------------------------------------------------
-  // Binning functions
-  //--------------------------------------------------
-
-  int getPtBin ( float pt  );
-  int getEtaBin( float eta );
-
-  //--------------------------------------------------
-  // Get the global eta and phi coordinates of a digi
-  //--------------------------------------------------
-
-  void getHitCoordinates (const CSCDetId& detId , const CSCCorrelatedLCTDigi& digi,
-			  int& lclPhi_phi_bend, int& lclPhi_phi, int& gblPhi_phi, int& gblEta_eta,
-			  float& cms_eta, float& cms_phi, bool& bad_phi );
-  
-  //--------------------------------------------------
   // trig prim information storage
   //--------------------------------------------------  
 
@@ -83,10 +37,80 @@ private:
     int sector;
     int frBit;    
     int gblPhi;
+    int gblEta;
     float eta;
   };
+  
+  //--------------------------------------------------
+  // Standard analysis functions
+  //--------------------------------------------------
+  
+  virtual void beginJob() ;
+  virtual void analyze(const edm::Event&, const edm::EventSetup&);
+  virtual void endJob() ;
 
-  void analyzeCombos( const std::vector < std::vector < CSCTPInfo > > & v_tpInfo );
+  //--------------------------------------------------
+  // My analysis functions
+  //--------------------------------------------------
+  
+  void analyzeGenMuons();
+  void analyzeDataMuons();
+  void analyzeMuonTrigPrims();
+
+  //--------------------------------------------------
+  // Conditions getter function
+  //--------------------------------------------------
+
+  void getConditions();
+
+  //--------------------------------------------------
+  // Build objects in the constructor
+  //--------------------------------------------------
+  
+  void buildSRLUTs();
+    
+  //--------------------------------------------------
+  // Fill a list of stubs with DT and CSC information
+  //--------------------------------------------------
+
+  void fillStubList ( std::vector<csctf::TrackStub> & v_stubs );
+
+  //--------------------------------------------------
+  // Get the global eta and phi coordinates of a stub
+  //--------------------------------------------------
+  
+  void getStubCoordinates( csctf::TrackStub & stub, 
+			   int& gblEta_eta, int& gblPhi_phi, 
+			   float& cms_eta, float& cms_phi );
+
+  //--------------------------------------------------
+  // Analyze combinations of stubs
+  //--------------------------------------------------
+  
+  void analyzeStubCombos    ( const std::vector < std::vector < std::vector< CSCTPInfo > > > & v_tpInfo );
+  void analyzeStubCombos_new( const std::vector < std::vector < std::vector< CSCTPInfo > > > & v_tpInfo );
+
+  //--------------------------------------------------
+  // Get the quality of a track
+  //--------------------------------------------------
+  
+  void getTrackQuality( const std::vector < std::vector < std::vector < CSCTPInfo > > > & v_tpInfo,
+			std::vector <int>&  trackQuality_bySector);
+  
+  //--------------------------------------------------
+  // Binning functions
+  //--------------------------------------------------
+
+  int getPtBin ( float pt  );
+  int getEtaBin( float eta );
+
+  //--------------------------------------------------
+  // Helper functions
+  //--------------------------------------------------
+  
+  int reducedComboHitId ( const int stationId1, const int stationId2);
+  int reducedComboFRBId ( const int frbit1    , const int frbit2    );
+  void int2bin (uint32_t val, char* string);
 
   //--------------------------------------------------
   // Event and setup pointers
@@ -100,9 +124,8 @@ private:
   //--------------------------------------------------
 
   const edm::InputTag m_cscCorrLCTDigiTag;
+  const edm::InputTag m_dttpDigiTag;
   const edm::InputTag m_genParticlesTag;
-  const edm::InputTag m_simHitsTag;
-  const edm::InputTag m_simTracksTag;
 
   //--------------------------------------------------
   // Conditions information
@@ -148,8 +171,21 @@ private:
   //--------------------------------------------------
 
   std::string m_fileName;
-  std::string m_histName;
+  std::string m_dphiHistName;
+  std::string m_detaHistName;
+  std::string m_etaHistName;
 
+  //--------------------------------------------------
+  // Limits of stations and sectors
+  //--------------------------------------------------
+
+  const int m_firstStation, m_lastStation;
+  const int m_firstSector , m_lastSector ;
+  
+  const int m_maxHitCombo ;
+  const int m_maxFrbCombo ;
+  const int m_nQualityBins;
+  
   //--------------------------------------------------
   // Plot Storage
   //--------------------------------------------------
@@ -160,7 +196,8 @@ private:
   // Various LUTs
   //--------------------------------------------------
   
-  CSCSectorReceiverLUT * m_srLUTs[6][2];
+  CSCSectorReceiverLUT * m_srLUTs[5][6][2];
+  CSCTFDTReceiver* m_dtrc;
 
 };
 

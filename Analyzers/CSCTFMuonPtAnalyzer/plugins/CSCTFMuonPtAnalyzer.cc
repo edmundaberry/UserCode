@@ -14,10 +14,9 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 // Data formats
-#include "SimDataFormats/TrackingHit/interface/PSimHitContainer.h"
-#include "SimDataFormats/Track/interface/SimTrackContainer.h"
 #include "DataFormats/HepMCCandidate/interface/GenParticle.h"
 #include "DataFormats/CSCDigi/interface/CSCCorrelatedLCTDigiCollection.h"
+#include "DataFormats/L1DTTrackFinder/interface/L1MuDTChambPhContainer.h"
 #include "DataFormats/L1CSCTrackFinder/interface/L1CSCStatusDigiCollection.h"
 #include "DataFormats/MuonDetId/interface/CSCTriggerNumbering.h"
 #include "DataFormats/Math/interface/deltaPhi.h"
@@ -35,28 +34,41 @@
 
 CSCTFMuonPtAnalyzer::CSCTFMuonPtAnalyzer(const edm::ParameterSet& iConfig):
   m_cscCorrLCTDigiTag ( iConfig.getParameter<edm::InputTag>("CSCCorrLCTDigiTag")),
+  m_dttpDigiTag       ( iConfig.getParameter<edm::InputTag>("DTTPDigiTag")),
   m_genParticlesTag   ( iConfig.getParameter<edm::InputTag>("GenParticlesTag")),
-  m_simHitsTag        ( iConfig.getParameter<edm::InputTag>("SimHitsTag")),
-  m_simTracksTag      ( iConfig.getParameter<edm::InputTag>("SimTracksTag")),
   m_analyzeGenMuons   ( iConfig.getParameter<bool>         ("AnalyzeGenMuons")),
   m_analyzeDataMuons  ( iConfig.getParameter<bool>         ("AnalyzeDataMuons")),
   m_verbose           ( iConfig.getParameter<bool>         ("Verbose")),
   m_ptBins            ( iConfig.getParameter < std::vector <double> > ("ScalePt")),
   m_etaBins           ( iConfig.getParameter < std::vector <double> > ("ScaleEta")),
   m_fileName          ( iConfig.getParameter<std::string>  ("FileName")),
-  m_histName          ( iConfig.getParameter<std::string>  ("HistName"))
+  m_dphiHistName      ( iConfig.getParameter<std::string>  ("DPhiHistName")),
+  m_detaHistName      ( iConfig.getParameter<std::string>  ("DEtaHistName")),
+  m_etaHistName       ( iConfig.getParameter<std::string>  ("EtaHistName")),
+  m_firstStation      ( 0 ), // includes the DT's
+  m_lastStation       ( 4 ),
+  m_firstSector       ( 1 ),
+  m_lastSector        ( 6 ), 
+  m_maxHitCombo       ( 10 ),
+  m_maxFrbCombo       ( 4 ),
+  m_nQualityBins      ( 4 )
 {
   
   buildSRLUTs ();
 
+  m_dtrc = new CSCTFDTReceiver();
+  
   m_fillTree.init(m_fileName,&m_tree);
 
-  m_plotStorage = new MuonBinnedPlotStorage (6, 4, m_ptBins.size()  , m_etaBins.size() , m_histName);
+  m_plotStorage = new MuonBinnedPlotStorage (m_maxHitCombo, m_maxFrbCombo, m_ptBins.size() , 
+					     m_etaBins.size() , m_nQualityBins, 
+					     m_dphiHistName, m_detaHistName, m_etaHistName );
 
 }
 
 CSCTFMuonPtAnalyzer::~CSCTFMuonPtAnalyzer() {
   if (m_plotStorage) delete m_plotStorage;
+  if (m_dtrc) delete m_dtrc;
 }
 
 void CSCTFMuonPtAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
@@ -67,8 +79,6 @@ void CSCTFMuonPtAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetu
 
   m_event = &iEvent;
   m_setup = &iSetup;
-
-  // iSetup.get<MuonGeometryRecord>().get( m_geometry );
 
   //--------------------------------------------------
   // Initialize the ROOT tree
@@ -85,13 +95,7 @@ void CSCTFMuonPtAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetu
 
   m_tree.run   = run;
   m_tree.event = event;
-
-  //--------------------------------------------------
-  // Get conditions
-  //--------------------------------------------------
-
-  getConditions();
-
+  
   //--------------------------------------------------
   // Analyze "real" muons, whether from data or MC
   //--------------------------------------------------
@@ -100,16 +104,10 @@ void CSCTFMuonPtAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetu
   if (m_analyzeDataMuons) analyzeDataMuons();
 
   //--------------------------------------------------
-  // Analyze simulation muon hits
-  //--------------------------------------------------
-
-  // analyzeCSCSimHits();
-
-  //--------------------------------------------------
   // Analyze the trigger primitives
   //--------------------------------------------------
 
-  analyzeCSCTrigPrims();
+  analyzeMuonTrigPrims();
 
   //--------------------------------------------------
   // Fill ROOT tree
@@ -117,16 +115,6 @@ void CSCTFMuonPtAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetu
 
   m_fillTree.fill();
 
-}
-
-//--------------------------------------------------
-// Get conditions information
-//--------------------------------------------------
-
-void CSCTFMuonPtAnalyzer::getConditions(){
-  
-  
-  
 }
 
 //--------------------------------------------------
@@ -197,494 +185,563 @@ void CSCTFMuonPtAnalyzer::analyzeDataMuons(){
 }
 
 //--------------------------------------------------
-// Analyze SIM hits 
+// Once you have your "real" muons, analyze CSC TP's
 //--------------------------------------------------
 
-void CSCTFMuonPtAnalyzer::analyzeCSCSimHits(){
-
-  //--------------------------------------------------
-  // Get the SimHits
-  //--------------------------------------------------
-  
-  edm::Handle< edm::PSimHitContainer > SimHits;
-  edm::Handle< edm::SimTrackContainer > SimTracks;
-
-  bool gotSimHits = m_event -> getByLabel (m_simHitsTag, SimHits);
-  if (!gotSimHits){
-    edm::LogWarning("CSCTFMuonPtAnalyzer") << "Could not extract: " << m_simHitsTag;
-    return;
-  }
-
-  //--------------------------------------------------
-  // Store the last CSCDetId you ran over
-  //--------------------------------------------------
-
-  CSCDetId lastDetId;
-  int lastPartId =-999;
-
-  //--------------------------------------------------
-  // Loop over the sim hits
-  //--------------------------------------------------  
-
-  edm::PSimHitContainer::const_iterator simHit     = SimHits.product() -> begin();
-  edm::PSimHitContainer::const_iterator simHit_end = SimHits.product() -> end();
-
-  int nsh = 0;
-
-  for (; simHit != simHit_end; ++simHit){
-
-    if ( nsh >= CSCTFMuonTree::MAXNSIMHIT ) continue;
-    
-    //--------------------------------------------------
-    // Sim hits will contain lots of electrons from
-    // scattering.  Is this a muon or an electron?
-    //--------------------------------------------------
-
-    int pdg = simHit -> particleType();
-    
-    if (abs(pdg) != 13) continue;
-
-    //--------------------------------------------------
-    // Next make sure this is within the CSC
-    //--------------------------------------------------
-
-    DetId * detId = new DetId( simHit -> detUnitId() );
-    
-    if ( detId -> det()      != DetId::Muon ||
-    	 detId -> subdetId() != MuonSubdetId::CSC ){
-      if (detId) delete detId;
-      continue;
-    }
-    
-    //--------------------------------------------------
-    // If this is within the CSC, and we haven't looked
-    // at this particular particle / chamber before,
-    // store the information about the sim hit
-    //--------------------------------------------------
-    CSCDetId cscDetId = (CSCDetId) simHit -> detUnitId();
-    const CSCLayer* cscLayer = m_geometry -> layer ( cscDetId );
-    
-    LocalPoint  hitLP = simHit -> localPosition();
-    GlobalPoint hitGP = cscLayer -> toGlobal(hitLP);
-    
-    float phi = hitGP.phi();
-    float eta = hitGP.eta();
-    
-    int frBit = CSCFrontRearLUT::getFRBit ( cscDetId.triggerSector(),
-					    CSCTriggerNumbering::triggerSubSectorFromLabels(cscDetId),
-					    cscDetId.station(),
-					    cscDetId.triggerCscId() );
-    
-    m_tree.sh_pdg  [nsh] = pdg;
-    m_tree.sh_eta  [nsh] = eta;
-    m_tree.sh_phi  [nsh] = phi;
-    m_tree.sh_frBit[nsh] = frBit;
-    m_tree.sh_stat [nsh] = cscDetId.station();
-    m_tree.sh_ring [nsh] = cscDetId.ring();
-    m_tree.sh_cham [nsh] = cscDetId.chamber();
-    m_tree.sh_layr [nsh] = cscDetId.layer();
-    m_tree.sh_endc [nsh] = cscDetId.endcap();
-    m_tree.sh_sect [nsh] = cscDetId.triggerSector();
-    m_tree.sh_cscid[nsh] = cscDetId.triggerCscId();
-    
-    // SimHitInfo simHitInfo = { cscDetId.chamberId(), pdg, eta, phi };
-    // m_simHits.push_back(simHitInfo);
-
-    //--------------------------------------------------
-    // Update the last particle and chamber information
-    //--------------------------------------------------
-    
-    lastDetId  = cscDetId;
-    lastPartId = pdg;
-
-    //--------------------------------------------------
-    // Update the number of sim hits
-    //--------------------------------------------------
-
-    ++nsh;
-  }
-  
-  m_tree.nsh = nsh;
-  
-}
-
-
-//--------------------------------------------------
-// Once you have your "real" and sim muons, analyze CSC TP's
-//--------------------------------------------------
-
-
-void CSCTFMuonPtAnalyzer::analyzeCSCTrigPrims(){
-
-  //--------------------------------------------------
-  // Get the handle
-  //--------------------------------------------------
-  
-  edm::Handle< CSCCorrelatedLCTDigiCollection > CorrLCTs;
-
-  bool gotCSCCorrLCTDigis = m_event -> getByLabel (m_cscCorrLCTDigiTag, CorrLCTs);
-  
-  if (!gotCSCCorrLCTDigis){
-    edm::LogWarning("CSCTFMuonPtAnalyzer") << "Could not extract: " << m_cscCorrLCTDigiTag;
-    return;
-  }  
+void CSCTFMuonPtAnalyzer::analyzeMuonTrigPrims(){
 
   //--------------------------------------------------  
-  // Loop over the chambers
-  // Note that the DigiRangeIterator represents chamber
-  //    -- First  element is the chamber DetId 
-  //    -- Second element is a **collection** of 
-  //       associated digis.  May be up to 2.
-  //--------------------------------------------------
-
-  CSCCorrelatedLCTDigiCollection::DigiRangeIterator chamber     = CorrLCTs.product() -> begin();
-  CSCCorrelatedLCTDigiCollection::DigiRangeIterator chamber_end = CorrLCTs.product() -> end();
-
-  int nl1detid = 0;
+  // Combine CSC and DT info into a vector of stubs
+  //--------------------------------------------------  
   
-  std::vector< std::vector<CSCTPInfo> > v_comboInfo ( 4, std::vector<CSCTPInfo>() );
+  std::vector<csctf::TrackStub> v_stubs;
+  fillStubList ( v_stubs );
 
-  for (; chamber != chamber_end; ++chamber){   
+  //--------------------------------------------------  
+  // Now loop over the stubs
+  //--------------------------------------------------  
 
-    //--------------------------------------------------
-    // Don't look at more chambers than we can store
-    //--------------------------------------------------
+  std::vector<csctf::TrackStub>::iterator stub     = v_stubs.begin();
+  std::vector<csctf::TrackStub>::iterator stub_end = v_stubs.end();
+  
+  std::vector< std::vector< std::vector <CSCTPInfo> > > 
+    v_comboInfo ( m_lastSector + 1, std::vector< std::vector< CSCTPInfo> >(m_lastStation + 1, std::vector<CSCTPInfo> () ) );
 
-    if ( nl1detid >= CSCTFMuonTree::MAXNL1DETID ) continue;
+  int nstub = 0;
 
-    //--------------------------------------------------
-    // Get a pointer to the det id that identifies this
-    // chamber
-    //--------------------------------------------------
-
-    CSCDetId * cscDetId = &((*chamber).first);
-
-    //--------------------------------------------------
-    // Cache information about the CSCDetId
-    //--------------------------------------------------
-
-    int station = cscDetId -> station();	  
-    int ring    = cscDetId -> ring();	  
-    int chamber = cscDetId -> chamber();	  
-    int layer   = cscDetId -> layer();	  
-    int endcap  = cscDetId -> endcap();	  
-    int sector  = cscDetId -> triggerSector(); 
-    int cscid   = cscDetId -> triggerCscId();  
-    int frBit   = CSCFrontRearLUT::getFRBit ( sector, CSCTriggerNumbering::triggerSubSectorFromLabels(*cscDetId), station, cscid );
-    
-    //--------------------------------------------------
-    // Store information about the CSCDetId
-    //--------------------------------------------------
-
-    m_tree.l1detid_frBit[nl1detid] = frBit  ;
-    m_tree.l1detid_stat [nl1detid] = station;
-    m_tree.l1detid_ring [nl1detid] = ring   ;
-    m_tree.l1detid_cham [nl1detid] = chamber;
-    m_tree.l1detid_layr [nl1detid] = layer  ;
-    m_tree.l1detid_endc [nl1detid] = endcap ;
-    m_tree.l1detid_sect [nl1detid] = sector ;
-    m_tree.l1detid_cscid[nl1detid] = cscid  ;
+  for (; stub != stub_end; ++stub){
 
     //--------------------------------------------------
-    // For each chamber DetId, get the range of LCT digis
-    //--------------------------------------------------
-    
-    CSCCorrelatedLCTDigiCollection::Range corrLCTDigi_range = CorrLCTs.product() -> get( *cscDetId  );    
-    CSCCorrelatedLCTDigiCollection::const_iterator corrLCTDigi     = corrLCTDigi_range.first;
-    CSCCorrelatedLCTDigiCollection::const_iterator corrLCTDigi_end = corrLCTDigi_range.second;
-    CSCCorrelatedLCTDigiCollection::const_iterator bestCorrLCTDigi;
-    
-    //--------------------------------------------------
-    // Find the best-quality digi in this chamber
+    // These values exist for CSC and DT stubs
     //--------------------------------------------------
 
-    int max_quality = -999;
-
-    for (; corrLCTDigi != corrLCTDigi_end; ++corrLCTDigi ){    
-
-      int this_digi_quality = (int) corrLCTDigi -> getQuality();
-
-      if (this_digi_quality > max_quality) {
-	max_quality = this_digi_quality;
-	bestCorrLCTDigi = corrLCTDigi;
-      }
-    }
+    int  station  = stub -> station();
+    int  sector   = stub -> sector ();
+    int  endcap   = stub -> endcap();
+    int  cscid    = stub -> cscid();
 
     //--------------------------------------------------
-    // Cache information about this best digi
+    // These values won't be filled for the DT stubs
     //--------------------------------------------------
 
-    int strip   = (int) bestCorrLCTDigi -> getStrip();
-    int pattern = (int) bestCorrLCTDigi -> getPattern();
-    int quality = (int) bestCorrLCTDigi -> getQuality();
-    int bend    = (int) bestCorrLCTDigi -> getBend();
-    int keyWG   = (int) bestCorrLCTDigi -> getKeyWG();
+    // Digi values
+    int  strip    = -2;
+    int  pattern  = -2;
+    int  quality  = -2;
+    int  bend     = -2;
+    int  keyWG    = -2;
+
+    // DetId values
+    int  ring     = -2;
+    int  chamber  = -2;
+    int  frBit    = 0;
+    bool bad_phi  = false;
 
     //--------------------------------------------------
-    // Store information about this best digi
+    // Is this in the CSC?
     //--------------------------------------------------
 
-    m_tree.l1detid_digi_strip      [nl1detid] = strip;
-    m_tree.l1detid_digi_pattern    [nl1detid] = pattern;
-    m_tree.l1detid_digi_quality    [nl1detid] = quality;
-    m_tree.l1detid_digi_bend       [nl1detid] = bend;
-    m_tree.l1detid_digi_keyWG      [nl1detid] = keyWG;
+    if ( station != 5 ){
 
-    //--------------------------------------------------
-    // Cache information about the location of the hits
-    //--------------------------------------------------
-    
-    int lclPhi_phi_bend, lclPhi_phi, gblPhi_phi, gblEta_eta;
-    float cms_eta, cms_phi;  
-    bool bad_phi;
+      //--------------------------------------------------
+      // Get the CSCDetId and the digi
+      //--------------------------------------------------
       
-    getHitCoordinates (*cscDetId , *bestCorrLCTDigi,
-		       lclPhi_phi_bend, lclPhi_phi, gblPhi_phi, gblEta_eta,
-		       cms_eta, cms_phi, bad_phi );
+      const CSCDetId * cscDetId = new CSCDetId ( stub -> getDetId() );
+      const CSCCorrelatedLCTDigi * digi = stub -> getDigi();
 
-    if ( bad_phi )  m_tree.l1detid_digi_badphi[nl1detid] = 1;
-    else {
-      m_tree.l1detid_digi_badphi[nl1detid] = 0;
+      //--------------------------------------------------
+      // Get the digi values
+      //--------------------------------------------------
+            
+      strip   = digi -> getStrip();
+      pattern = digi -> getPattern();
+      quality = digi -> getQuality();
+      bend    = digi -> getBend();
+      keyWG   = digi -> getKeyWG();
+
+      //--------------------------------------------------
+      // Get the detector values
+      //--------------------------------------------------
+
+      ring    = cscDetId -> ring();
+      chamber = cscDetId -> chamber();      
+      frBit   = CSCFrontRearLUT::getFRBit ( cscDetId -> triggerSector(),
+					    CSCTriggerNumbering::triggerSubSectorFromLabels(*cscDetId),
+					    cscDetId -> station(),
+					    cscDetId -> triggerCscId() );
+
+      //--------------------------------------------------
+      // Is this a bad phi chamber?
+      //--------------------------------------------------
+      
+      bad_phi = (chamber > 8 && station == 4 && sector == 2);
+
+      //--------------------------------------------------
+      // Memory clean-up, if necessary 
+      //--------------------------------------------------
+      
+      if (cscDetId) delete cscDetId;
+
+    }
+
+    //--------------------------------------------------
+    // Get stub coordinates
+    //--------------------------------------------------
+    
+    int stub_gblEta, stub_gblPhi;
+    float cms_eta, cms_phi;
+
+    getStubCoordinates( *stub, stub_gblEta,  stub_gblPhi, cms_eta,  cms_phi );
+
+    //--------------------------------------------------
+    // Store the digi values
+    //--------------------------------------------------
+
+    m_tree.stub_digi_eta    [nstub] = cms_eta;
+    m_tree.stub_digi_phi    [nstub] = cms_phi;
+    m_tree.stub_digi_strip  [nstub] = strip;
+    m_tree.stub_digi_keyWG  [nstub] = keyWG;
+    m_tree.stub_digi_quality[nstub] = quality;
+    m_tree.stub_digi_badphi [nstub] = (bad_phi ? 1 : 0);
+    m_tree.stub_digi_pattern[nstub] = pattern;
+    m_tree.stub_digi_bend   [nstub] = bend;    
+    m_tree.stub_digi_gblPhi [nstub] = stub_gblEta;
+    m_tree.stub_digi_gblEta [nstub] = stub_gblPhi;       			       
+    
+    //--------------------------------------------------
+    // Store the detector values
+    //--------------------------------------------------
+
+    m_tree.stub_frBit[nstub] = frBit  ;
+    m_tree.stub_stat [nstub] = station;
+    m_tree.stub_ring [nstub] = ring   ;
+    m_tree.stub_cham [nstub] = chamber;
+    m_tree.stub_endc [nstub] = endcap ;
+    m_tree.stub_sect [nstub] = sector ;
+    m_tree.stub_cscid[nstub] = cscid  ;
+        
+    //--------------------------------------------------
+    // Is this phi OK?
+    //--------------------------------------------------
+
+    if (!bad_phi){
+
+      //--------------------------------------------------
+      // If it is OK, print out info on the stub
+      //--------------------------------------------------
+
       if (m_verbose) 
-	std::cout << *cscDetId << ", " 
+	std::cout << "   " << endcap << ":" << station << ":" << ring << ":" << chamber << ", "
 		  << "sector = " << sector  << ", " 
 		  << "eta = "    << cms_eta << ", "
 		  << "phi = "    << cms_phi << ", "
-		  << "gblPhi = " << gblPhi_phi << std::endl;
-    }
+		  << "gblPhi = " << stub_gblPhi << std::endl;
 
-    //--------------------------------------------------
-    // Store information about the location of the hits
-    //--------------------------------------------------
+      //--------------------------------------------------
+      // Also pass on info about the stub to be made into
+      // a combo for momentum assignment
+      //--------------------------------------------------
 
-    m_tree.l1detid_digi_eta        [nl1detid] = cms_eta;
-    m_tree.l1detid_digi_phi        [nl1detid] = cms_phi;    
-    m_tree.l1detid_digi_lclPhi     [nl1detid] = lclPhi_phi;
-    m_tree.l1detid_digi_lclPhiBend [nl1detid] = lclPhi_phi_bend;
-    m_tree.l1detid_digi_gblPhi     [nl1detid] = gblPhi_phi;
-    m_tree.l1detid_digi_gblEta     [nl1detid] = gblEta_eta;    
-
-    //--------------------------------------------------
-    // Save important values about the collection of 
-    // digis to the tree, if the phi wasn't bad
-    //--------------------------------------------------
-    
-    if (!bad_phi){
+      int comboStation = station;
+      if (station == 5) comboStation = 0;
 
       CSCTPInfo tpInfo;
       
-      tpInfo.station = cscDetId -> station();
-      tpInfo.sector  = cscDetId -> triggerSector();
-      tpInfo.ring    = cscDetId -> ring();
+      tpInfo.station = comboStation;
+      tpInfo.sector  = sector;
+      tpInfo.ring    = ring;
       tpInfo.frBit   = frBit;
-      tpInfo.gblPhi  = gblPhi_phi;
-      tpInfo.eta     = cms_eta;
+      tpInfo.gblPhi  = stub_gblPhi;
+      tpInfo.gblEta  = stub_gblEta;
+      tpInfo.eta     = cms_eta;      
 
-      // Store trigger primitives to make combos
-
-      v_comboInfo[station - 1].push_back(tpInfo);
+      v_comboInfo[sector][comboStation].push_back(tpInfo);
 
     }
 
-    ++nl1detid;
+    //--------------------------------------------------
+    // Say how many stubs we found
+    //--------------------------------------------------
+
+    ++nstub;
 
   }
 
-  m_tree.nl1detid = nl1detid;
+  m_tree.nstub = nstub;
 
-  analyzeCombos ( v_comboInfo );
+  analyzeStubCombos ( v_comboInfo );
+  
+}
+
+//--------------------------------------------------
+// Method for getting the track quality across 
+// all sectors in the CSC's
+//--------------------------------------------------
+
+void CSCTFMuonPtAnalyzer::getTrackQuality( const std::vector < std::vector < std::vector< CSCTPInfo > > > & v_tpInfo,
+					   std::vector <int>& v_trackQuality_bySector) {
+
+  //--------------------------------------------------
+  // Resize the quality vector to fit all sectors
+  //--------------------------------------------------
+
+  v_trackQuality_bySector.resize( m_lastSector + 1 );
+
+  //--------------------------------------------------
+  // Loop over the sectors available
+  //--------------------------------------------------
+
+  for (int iSector = m_firstSector; iSector <= m_lastSector; ++iSector){
+    
+    //--------------------------------------------------
+    // Allot values in memory for quality assigment
+    //--------------------------------------------------
+
+    int  quality;
+    int  n_stations_with_hits_in_this_sector = 0;
+    bool hit_station_1 = false;
+    bool hit_station_2 = false; 
+    bool hit_station_3 = false;
+
+    //--------------------------------------------------
+    // Get the hits in this sector as ordered by station
+    //--------------------------------------------------
+
+    const std::vector < std::vector <CSCTPInfo> > * v_hits_in_this_sector = & v_tpInfo[iSector];
+
+    //--------------------------------------------------
+    // Loop over the stations
+    //--------------------------------------------------
+
+    for (int iStation = m_firstStation; iStation <= m_lastStation; ++iStation){
+      
+      //--------------------------------------------------
+      // Do not count the DT's in the quality assigment
+      //--------------------------------------------------
+      
+      if ( iStation == 0 ) continue;
+
+      //--------------------------------------------------
+      // Get the hits in this sector and station
+      //--------------------------------------------------
+
+      const std::vector < CSCTPInfo > * v_hits_in_this_sector_and_station = & v_hits_in_this_sector -> at( iStation );
+      
+      //--------------------------------------------------
+      // Get values you need to assign quality
+      //--------------------------------------------------
+      
+      int n_hits_in_this_sector_and_station = (int) v_hits_in_this_sector_and_station -> size() ;
+      
+      if ( n_hits_in_this_sector_and_station > 0 ) {
+
+	n_stations_with_hits_in_this_sector++;	
+	
+	if      ( iStation == 1 ) hit_station_1 = true;
+	else if ( iStation == 2 ) hit_station_2 = true;
+	else if ( iStation == 3 ) hit_station_3 = true;      
+	
+      }
+
+    }
+
+    //--------------------------------------------------
+    // Assign quality
+    //--------------------------------------------------
+     
+    if      (  n_stations_with_hits_in_this_sector < 2                   ) quality = -2; // can't make a combo
+    else if ( !hit_station_2 && !hit_station_3                           ) quality = -1; // no key stations
+    else if ( !hit_station_1 && n_stations_with_hits_in_this_sector == 2 ) quality =  1;
+    else if (  hit_station_1 && n_stations_with_hits_in_this_sector == 2 ) quality =  2;
+    else if (  hit_station_1 && n_stations_with_hits_in_this_sector >= 3 ) quality =  3;
+    else                                                                   quality =  0;
+
+    v_trackQuality_bySector [ iSector ] = quality;
+    
+  }
 
 }
 
-void CSCTFMuonPtAnalyzer::analyzeCombos( const std::vector < std::vector < CSCTPInfo > > & v_tpInfo ) {
+//--------------------------------------------------
+// Analyze combinations of stubs 
+// and make tracks from them
+//--------------------------------------------------
+
+void CSCTFMuonPtAnalyzer::analyzeStubCombos( const std::vector < std::vector < std::vector <CSCTPInfo> > > & v_tpInfo ) {
 
   //--------------------------------------------------
   // Loop over possible first stations
   //--------------------------------------------------
   
-  int first_combo_station1 = -999;
-  int first_combo_station2 = -999;
-  
-  int ncombo = 0;
-  int station1 = 0;
-  
-  bool noMoreStationsWithHits = false;
-  
-  while ( station1 <= 2 && !noMoreStationsWithHits ){
-    
-    //--------------------------------------------------
-    // How many hits in this station? 
-    // If none, go to the next station.
-    //--------------------------------------------------
-    
-    const std::vector<CSCTPInfo> * station1_hits = & v_tpInfo [station1];
-    
-    int nStation1Hits = (int) station1_hits -> size();
-    
-    if ( nStation1Hits == 0) {      
-      station1++;
-      continue;
-    }
-    
-    if (m_verbose)
-      std::cout << "  Trying 1st Station is Station " << station1 + 1 
-		<< " with " << nStation1Hits << " hits..." << std::endl;
-    
-    //--------------------------------------------------
-    // Loop over candidates for the second station, 
-    // until you find one that has a hit.
-    //
-    // Be careful not to go past the last station.
-    // 
-    // If you never found another non-empty station,
-    // leave the loop over station1 candidates
-    //--------------------------------------------------
-    
-    int station2 = station1 + 1;
-    int nStation2Hits = 0;
-    bool foundNextNonEmptyStation = false;
-    
-    while ( !foundNextNonEmptyStation && station2 <= 3){
-      
-      nStation2Hits = (int) v_tpInfo[station2].size();
-      
-      if ( nStation2Hits > 0 ) foundNextNonEmptyStation = true;
-      else station2++;
-      
-    }
-    
-    if (!foundNextNonEmptyStation) {
-      if (m_verbose) std::cout << "         2nd Station cannot be found!" << std::endl;
-      noMoreStationsWithHits = true;
-      continue;
-    }
+  std::vector<int> v_trackQuality;
+  getTrackQuality ( v_tpInfo, v_trackQuality );
 
-    if (m_verbose) 
-      std::cout << "         " << "2nd Station is Station " << station2 + 1 
-		<< " with " << nStation2Hits << " hits " << std::endl;
+  if (m_verbose){
+    std::cout << "   " << "I am predicting tracks in sectors: " << std::endl;
+    for (int iSector = m_firstSector; iSector <= m_lastSector ; ++iSector){
+      int quality = v_trackQuality[iSector];
+      if (quality > 0)	std::cout << "          " << iSector << " with quality = " << quality << std::endl;
+    }
+  }
+
+  std::vector<int> sect_ncombo;
+    
+  int nsector = 0;
+
+  //--------------------------------------------------    
+  // Loop over the sectors
+  //--------------------------------------------------    
+
+  for ( int iSector = m_firstSector; iSector <= m_lastSector; ++iSector ){
 
     //--------------------------------------------------
-    // Get your vector of station 2 hits
-    //--------------------------------------------------
-    
-    const std::vector<CSCTPInfo> * station2_hits = & v_tpInfo[station2];       
-    
-    //--------------------------------------------------
-    // Now that you have both stations, loop over first
-    // station hits
-    //--------------------------------------------------
-	
-    for ( int iHit1 = 0; iHit1 < nStation1Hits; ++iHit1 ) {
-      
-      const CSCTPInfo * station1_hit = & station1_hits -> at ( iHit1 );
+    // Don't bother with sectors that are of poor quality
+    //--------------------------------------------------    
+
+    int quality = v_trackQuality[iSector];    
+    if (quality < 0) continue;
+
+    //--------------------------------------------------    
+    // Get all hits in this sector
+    //--------------------------------------------------    
+
+    const std::vector < std::vector < CSCTPInfo > > * v_hits_in_this_sector = & v_tpInfo[iSector];
+       
+    //--------------------------------------------------    
+    // Initialize values for this sector
+    //--------------------------------------------------    
+
+    int  first_combo_station1 = -999;
+    int  first_combo_station2 = -999;
+    bool noMoreStationsWithHits = false; 
+    int  station1 = m_firstStation;
+    int  ncombo = 0;
+
+    //--------------------------------------------------    
+    // Loop over stations
+    //--------------------------------------------------    
+
+    while ( station1 <= ( m_lastStation - 1) && !noMoreStationsWithHits ){
       
       //--------------------------------------------------
-      // ... and second station hits
+      // How many hits in this station? 
+      // If none, go to the next station.
       //--------------------------------------------------
+            
+      const std::vector<CSCTPInfo> * v_station1_hits = & v_hits_in_this_sector -> at ( station1 );
+    
+      int n_station1_hits = (int) v_station1_hits -> size();
       
-      for (int iHit2 = 0; iHit2 < nStation2Hits; ++iHit2 ) {
-	
-	const CSCTPInfo * station2_hit = & station2_hits -> at ( iHit2 );
-	  	
-	//--------------------------------------------------
-	// Get the dphi value
-	//--------------------------------------------------
-
-	int dphi = (station1_hit -> gblPhi) - (station2_hit -> gblPhi);
-	
-	//--------------------------------------------------
-	// Don't bother with hits that aren't in the same
-	// sector.  Count how many combos fail this cut.
-	//--------------------------------------------------
-
-	if ( station1_hit -> sector != station2_hit -> sector ) {
-	  m_tree.nskip++;
-	  if (m_verbose) std::cout << "         " << "- Combo FAIL: Same sector cut " << std::endl;
-	  continue;
-	}
-	
-	//--------------------------------------------------
-	// Don't bother with combos outside of our dphi cut
-	//
-	// Is this the first combination of stations?
-	// If it isn't, our dphi cut gets stricter
-	//--------------------------------------------------
-
-	int isFirstCombo = 0;
-
-	if ( first_combo_station1 == -999 || first_combo_station2 == -999  ){
-	  first_combo_station1 = station1;
-	  first_combo_station2 = station2;
-	}
-	
-	if ( station1 == first_combo_station1 || station2 == first_combo_station2 ){	  
-
-	  isFirstCombo = 1;
-
-	  if ( abs(dphi) > 512 ) {
-	    if (m_verbose) std::cout <<"         " << "- Combo FAIL: 1st dphi cut " << std::endl;
-	    continue;
-	  }
-	}
-	
-	else {
-	  if ( abs(dphi) > 256 ) {
-	    if (m_verbose) std::cout << "         " << "- Combo FAIL: 2nd dphi cut " << std::endl;
-	    continue;
-	  }
-	}
-		
-	int combo_hitId  = reducedComboHitId ( station1 , station2 );
-	int combo_frbId  = reducedComboFRBId ( station1_hit -> frBit , station2_hit -> frBit );	  
-	int etaBin       = getEtaBin         ( station1_hit -> eta );
-	
-	//--------------------------------------------------
-	// Store info about this combo in the tree
-	//--------------------------------------------------
-
-	m_tree.combo_isFirst[ncombo]    = isFirstCombo;
-	m_tree.combo_etaBin [ncombo]    = etaBin;
-	m_tree.combo_dphi   [ncombo]    = dphi;
-	m_tree.combo_hitId  [ncombo]    = combo_hitId;
-	m_tree.combo_frbId  [ncombo]    = combo_frbId;	  
-	m_tree.combo_sector [ncombo]    = station1_hit -> sector;
-	m_tree.combo_eta    [ncombo][0] = station1_hit -> eta;
-	m_tree.combo_eta    [ncombo][1] = station2_hit -> eta;
-	m_tree.combo_phi    [ncombo][0] = station1_hit -> gblPhi;	  
-	m_tree.combo_phi    [ncombo][1] = station2_hit -> gblPhi;
-
-	if (m_verbose) std::cout << "         " << "+ Combo PASS: dphi = " << dphi << std::endl;
-	
-	//--------------------------------------------------
-	// Fill the histogram
-	//--------------------------------------------------
-	
-	m_plotStorage -> fill( combo_hitId, combo_frbId, m_tree.ptBin, etaBin, isFirstCombo, dphi );
-	
-	//--------------------------------------------------
-	// Count the number of combos
-	//--------------------------------------------------
-	
-	ncombo++;
-	
+      if ( n_station1_hits == 0) {      
+	station1++;
+	continue;
       }
+    
+      if (m_verbose)
+	std::cout << "   Trying 1st Station is Station " << station1 
+		  << " with " << n_station1_hits << " hits..." << std::endl;
+      
+      //--------------------------------------------------
+      // Loop over candidates for the second station, 
+      // until you find one that has a hit.
+      //
+      // Be careful not to go past the last station.
+      // 
+      // If you never found another non-empty station,
+      // leave the loop over station1 candidates
+      //--------------------------------------------------
+    
+      int station2 = station1 + 1;
+      int n_station2_hits = 0;
+      bool foundNextNonEmptyStation = false;
+      
+      while ( !foundNextNonEmptyStation && station2 <= m_lastStation){
+      
+	n_station2_hits = (int) v_hits_in_this_sector -> at ( station2 ).size();
+      
+	if ( n_station2_hits > 0 ) foundNextNonEmptyStation = true;
+	else station2++;
+      
+      }
+    
+      if (!foundNextNonEmptyStation) {
+	if (m_verbose) std::cout << "          2nd Station cannot be found!" << std::endl;
+	noMoreStationsWithHits = true;
+	continue;
+      }
+
+      if (m_verbose) 
+	std::cout << "          " << "2nd Station is Station " << station2 
+		  << " with " << n_station2_hits << " hits " << std::endl;
+      
+      //--------------------------------------------------
+      // Get your vector of station 2 hits
+      //--------------------------------------------------
+      
+      const std::vector<CSCTPInfo> * v_station2_hits = & v_hits_in_this_sector -> at ( station2 );
+      
+      //--------------------------------------------------
+      // Now that you have both stations, loop over first
+      // station hits
+      //--------------------------------------------------
+      
+      for ( int iHit1 = 0; iHit1 < n_station1_hits; ++iHit1 ) {
+      
+	const CSCTPInfo * station1_hit = & v_station1_hits -> at ( iHit1 );
+	
+	//--------------------------------------------------
+	// ... and second station hits
+	//--------------------------------------------------
+      
+	for (int iHit2 = 0; iHit2 < n_station2_hits; ++iHit2 ) {
+	  
+	  const CSCTPInfo * station2_hit = & v_station2_hits -> at ( iHit2 );
+	  
+	  //--------------------------------------------------
+	  // Get the dphi and deta values
+	  //--------------------------------------------------
+	  
+	  int dphi = (station1_hit -> gblPhi) - (station2_hit -> gblPhi);
+	  int deta = (station1_hit -> gblEta) - (station2_hit -> gblEta);
+	
+	  //--------------------------------------------------
+	  // Don't bother with hits in different sectors
+	  //--------------------------------------------------
+	  
+	  if ( station1_hit -> sector != station2_hit -> sector ) {
+	    if (m_verbose) std::cout << "          " << "- Combo FAIL: Same sector cut " << std::endl;
+	    continue;
+	  }
+	  
+	  //--------------------------------------------------
+	  // Don't bother with combos outside of our dphi cut
+	  //
+	  // Is this the first combination of stations?
+	  // If it isn't, our dphi cut gets stricter
+	  //--------------------------------------------------
+
+	  int isFirstCombo = 0;
+	  
+	  if ( first_combo_station1 == -999 || 
+	       first_combo_station2 == -999  ){
+	    first_combo_station1 = station1;
+	    first_combo_station2 = station2;
+	  }
+	  
+	  if ( station1 == first_combo_station1 && 
+	       station2 == first_combo_station2 ){	  
+	    
+	    isFirstCombo = 1;	 
+	    
+	    if ( abs(dphi) > 512 ) {
+	      if (m_verbose) std::cout <<"          " << "- Combo FAIL: 1st dphi cut " << std::endl;
+	      continue;
+	    }
+	  }
+	  
+	  else {
+	    if ( abs(dphi) > 256 ) {
+	      if (m_verbose) std::cout << "          " << "- Combo FAIL: 2nd dphi cut " << std::endl;
+	      continue;
+	    }
+	  }
+
+	  //--------------------------------------------------
+	  // Get information on the Station 1 (of 4) ring
+	  //--------------------------------------------------
+	  
+	  int s1ring = 0;
+	  int s1ring_bit = 0;
+	  
+	  if (station1 == 1) s1ring = station1_hit -> ring;
+	  if (station2 == 1) s1ring = station2_hit -> ring;	  
+
+	  if (s1ring == 1) s1ring_bit = 1;
+
+	  //--------------------------------------------------
+	  // Get binning information
+	  //--------------------------------------------------
+	  
+	  int combo_hitId  = reducedComboHitId ( station1 , station2 );
+	  int combo_frbId  = reducedComboFRBId ( station1_hit -> frBit , station2_hit -> frBit );	  
+	  int etaBin       = getEtaBin         ( station2_hit -> eta );
+	  
+	  //--------------------------------------------------
+	  // Store info about this combo in the tree
+	  //--------------------------------------------------
+	  
+	  m_tree.sect_combo_s1ring [nsector][ncombo] = s1ring_bit;
+	  m_tree.sect_combo_isFirst[nsector][ncombo] = isFirstCombo;
+	  m_tree.sect_combo_etaBin [nsector][ncombo] = etaBin;
+	  m_tree.sect_combo_dphi   [nsector][ncombo] = dphi;
+	  m_tree.sect_combo_deta   [nsector][ncombo] = deta;
+	  m_tree.sect_combo_hitId  [nsector][ncombo] = combo_hitId;
+	  m_tree.sect_combo_frbId  [nsector][ncombo] = combo_frbId;	  
+	  m_tree.sect_combo_stat1  [nsector][ncombo] = station1;
+	  m_tree.sect_combo_stat2  [nsector][ncombo] = station2;
+	  m_tree.sect_combo_eta1   [nsector][ncombo] = station1_hit -> gblEta;
+	  m_tree.sect_combo_eta2   [nsector][ncombo] = station2_hit -> gblEta;
+	  m_tree.sect_combo_phi1   [nsector][ncombo] = station1_hit -> gblPhi;	  
+	  m_tree.sect_combo_phi2   [nsector][ncombo] = station2_hit -> gblPhi;
+	  
+	  if (m_verbose) std::cout << "          " << "+ Combo #" << ncombo + 1 << " in Sector #" << nsector + 1 << " PASS: dphi = " << dphi << ", isFirst = " << isFirstCombo <<  std::endl;      
+	  
+	  //--------------------------------------------------
+	  // Fill the histograms
+	  //--------------------------------------------------
+	  
+	  m_plotStorage -> fillEtaBin ( combo_hitId, quality, m_tree.ptBin, isFirstCombo, etaBin );
+	  m_plotStorage -> fillDPhi   ( combo_hitId, combo_frbId, m_tree.ptBin, etaBin, s1ring_bit, quality, isFirstCombo, dphi );
+	  m_plotStorage -> fillDEta   ( combo_hitId, combo_frbId, m_tree.ptBin, etaBin, s1ring_bit, quality, isFirstCombo, deta );
+
+	  //--------------------------------------------------
+	  // Count the number of combos
+	  //--------------------------------------------------
+	  
+	  ncombo++;
+	  
+	}
+      }
+      
+      //--------------------------------------------------
+      // Get ready to look at the next set of combinations
+      //--------------------------------------------------
+      
+      station1 = station2;
+      
     }
 
     //--------------------------------------------------
-    // Get ready to look at the next set of combinations
+    // Store the total sector information
     //--------------------------------------------------
 
-    station1 = station2;
+    m_tree.sect_quality[nsector] = quality;
+    m_tree.sect_num    [nsector] = iSector;
+    m_tree.sect_ncombo [nsector] = ncombo;
+    
+    //--------------------------------------------------
+    // Count sectors
+    //--------------------------------------------------
+
+    nsector++;
     
   }
 
-  m_tree.ncombo = ncombo;
+  //--------------------------------------------------
+  // Store the number of sectors
+  //--------------------------------------------------
 
+  m_tree.nsector = nsector;
+  
 }
+
 
 int CSCTFMuonPtAnalyzer::reducedComboFRBId ( const int frbit1, const int frbit2 ){
 
-  int id = frbit2 << 1;
+  int id;
+  
+  id  = frbit2 << 1;
   id += frbit1;
 
   return id;
@@ -695,115 +752,102 @@ int CSCTFMuonPtAnalyzer::reducedComboHitId ( const int stationId1, const int sta
   
   assert( stationId1 != stationId2 );
 
-  int binary_id = (1<<stationId1);
+  int binary_id;
+  binary_id  = (1<<stationId1);
   binary_id += (1<<stationId2);
 
   if      (binary_id == 3 ) return 0;
-  else if (binary_id == 5 ) return 1;
+  else if (binary_id == 5 ) return 1; // * 
   else if (binary_id == 6 ) return 2;
   else if (binary_id == 9 ) return 3;
   else if (binary_id == 10) return 4;
-  else if (binary_id == 12) return 5;
+  else if (binary_id == 12) return 5; // *
+  else if (binary_id == 17) return 6;
+  else if (binary_id == 18) return 7;
+  else if (binary_id == 20) return 8;
+  else if (binary_id == 24) return 9;
   else {
+    edm::LogWarning("CSCTFMuonPtAnalyzer") << "Unbinnable combo id: " << binary_id;
     return -999;
   }
+
+  return binary_id;
 }
 
-
-
 //--------------------------------------------------
-// From a given Correlated LCT digi at a given DetId,
-// get the hit eta and phi
+// Get stub loocation
 //--------------------------------------------------
 
-void CSCTFMuonPtAnalyzer::getHitCoordinates( const CSCDetId& detId, const CSCCorrelatedLCTDigi& digi, 
-					     int& lclPhi_phi_bend, int& lclPhi_phi, int& gblPhi_phi, int& gblEta_eta,
-					     float& cms_eta, float& cms_phi, bool& bad_phi ){
+void CSCTFMuonPtAnalyzer::getStubCoordinates( csctf::TrackStub & stub, 
+					      int& gblEta_eta, int& gblPhi_phi, 
+					      float& cms_eta, float& cms_phi ){
+    
+  //--------------------------------------------------
+  // Get stub detector information
+  //--------------------------------------------------
+
+  unsigned int endcap    = stub.endcap();
+  unsigned int station   = stub.station();
+  unsigned int sector    = stub.sector();
+  unsigned int subsector = stub.subsector();
+  unsigned int cscid     = stub.cscid();
   
   //--------------------------------------------------
-  // Get information about where we are in the detector
+  // Stations 1-4 (CSC stations) get their coordinates
+  // from the SR LUTs
   //--------------------------------------------------
 
-  int endcap  = detId.endcap()        - 1; 
-  int station = detId.station()       - 1;
-  int sector  = detId.triggerSector() - 1;
-  int cscId   = detId.triggerCscId()  - 1;
-  int chamber = detId.chamber();
-  
-  bad_phi = (chamber > 8 && station == 3 && sector == 1);
+  if( station != 5) {
 
-  int subSector = CSCTriggerNumbering::triggerSubSectorFromLabels(detId);
-  int fpga      = ( subSector ? subSector-1 : station+1 );
-  int endarg    = endcap + 1;
+    //--------------------------------------------------
+    // Get global and local phi/eta structs
+    //--------------------------------------------------
 
-  //--------------------------------------------------
-  // Initialize the return values to avoid seg faults
-  //--------------------------------------------------
+    unsigned int fpga = ( subsector ? subsector-1 : station );
+    lclphidat lclPhi = m_srLUTs[fpga][sector-1][endcap-1] -> localPhi( stub.getStrip(), 
+								       stub.getPattern(), 
+								       stub.getQuality(), 
+								       stub.getBend());
+    
+    gblphidat gblPhi = m_srLUTs[fpga][sector-1][endcap-1] -> globalPhiME( lclPhi.phi_local, 
+									  stub.getKeyWG(), cscid);
+    
+    gbletadat gblEta = m_srLUTs[fpga][sector-1][endcap-1] -> globalEtaME(lclPhi.phi_bend_local, 
+									 lclPhi.phi_local, 
+									 stub.getKeyWG(), cscid);
+    
+    //--------------------------------------------------
+    // Set the packed values for the stub
+    //--------------------------------------------------
 
-  lclPhi_phi_bend = -990;
-  lclPhi_phi      = -990;
-  gblPhi_phi      = -990;
-  gblEta_eta      = -990;
-  cms_eta         = -990.;
-  cms_phi         = -990.;
-
-  //--------------------------------------------------
-  // Make sure our values are sensible.
-  //--------------------------------------------------
-
-  if( endcap<0||endcap>1 || sector<0||sector>6 || station<0||station>3 || cscId<0||cscId>8 || fpga<0||fpga>4) {
-    edm::LogError("L1CSCTF: CSC TP are out of range: ") <<"  endcap: "<<(endcap+1)<<"  station: "<<(station+1) <<"  sector: "<<(sector+1)<<"  subSector: "<<subSector<<"  fpga: "<<fpga<<"  cscId: "<<(cscId+1);
-      return;
-  }
-
-  //--------------------------------------------------
-  // Get structs for local and global position vars
-  //--------------------------------------------------
-
-  lclphidat lclPhi; // phi within the chamber  
-  gblphidat gblPhi; // phi within the sector
-  gbletadat gblEta; // eta within the sector
-
-  float cmsPhi, cmsPhiInDegrees;  // consistent with generator phi (CMS phi)
-  float cmsEta;                   // consistent with generator eta (CMS eta)
-  
-  lclPhi = m_srLUTs[fpga][endarg]->localPhi(digi.getStrip(), digi.getPattern(), digi.getQuality(), digi.getBend() );
-  gblPhi = m_srLUTs[fpga][endarg]->globalPhiME(lclPhi.phi_local ,digi.getKeyWG(), cscId+1);
-  gblEta = m_srLUTs[fpga][endarg]->globalEtaME(lclPhi.phi_bend_local, lclPhi.phi_local, digi.getKeyWG(), cscId+1);
-
-  //--------------------------------------------------
-  // Get the CMS eta value (easy)
-  //--------------------------------------------------
-
-  cmsEta = gblEta.global_eta/127. * 1.5 + 0.9;
+    stub.setEtaPacked(gblEta.global_eta);
+    stub.setPhiPacked(gblPhi.global_phi);
+    
+  }  
   
   //--------------------------------------------------
-  // The CSC sector phi goes from 0 to 360 degrees
-  // Convert to CMS phi, which goes from -pi to pi
-  // in radians.  
-  // 
-  // Phi = 0 is the same for both.
-  // Both systems have increasing phi in the same
-  // direction.
+  // Get the global eta and phi values
+  //--------------------------------------------------
+
+  gblEta_eta = stub.etaPacked();
+  gblPhi_phi = stub.phiPacked();
+
+  //--------------------------------------------------
+  // Get the "real" eta value 
   //--------------------------------------------------
   
-  cmsPhiInDegrees = (gblPhi.global_phi/4096.*62.) - 1. + 15.+60.*sector;  
+  cms_eta = gblEta_eta/127. * 1.5 + 0.9;
+
+  //--------------------------------------------------
+  // Get the "real" phi value in radians
+  //--------------------------------------------------
+  
+  float cmsPhiInDegrees = (gblPhi_phi/4096.*62.) - 1. + 15.+60.*sector;  
   if(cmsPhiInDegrees > 360) cmsPhiInDegrees -= 360;
-
-  cmsPhi = cmsPhiInDegrees * TMath::Pi() / 180.0;
-  if (cmsPhi > TMath::Pi()) cmsPhi -= (2.0 * TMath::Pi());
-
-  //--------------------------------------------------
-  // Pass the values to the output
-  //--------------------------------------------------
-
-  cms_phi         = cmsPhi;
-  cms_eta         = cmsEta;
-  lclPhi_phi_bend = lclPhi.phi_bend_local;
-  lclPhi_phi      = lclPhi.phi_local;
-  gblPhi_phi      = gblPhi.global_phi;
-  gblEta_eta      = gblEta.global_eta;
-
+  
+  cms_phi = cmsPhiInDegrees * TMath::Pi() / 180.0;
+  if (cms_phi > TMath::Pi()) cms_phi -= (2.0 * TMath::Pi());
+    
 }
 
 //--------------------------------------------------
@@ -813,26 +857,22 @@ void CSCTFMuonPtAnalyzer::getHitCoordinates( const CSCDetId& detId, const CSCCor
 void CSCTFMuonPtAnalyzer::buildSRLUTs(){
   
   bzero(m_srLUTs,sizeof(m_srLUTs));
-  int sector=1; // assume SR LUTs are all same for every sector
-  bool TMB07=true; // specific TMB firmware
-  // Create a dumy pset for SR LUTs
+  bool TMB07=true;
   edm::ParameterSet srLUTset;
   srLUTset.addUntrackedParameter<bool>("ReadLUTs", false);
   srLUTset.addUntrackedParameter<bool>("Binary",   false);
   srLUTset.addUntrackedParameter<std::string>("LUTPath", "./");
-  for(int endcap = 1; endcap<=2; endcap++)
-    {
-      for(int station=1,fpga=0; station<=4 && fpga<5; station++)
-	{
-	  if(station==1)
-	    for(int subSector=0; subSector<2 && fpga<5; subSector++)
-	      m_srLUTs[fpga++][endcap] = new CSCSectorReceiverLUT(endcap,
-								 sector, subSector+1, station, srLUTset, TMB07);
-	  else
-	    m_srLUTs[fpga++][endcap] = new CSCSectorReceiverLUT(endcap, sector,
-							       0, station, srLUTset, TMB07);
-	}
+  for(int endcap = 1; endcap<=2; endcap++) {
+    for(int sector=1; sector<=6; sector++) {
+      for(int station=1,fpga=0; station<=4 && fpga<5; station++) {
+	if(station==1)
+	  for(int subSector=0; subSector<2; subSector++)
+	    m_srLUTs[fpga++][sector-1][endcap-1] = new CSCSectorReceiverLUT(endcap, sector, subSector+1, station, srLUTset, TMB07);
+	else
+	  m_srLUTs[fpga++][sector-1][endcap-1] = new CSCSectorReceiverLUT(endcap, sector, 0, station, srLUTset, TMB07);
+      }
     }
+  }
 }
 
 int CSCTFMuonPtAnalyzer::getEtaBin ( float eta ){
@@ -913,6 +953,89 @@ void CSCTFMuonPtAnalyzer::int2bin (uint32_t val, char *string){
   return;
 }
 
+//--------------------------------------------------
+// Fill a list of stubs from the CSC's and the DT's
+//--------------------------------------------------
+
+void CSCTFMuonPtAnalyzer::fillStubList ( std::vector<csctf::TrackStub> & v_stubs ) {
+
+  //--------------------------------------------------
+  // Get the handles
+  //--------------------------------------------------
+  
+  edm::Handle< L1MuDTChambPhContainer > DTTPs;
+  edm::Handle< CSCCorrelatedLCTDigiCollection > CorrLCTs;
+  bool gotCSCCorrLCTDigis = m_event -> getByLabel (m_cscCorrLCTDigiTag, CorrLCTs);
+  bool gotDTTPDigis       = m_event -> getByLabel (m_dttpDigiTag,       DTTPs   );
+  
+  if (!gotDTTPDigis){
+    edm::LogWarning("CSCTFMuonPtAnalyzer") << "Could not extract: " << m_dttpDigiTag;
+    return;
+  }
+
+  if (!gotCSCCorrLCTDigis){
+    edm::LogWarning("CSCTFMuonPtAnalyzer") << "Could not extract: " << m_cscCorrLCTDigiTag;
+    return;
+  }  
+
+  //--------------------------------------------------
+  // Make a special container of stubs to fill
+  //--------------------------------------------------
+
+  CSCTriggerContainer<csctf::TrackStub> stub_list;
+
+  //--------------------------------------------------
+  // Process the DT trig prims to get the DT stubs
+  //--------------------------------------------------
+  
+  CSCTriggerContainer<csctf::TrackStub> dtStubs = m_dtrc -> process(DTTPs.product());
+  stub_list.push_many(dtStubs);
+  
+  //--------------------------------------------------
+  // Loop over the CSC trig prims to get the CSC stubs
+  //--------------------------------------------------
+  
+  CSCCorrelatedLCTDigiCollection::DigiRangeIterator chamber     = CorrLCTs.product() -> begin();
+  CSCCorrelatedLCTDigiCollection::DigiRangeIterator chamber_end = CorrLCTs.product() -> end();
+  
+  for (; chamber != chamber_end; ++chamber) {
+    
+    CSCDetId * cscDetId = &((*chamber).first);
+
+    CSCCorrelatedLCTDigiCollection::Range corrLCTDigi_range = CorrLCTs.product() -> get( *cscDetId  );    
+    CSCCorrelatedLCTDigiCollection::const_iterator corrLCTDigi     = corrLCTDigi_range.first;
+    CSCCorrelatedLCTDigiCollection::const_iterator corrLCTDigi_end = corrLCTDigi_range.second;
+    CSCCorrelatedLCTDigiCollection::const_iterator bestCorrLCTDigi;
+    
+    //--------------------------------------------------
+    // Find the best-quality digi in this chamber
+    //--------------------------------------------------
+
+    int max_quality = -999;
+
+    for (; corrLCTDigi != corrLCTDigi_end; ++corrLCTDigi ){    
+
+      int this_digi_quality = (int) corrLCTDigi -> getQuality();
+
+      if (this_digi_quality > max_quality) {
+	max_quality = this_digi_quality;
+	bestCorrLCTDigi = corrLCTDigi;
+      }
+    }
+
+    
+    csctf::TrackStub theStub(*bestCorrLCTDigi, *cscDetId );
+    stub_list.push_back(theStub);
+
+  }
+
+  //--------------------------------------------------
+  // Pass the filled list back to be analyzed
+  //--------------------------------------------------
+
+  v_stubs = stub_list.get();
+
+}
 
 
 //--------------------------------------------------

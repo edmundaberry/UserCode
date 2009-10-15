@@ -106,8 +106,6 @@ while ($ptBin <= $ptBinNumEnd)
     
     set file_prefix = ${exec_name}_ptBin${ptBin}_job${job}_${ptBinNEvents}events
     set condor_file = ${file_prefix}_condor
-    
-    echo "Job = $job, ptBin = $ptBin, events = $ptBinNEvents, suffix = suffix" 
 
     cat > ${condor_dir}/${condor_file}<<EOF
     universe = vanilla

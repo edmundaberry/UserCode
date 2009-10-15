@@ -4,7 +4,7 @@
 MY_RELEASE_BASE="/uscms/home/eberry/MuonMomentumStudy/"
 CMSSW_VERSION="CMSSW_3_2_4"
 TEST="false"
-DATA_FOLDER="/pnfs/cms/WAX/resilient/eberry/CMSSW_ROOT_Files/ParticleGun/CSCMuonGun/GEN-SIM-DIGI-L1_ForMeasurement/"
+DATA_FOLDER="/pnfs/cms/WAX/resilient/eberry/CMSSW_ROOT_Files/ParticleGun/CSCMuonGun/GEN-SIM-DIGI-L1_ForMeasurement_WithDT/"
             
 ## Set variables
 ptBin=$1
@@ -26,7 +26,7 @@ fi
 
 ## Get list of files to use
 
-FILE_LIST=`ls -t ${DATA_FOLDER}*CSCMuonGun_STARTUP31X_V4_GEN-SIM-DIGI-L1_job*_1000events_*PtBin${ptBin}_ForMeasurement.root | head -${nFiles}`
+FILE_LIST=`ls -t ${DATA_FOLDER}*CSCMuonGun_STARTUP31X_V4_GEN-SIM-DIGI-L1_job*_1000events_*PtBin${ptBin}_Measurement.root | head -${nFiles}`
 
 LIST_SIZE=`echo $FILE_LIST | wc -w`
 

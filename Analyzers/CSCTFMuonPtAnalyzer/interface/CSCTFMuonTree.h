@@ -8,22 +8,21 @@ class CSCTFMuonTree {
   CSCTFMuonTree(); 
   virtual ~CSCTFMuonTree();
 
-  enum { MAXNL1DETID = 10   }; 
-  enum { MAXNGMU     = 1    }; 
-  enum { MAXNL1DIGI  = 2    };
-  enum { MAXNCOMBO   = 11   };
   enum { MAXNSIMHIT  = 100  };
+  enum { MAXNGMU     = 1    }; 
+  enum { MAXNSTUB    = 10   };
+  enum { MAXNSECTOR  = 10   }; 
+  enum { MAXNCOMBO   = 11   };
 
   int run;
   int event;
 
   int nsh;
   int ngmu;
-  int nl1detid;
-  int ncombo;
-  int filled;
+  int nstub;
+  int nsector;
 
-  int nskip;
+  int quality;
   int ptBin;	 
   int evtComboHitID;
   int evtComboFrbID;
@@ -32,28 +31,27 @@ class CSCTFMuonTree {
   float gmu_eta                [MAXNGMU];
   float gmu_phi                [MAXNGMU];
   
-  float l1detid_digi_eta       [MAXNL1DETID];
-  float l1detid_digi_phi       [MAXNL1DETID];
-  int   l1detid_digi_strip     [MAXNL1DETID];
-  int   l1detid_digi_keyWG     [MAXNL1DETID];
-  int   l1detid_digi_quality   [MAXNL1DETID];
-  int   l1detid_digi_badphi    [MAXNL1DETID];
-  int   l1detid_digi_pattern   [MAXNL1DETID];
-  int   l1detid_digi_bend      [MAXNL1DETID];
-    					    
-  int   l1detid_digi_lclPhi    [MAXNL1DETID];
-  int   l1detid_digi_lclPhiBend[MAXNL1DETID];
-  int   l1detid_digi_gblPhi    [MAXNL1DETID];
-  int   l1detid_digi_gblEta    [MAXNL1DETID];
-
-  int   l1detid_frBit          [MAXNL1DETID];
-  int   l1detid_cscid          [MAXNL1DETID];
-  int   l1detid_stat           [MAXNL1DETID];
-  int   l1detid_ring           [MAXNL1DETID];
-  int   l1detid_cham           [MAXNL1DETID];
-  int   l1detid_layr           [MAXNL1DETID];
-  int   l1detid_endc           [MAXNL1DETID];
-  int   l1detid_sect           [MAXNL1DETID];
+  float stub_digi_eta          [MAXNSTUB];
+  float stub_digi_phi          [MAXNSTUB];
+  int   stub_digi_strip        [MAXNSTUB];
+  int   stub_digi_keyWG        [MAXNSTUB];
+  int   stub_digi_quality      [MAXNSTUB];
+  int   stub_digi_badphi       [MAXNSTUB];
+  int   stub_digi_pattern      [MAXNSTUB];
+  int   stub_digi_bend         [MAXNSTUB];
+    			       		    
+  int   stub_digi_lclPhi       [MAXNSTUB];
+  int   stub_digi_lclPhiBend   [MAXNSTUB];
+  int   stub_digi_gblPhi       [MAXNSTUB];
+  int   stub_digi_gblEta       [MAXNSTUB];
+			       
+  int   stub_frBit             [MAXNSTUB];
+  int   stub_cscid             [MAXNSTUB];
+  int   stub_stat              [MAXNSTUB];
+  int   stub_ring              [MAXNSTUB];
+  int   stub_cham              [MAXNSTUB];
+  int   stub_endc              [MAXNSTUB];
+  int   stub_sect              [MAXNSTUB];
 
   float sh_eta                 [MAXNSIMHIT];
   float sh_phi                 [MAXNSIMHIT];
@@ -67,29 +65,35 @@ class CSCTFMuonTree {
   int   sh_sect                [MAXNSIMHIT];
   int   sh_cscid               [MAXNSIMHIT];
 
-  int   combo_hitId            [MAXNCOMBO];
-  int   combo_frbId            [MAXNCOMBO];
-  int   combo_isFirst          [MAXNCOMBO];
-  int   combo_sector           [MAXNCOMBO];
-  int   combo_etaBin           [MAXNCOMBO];
-  int   combo_dphi             [MAXNCOMBO];
-  float combo_phi              [MAXNCOMBO][2];
-  float combo_eta              [MAXNCOMBO][2];
+  int   sect_quality           [MAXNSECTOR];
+  int   sect_ncombo            [MAXNSECTOR];
+  int   sect_num               [MAXNSECTOR];
+  int   sect_combo_hitId       [MAXNSECTOR][MAXNCOMBO];
+  int   sect_combo_frbId       [MAXNSECTOR][MAXNCOMBO];
+  int   sect_combo_isFirst     [MAXNSECTOR][MAXNCOMBO];
+  int   sect_combo_etaBin      [MAXNSECTOR][MAXNCOMBO]; 
+  int   sect_combo_s1ring      [MAXNSECTOR][MAXNCOMBO]; 
+  int   sect_combo_dphi        [MAXNSECTOR][MAXNCOMBO];
+  int   sect_combo_deta        [MAXNSECTOR][MAXNCOMBO];
+  int   sect_combo_phi1        [MAXNSECTOR][MAXNCOMBO];
+  int   sect_combo_eta1        [MAXNSECTOR][MAXNCOMBO];
+  int   sect_combo_stat1       [MAXNSECTOR][MAXNCOMBO];
+  int   sect_combo_phi2        [MAXNSECTOR][MAXNCOMBO];
+  int   sect_combo_eta2        [MAXNSECTOR][MAXNCOMBO];
+  int   sect_combo_stat2       [MAXNSECTOR][MAXNCOMBO];
 
   void init() {
 
     run   = -999;
     event = -999;
     
-    ngmu  = 0;
-    nl1detid = 0;
-    ncombo = 0;
-    nsh = 0;
-    nskip = 0;
+    nstub    = 0;
+    ngmu     = 0;
+    nsh      = 0;
+    nsector  = 0;
 
-    filled = 0;
-
-    ptBin      = -999;
+    quality       = -999;
+    ptBin         = -999;
     evtComboHitID = -1;
     evtComboFrbID = -1;
     
@@ -101,43 +105,53 @@ class CSCTFMuonTree {
       
     }
 
-    for (int j = 0; j < MAXNL1DETID; j++){
+    for (int j = 0; j < MAXNSTUB; j++){
       
-      l1detid_frBit [j] = -999;
-      l1detid_cscid [j] = -999;
-      l1detid_stat  [j] = -999;
-      l1detid_ring  [j] = -999;
-      l1detid_cham  [j] = -999;
-      l1detid_layr  [j] = -999;
-      l1detid_endc  [j] = -999;      
-      l1detid_sect  [j] = -999;      
+      stub_frBit [j] = -999;
+      stub_cscid [j] = -999;
+      stub_stat  [j] = -999;
+      stub_ring  [j] = -999;
+      stub_cham  [j] = -999;
+      stub_endc  [j] = -999;      
+      stub_sect  [j] = -999;      
       
-      l1detid_digi_eta       [j] = -999.;
-      l1detid_digi_phi       [j] = -999.;
-      l1detid_digi_strip     [j] = -999;
-      l1detid_digi_keyWG     [j] = -999;
-      l1detid_digi_quality   [j] = -999;
-      l1detid_digi_badphi    [j] = -999;
-      l1detid_digi_pattern   [j] = -999;
-      l1detid_digi_bend      [j] = -999;
-      l1detid_digi_lclPhi    [j] = -999;
-      l1detid_digi_lclPhiBend[j] = -999;
-      l1detid_digi_gblPhi    [j] = -999;
-      l1detid_digi_gblEta    [j] = -999;
+      stub_digi_eta       [j] = -999.;
+      stub_digi_phi       [j] = -999.;
+      stub_digi_strip     [j] = -999;
+      stub_digi_keyWG     [j] = -999;
+      stub_digi_quality   [j] = -999;
+      stub_digi_badphi    [j] = -999;
+      stub_digi_pattern   [j] = -999;
+      stub_digi_bend      [j] = -999;
+      stub_digi_lclPhi    [j] = -999;
+      stub_digi_lclPhiBend[j] = -999;
+      stub_digi_gblPhi    [j] = -999;
+      stub_digi_gblEta    [j] = -999;
       
     }
 
-    for (int l = 0; l < MAXNCOMBO; l++){
-      combo_isFirst [l] = -999;
-      combo_hitId   [l] = -999;
-      combo_frbId   [l] = -999;
-      combo_dphi    [l] = -999;
-      combo_etaBin  [l] = -999;
-      combo_sector  [l] = -999;
-      
-      for (int m = 0; m < 2; m++){
-	combo_eta[l][m] = -999;
-	combo_phi[l][m] = -999;
+    for (int l = 0; l < MAXNSECTOR; l++){
+
+      sect_ncombo [l] = 0;
+      sect_num    [l] = -999;
+      sect_quality[l] = -999;
+
+      for (int l1 = 0; l1 < MAXNCOMBO; ++l1 ){
+	
+	sect_combo_isFirst [l][l1] = -999;
+	sect_combo_hitId   [l][l1] = -999;
+	sect_combo_frbId   [l][l1] = -999;
+	sect_combo_dphi    [l][l1] = -999;
+	sect_combo_deta    [l][l1] = -999;
+	sect_combo_etaBin  [l][l1] = -999;	
+	sect_combo_s1ring  [l][l1] = -999;	
+	sect_combo_eta1    [l][l1] = -999;
+	sect_combo_phi1    [l][l1] = -999;
+	sect_combo_stat1   [l][l1] = -999;	
+	sect_combo_eta2    [l][l1] = -999;
+	sect_combo_phi2    [l][l1] = -999;
+	sect_combo_stat2   [l][l1] = -999;	
+
       }
     }
 

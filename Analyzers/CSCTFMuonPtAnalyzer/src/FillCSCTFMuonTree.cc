@@ -19,52 +19,56 @@ void FillCSCTFMuonTree::init(std::string filename, CSCTFMuonTree* treePtr) {
   
   m_treePtr = treePtr;
 
-  m_tree->Branch("run"                     , &(m_treePtr->run                     ), "run/I"                                  );
-  m_tree->Branch("event"                   , &(m_treePtr->event                   ), "event/I"                                );
-  m_tree->Branch("filled"                  , &(m_treePtr->filled                  ), "filled/I"                               );
-  m_tree->Branch("ngmu"                    , &(m_treePtr->ngmu                    ), "ngmu/I"                                 );
-  m_tree->Branch("nl1detid"                , &(m_treePtr->nl1detid                ), "nl1detid/I"                             );
-  m_tree->Branch("ncombo"                  , &(m_treePtr->ncombo                  ), "ncombo/I"                               );
-  m_tree->Branch("evtComboHitID"           , &(m_treePtr->evtComboHitID           ), "evtComboHitID/I"                        );
-  m_tree->Branch("evtComboFrbID"           , &(m_treePtr->evtComboFrbID           ), "evtComboFrbID/I"                        );
-  m_tree->Branch("ptBin"                   , &(m_treePtr->ptBin                   ), "ptBin/I"                                );
-  m_tree->Branch("nsh"                     , &(m_treePtr->nsh                     ), "nsh/I"                                  );
-  m_tree->Branch("nskip"                   , &(m_treePtr->nskip                   ), "nskip/I"                                );
-  
-  m_tree->Branch("gmu_pt"                  , &(m_treePtr->gmu_pt                  ), "gmu_pt[ngmu]/F"                         );
-  m_tree->Branch("gmu_eta"                 , &(m_treePtr->gmu_eta                 ), "gmu_eta[ngmu]/F"                        );
-  m_tree->Branch("gmu_phi"                 , &(m_treePtr->gmu_phi                 ), "gmu_phi[ngmu]/F"                        );
-  
-  m_tree->Branch("combo_phi"               , &(m_treePtr->combo_phi               ), "combo_phi[ncombo][2]/F"                 );
-  m_tree->Branch("combo_eta"               , &(m_treePtr->combo_eta               ), "combo_eta[ncombo][2]/F"                 );
-  m_tree->Branch("combo_dphi"              , &(m_treePtr->combo_dphi              ), "combo_dphi[ncombo]/I"                   );
-  m_tree->Branch("combo_isFirst"           , &(m_treePtr->combo_isFirst           ), "combo_isFirst[ncombo]/I"                );
-  m_tree->Branch("combo_etaBin"            , &(m_treePtr->combo_etaBin            ), "combo_etaBin[ncombo]/I"                 );
-  m_tree->Branch("combo_sector"            , &(m_treePtr->combo_sector            ), "combo_sector[ncombo]/I"                 );
-  m_tree->Branch("combo_hitId"             , &(m_treePtr->combo_hitId             ), "combo_hitId[ncombo]/I"                  );
-  m_tree->Branch("combo_frbId"             , &(m_treePtr->combo_frbId             ), "combo_frbId[ncombo]/I"                  );
-  				            				     	   				      	       
-  m_tree->Branch("l1detid_stat"            , &(m_treePtr->l1detid_stat            ), "l1detid_stat[nl1detid]/I"               );
-  m_tree->Branch("l1detid_ring"            , &(m_treePtr->l1detid_ring            ), "l1detid_ring[nl1detid]/I"               );
-  m_tree->Branch("l1detid_cham"            , &(m_treePtr->l1detid_cham            ), "l1detid_cham[nl1detid]/I"               );
-  m_tree->Branch("l1detid_layr"            , &(m_treePtr->l1detid_layr            ), "l1detid_layr[nl1detid]/I"               );
-  m_tree->Branch("l1detid_endc"            , &(m_treePtr->l1detid_endc            ), "l1detid_endc[nl1detid]/I"               );
-  m_tree->Branch("l1detid_sect"            , &(m_treePtr->l1detid_sect            ), "l1detid_sect[nl1detid]/I"               );
-  m_tree->Branch("l1detid_frBit"           , &(m_treePtr->l1detid_frBit           ), "l1detid_frBit[nl1detid]/I"              );
-  m_tree->Branch("l1detid_cscid"           , &(m_treePtr->l1detid_cscid           ), "l1detid_cscid[nl1detid]/I"              );
-  m_tree->Branch("l1detid_digi_eta"        , &(m_treePtr->l1detid_digi_eta        ), "l1detid_digi_eta[nl1detid]/F"           );
-  m_tree->Branch("l1detid_digi_phi"        , &(m_treePtr->l1detid_digi_phi        ), "l1detid_digi_phi[nl1detid]/F"           );
-  m_tree->Branch("l1detid_digi_bend"       , &(m_treePtr->l1detid_digi_bend       ), "l1detid_digi_bend[nl1detid]/I"          );
-  m_tree->Branch("l1detid_digi_strip"      , &(m_treePtr->l1detid_digi_strip      ), "l1detid_digi_strip[nl1detid]/I"         );
-  m_tree->Branch("l1detid_digi_keyWG"      , &(m_treePtr->l1detid_digi_keyWG      ), "l1detid_digi_keyWG[nl1detid]/I"         );
-  m_tree->Branch("l1detid_digi_pattern"    , &(m_treePtr->l1detid_digi_pattern    ), "l1detid_digi_pattern[nl1detid]/I"       );
-  m_tree->Branch("l1detid_digi_quality"    , &(m_treePtr->l1detid_digi_quality    ), "l1detid_digi_quality[nl1detid]/I"       );
-  m_tree->Branch("l1detid_digi_badphi"     , &(m_treePtr->l1detid_digi_badphi     ), "l1detid_digi_badphi[nl1detid]/I"        );
+  m_tree->Branch("run"                  , &(m_treePtr->run                  ), "run/I"                            );
+  m_tree->Branch("event"                , &(m_treePtr->event                ), "event/I"                          );
 
-  m_tree->Branch("l1detid_digi_lclPhi"     , &(m_treePtr->l1detid_digi_lclPhi     ), "l1detid_digi_lclPhi[nl1detid]/I"        );
-  m_tree->Branch("l1detid_digi_lclPhiBend" , &(m_treePtr->l1detid_digi_lclPhiBend ), "l1detid_digi_lclPhiBend[nl1detid]/I"    );
-  m_tree->Branch("l1detid_digi_gblPhi"     , &(m_treePtr->l1detid_digi_gblPhi     ), "l1detid_digi_gblPhi[nl1detid]/I"        );
-  m_tree->Branch("l1detid_digi_gblEta"     , &(m_treePtr->l1detid_digi_gblEta     ), "l1detid_digi_gblEta[nl1detid]/I"        );
+  m_tree->Branch("ngmu"                 , &(m_treePtr->ngmu                 ), "ngmu/I"                           );
+  m_tree->Branch("nstub"                , &(m_treePtr->nstub                ), "nstub/I"                          );
+  m_tree->Branch("nsector"              , &(m_treePtr->nsector              ), "nsector/I"                        );
+  m_tree->Branch("nsh"                  , &(m_treePtr->nsh                  ), "nsh/I"                            );
+
+  m_tree->Branch("ptBin"                , &(m_treePtr->ptBin                ), "ptBin/I"                          );
+  m_tree->Branch("evtComboHitID"        , &(m_treePtr->evtComboHitID        ), "evtComboHitID/I"                  );
+  m_tree->Branch("evtComboFrbID"        , &(m_treePtr->evtComboFrbID        ), "evtComboFrbID/I"                  );
+  
+  m_tree->Branch("gmu_pt"               , &(m_treePtr->gmu_pt               ), "gmu_pt[ngmu]/F"                   );
+  m_tree->Branch("gmu_eta"              , &(m_treePtr->gmu_eta              ), "gmu_eta[ngmu]/F"                  );
+  m_tree->Branch("gmu_phi"              , &(m_treePtr->gmu_phi              ), "gmu_phi[ngmu]/F"                  );
+  
+  m_tree->Branch("sect_ncombo"          , &(m_treePtr->sect_ncombo          ), "sect_ncombo[nsector]/I"           );
+  m_tree->Branch("sect_quality"         , &(m_treePtr->sect_quality         ), "sect_quality[nsector]/I"          );
+  m_tree->Branch("sect_combo_dphi"      , &(m_treePtr->sect_combo_dphi      ), "sect_combo_dphi[nsector][11]/I"   );
+  m_tree->Branch("sect_combo_deta"      , &(m_treePtr->sect_combo_deta      ), "sect_combo_deta[nsector][11]/I"   );
+  m_tree->Branch("sect_combo_isFirst"   , &(m_treePtr->sect_combo_isFirst   ), "sect_combo_isFirst[nsector][11]/I");
+  m_tree->Branch("sect_combo_etaBin"    , &(m_treePtr->sect_combo_etaBin    ), "sect_combo_etaBin[nsector][11]/I" );
+  m_tree->Branch("sect_combo_hitId"     , &(m_treePtr->sect_combo_hitId     ), "sect_combo_hitId[nsector][11]/I"  );
+  m_tree->Branch("sect_combo_frbId"     , &(m_treePtr->sect_combo_frbId     ), "sect_combo_frbId[nsector][11]/I"  );
+  m_tree->Branch("sect_combo_phi1"      , &(m_treePtr->sect_combo_phi1      ), "sect_combo_phi1[nsector][11]/I"   );
+  m_tree->Branch("sect_combo_eta1"      , &(m_treePtr->sect_combo_eta1      ), "sect_combo_eta1[nsector][11]/I"   );
+  m_tree->Branch("sect_combo_stat1"     , &(m_treePtr->sect_combo_stat1     ), "sect_combo_stat1[nsector][11]/I"  );
+  m_tree->Branch("sect_combo_phi2"      , &(m_treePtr->sect_combo_phi2      ), "sect_combo_phi2[nsector][11]/I"   );
+  m_tree->Branch("sect_combo_eta2"      , &(m_treePtr->sect_combo_eta2      ), "sect_combo_eta2[nsector][11]/I"   );
+  m_tree->Branch("sect_combo_stat2"     , &(m_treePtr->sect_combo_stat2     ), "sect_combo_stat2[nsector][11]/I"  );
+  m_tree->Branch("sect_combo_s1ring"    , &(m_treePtr->sect_combo_s1ring    ), "sect_combo_s1ring[nsector][11]/I" );
+  
+  m_tree->Branch("stub_stat"            , &(m_treePtr->stub_stat            ), "stub_stat[nstub]/I"               );
+  m_tree->Branch("stub_ring"            , &(m_treePtr->stub_ring            ), "stub_ring[nstub]/I"               );
+  m_tree->Branch("stub_cham"            , &(m_treePtr->stub_cham            ), "stub_cham[nstub]/I"               );
+  m_tree->Branch("stub_endc"            , &(m_treePtr->stub_endc            ), "stub_endc[nstub]/I"               );
+  m_tree->Branch("stub_sect"            , &(m_treePtr->stub_sect            ), "stub_sect[nstub]/I"               );
+  m_tree->Branch("stub_frBit"           , &(m_treePtr->stub_frBit           ), "stub_frBit[nstub]/I"              );
+  m_tree->Branch("stub_cscid"           , &(m_treePtr->stub_cscid           ), "stub_cscid[nstub]/I"              );
+
+  m_tree->Branch("stub_digi_eta"        , &(m_treePtr->stub_digi_eta        ), "stub_digi_eta[nstub]/F"           );
+  m_tree->Branch("stub_digi_phi"        , &(m_treePtr->stub_digi_phi        ), "stub_digi_phi[nstub]/F"           );
+  m_tree->Branch("stub_digi_bend"       , &(m_treePtr->stub_digi_bend       ), "stub_digi_bend[nstub]/I"          );
+  m_tree->Branch("stub_digi_strip"      , &(m_treePtr->stub_digi_strip      ), "stub_digi_strip[nstub]/I"         );
+  m_tree->Branch("stub_digi_keyWG"      , &(m_treePtr->stub_digi_keyWG      ), "stub_digi_keyWG[nstub]/I"         );
+  m_tree->Branch("stub_digi_pattern"    , &(m_treePtr->stub_digi_pattern    ), "stub_digi_pattern[nstub]/I"       );
+  m_tree->Branch("stub_digi_quality"    , &(m_treePtr->stub_digi_quality    ), "stub_digi_quality[nstub]/I"       );
+  m_tree->Branch("stub_digi_badphi"     , &(m_treePtr->stub_digi_badphi     ), "stub_digi_badphi[nstub]/I"        );
+  m_tree->Branch("stub_digi_gblPhi"     , &(m_treePtr->stub_digi_gblPhi     ), "stub_digi_gblPhi[nstub]/I"        );
+  m_tree->Branch("stub_digi_gblEta"     , &(m_treePtr->stub_digi_gblEta     ), "stub_digi_gblEta[nstub]/I"        );
   
   /*
   m_tree->Branch("sh_eta"                  , &(m_treePtr->sh_eta                  ), "sh_eta[nsh]/F"                          );

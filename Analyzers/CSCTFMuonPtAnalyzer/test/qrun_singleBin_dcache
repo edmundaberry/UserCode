@@ -4,7 +4,7 @@
 MY_RELEASE_BASE="/uscms/home/eberry/MuonMomentumStudy/"
 CMSSW_VERSION="CMSSW_3_2_4"
 TEST="false"
-DATA_FOLDER="/pnfs/cms/WAX/resilient/eberry/CMSSW_ROOT_Files/ParticleGun/CSCMuonGun/GEN-SIM-DIGI-L1/"
+DATA_FOLDER="/pnfs/cms/WAX/resilient/eberry/CMSSW_ROOT_Files/ParticleGun/CSCMuonGun/GEN-SIM-DIGI-L1_WithDT/"
             
 ## Set variables
 job=$1
@@ -17,11 +17,17 @@ else
     suffix=_${4}
 fi
 
-if [ $TEST = "true" ]; then
+if [ $TEST == "true" ]; then
     verbose="process.csctfMuonPtAnalyzer.Verbose = True"
-    ptBin=7
+    ## verbose=""
+    ## ptBin=9	     
+    ## numevents=2   
+    ## job=1	     
+    ## suffix="_TEST"
+
+    ptBin=9	     
     numevents=100
-    job=4
+    job=1	     
     suffix="_TEST"
 fi
 
@@ -31,7 +37,7 @@ I_FILE="1"
 N_FILES="16"
 
 while [ $I_FILE -le $N_FILES ]; do
-    FILE=`ls ${DATA_FOLDER}*CSCMuonGun_STARTUP31X_V4_GEN-SIM-DIGI-L1_job${I_FILE}_62500events_*PtBin${ptBin}.root`
+    FILE=`ls ${DATA_FOLDER}*CSCMuonGun_STARTUP31X_V4_GEN-SIM-DIGI-L1_job${I_FILE}_62500events_*PtBin${ptBin}_0-140GeV.root`
     FILE_LIST="${FILE_LIST} $FILE"
     I_FILE=$[$I_FILE+1]
 done
@@ -64,6 +70,7 @@ done
 
 ## How many events to skip?
 eventsToSkip=$(($numevents * ($job - 1)))
+## eventsToSkip=10316
 
 ## Set file names
 cfgFile=CSCMuonGun_Binning_job${job}_ptBin${ptBin}_${numevents}events${suffix}_cfg.py
@@ -96,6 +103,8 @@ echo "I am looking at ptBin ${ptBin}"
 echo "This is job $job and I am looking at $numevents per job"
 echo "   So I will skip $eventsToSkip events"
 echo "I am using the suffix ${4}"
+
+echo $PWD
 
 cat > ${cfgFile}<<EOF
 
@@ -131,7 +140,9 @@ process.source.skipEvents = cms.untracked.uint32(${eventsToSkip})
 process.load("Analyzers.CSCTFMuonPtAnalyzer.csctfmuonptanalyzer_cfi")
 process.csctfMuonPtAnalyzer.NEtaBins = 26
 process.csctfMuonPtAnalyzer.FileName = cms.string("FileName_ptBin${ptBin}_job${job}_${numevents}events${suffix}.root")
-process.csctfMuonPtAnalyzer.HistName = cms.string("HistName_ptBin${ptBin}_job${job}_${numevents}events${suffix}.root")
+process.csctfMuonPtAnalyzer.DPhiHistName = cms.string("DPhiHistName_ptBin${ptBin}_job${job}_${numevents}events${suffix}.root")
+process.csctfMuonPtAnalyzer.DEtaHistName = cms.string("DEtaHistName_ptBin${ptBin}_job${job}_${numevents}events${suffix}.root")
+process.csctfMuonPtAnalyzer.EtaHistName  = cms.string("EtaHistName_ptBin${ptBin}_job${job}_${numevents}events${suffix}.root")
 ${verbose}
 
 ## Configure paths
@@ -145,6 +156,6 @@ EOF
 
 cmsRun ${cfgFile}
 
-if [ $TEST != "true" ]; then
-    rm $cfgFile
-fi
+## if [ $TEST != "true" ]; then
+##     rm $cfgFile
+## fi
