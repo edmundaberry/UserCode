@@ -86,7 +86,7 @@ void HcalSLHCTriggerPrimitiveAlgo::run(const HcalTPGCoder * incoder,
 }
 
 //------------------------------------------------------
-// LUT function
+// Compression function
 //------------------------------------------------------
 
 void HcalSLHCTriggerPrimitiveAlgo::adc2Linear(const HBHEDataFrame& frame, IntegerCaloSamples & sample ){
@@ -136,8 +136,8 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const HBHEDataFrame & frame) {
   // 
   //------------------------------------------------------
 
-  adc2Linear ( frame, samples1 ) ;
-  //incoder_->adc2Linear(frame, samples1);  
+  if (slhcMode_)           adc2Linear( frame, samples1 );
+  else           incoder_->adc2Linear( frame, samples1 );  
   
   //------------------------------------------------------
   // If there are two id's make a second trigprim for 
