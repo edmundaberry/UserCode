@@ -26,7 +26,7 @@ public:
   HcalSLHCTriggerPrimitiveAlgo(bool pf, const std::vector<double>& w, 
 			       int latency, 
 			       int firstTPSample, int TPSize,
-			       int minIsoDepth, int maxIsoDepth, bool excludeDepth5 );
+			       int minIsoDepth, int maxIsoDepth, bool excludeDepth5, float lsb, bool slhcMode );
   ~HcalSLHCTriggerPrimitiveAlgo();
 
   //------------------------------------------------------
@@ -64,6 +64,13 @@ public:
   void analyze  (IntegerCaloSamplesPair & samplesPair, HcalSLHCTriggerPrimitiveDigi & result);
   void analyzeHF(IntegerCaloSamplesPair & samplesPair, HcalSLHCTriggerPrimitiveDigi & result);  
   
+  //------------------------------------------------------
+  // The LUT tables don't work for the SLHC software yet.
+  // Use this for now.
+  //------------------------------------------------------
+
+  void adc2Linear(const HBHEDataFrame& frame, IntegerCaloSamples & sample );
+
   //------------------------------------------------------
   // Conversion methods for HB & HE (for analyze function)
   //------------------------------------------------------
@@ -119,6 +126,8 @@ public:
   int maxIsoDepth_;
   
   bool excludeDepth5_;
+  bool slhcMode_;
+  float compressionLsb_;
 };
 
 

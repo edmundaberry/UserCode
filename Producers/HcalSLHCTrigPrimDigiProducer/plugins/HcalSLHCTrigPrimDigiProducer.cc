@@ -27,7 +27,7 @@
 
 HcalSLHCTrigPrimDigiProducer::HcalSLHCTrigPrimDigiProducer(const edm::ParameterSet& iConfig):
   m_hbheDigisTag ( iConfig.getParameter<edm::InputTag>("hbheDigis")),
-  m_hfDigisTag   ( iConfig.getParameter<edm::InputTag>("hfDigis"  )),
+  m_hfDigisTag   ( iConfig.getParameter<edm::InputTag>("hfDigis"  )),  
   m_hcalSLHCTriggerPrimitiveAlgo ( new HcalSLHCTriggerPrimitiveAlgo(iConfig.getParameter<bool>("peakFilter"),
 								    iConfig.getParameter<std::vector<double> >("weights"),
 								    iConfig.getParameter<int>("latency"),
@@ -35,7 +35,9 @@ HcalSLHCTrigPrimDigiProducer::HcalSLHCTrigPrimDigiProducer(const edm::ParameterS
 								    iConfig.getParameter<int>("TPSize"),
 								    iConfig.getParameter<int>("minIsoDepth"),
 								    iConfig.getParameter<int>("maxIsoDepth"),
-								    iConfig.getParameter<bool>("excludeDepth5")))
+								    iConfig.getParameter<bool>("excludeDepth5"),
+								    iConfig.getParameter<double>("CompressionLSB"),
+								    iConfig.getParameter<bool>("SLHCMode")))
 { produces<HcalSLHCTrigPrimDigiCollection>(""); }
 
 //------------------------------------------------------
@@ -89,14 +91,16 @@ void HcalSLHCTrigPrimDigiProducer::produce(edm::Event& iEvent, const edm::EventS
   //------------------------------------------------------
 
   std::auto_ptr<HcalSLHCTrigPrimDigiCollection> result (new HcalSLHCTrigPrimDigiCollection());
-    
+
   //------------------------------------------------------
   // Run the algorithm
   //------------------------------------------------------
 
+  outTranscoder->getHcalCompressor().get();
+
   m_hcalSLHCTriggerPrimitiveAlgo -> run(inputCoder.product(),
 					outTranscoder->getHcalCompressor().get(),
-					*hbheDigis,  *hfDigis, *result);
+					*hbheDigis,  *hfDigis, *result );
 
   //------------------------------------------------------
   // Add the final CaloTowerCollection to the event

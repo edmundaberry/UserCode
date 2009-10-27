@@ -34,9 +34,9 @@ private:
   // InputTags
   //------------------------------------------------------
   
-  edm::InputTag m_hbheDigisTag;
-  edm::InputTag m_hfDigisTag  ;
-  
+  const edm::InputTag m_hbheDigisTag;
+  const edm::InputTag m_hfDigisTag  ;
+
   //------------------------------------------------------
   // Algorithm
   //------------------------------------------------------

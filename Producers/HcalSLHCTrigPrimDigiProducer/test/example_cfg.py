@@ -4,15 +4,20 @@ process = cms.Process("HcalUpgradeTPG")
 
 ## Load setup python files
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
-process.GlobalTag.globaltag = "STARTUP31X_V1::All"
+process.load("Configuration.StandardSequences.Services_cff")
+process.load("Configuration.StandardSequences.Geometry_cff")
+process.load("Configuration.StandardSequences.MagneticField_cff")
+process.load("Configuration.StandardSequences.FakeConditions_cff")
+process.load("FWCore.MessageService.MessageLogger_cfi")
 
 ## Configure the source
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(2) )
-process.load("Producers.HcalSLHCTrigPrimDigiProducer.RelValQCD_Pt_80_120_CMSSW_3_1_0_STARTUP31X_V1_GEN_SIM_DIGI_RAW_HLTDEBUG_cff")
+process.source = cms.Source ("PoolSource",
+                     fileNames = cms.untracked.vstring("file:///uscms_data/d2/eberry/SLHC/slhc_pionGun_DIGI.root"))
 
 ## Load my producer
 process.load("Producers.HcalSLHCTrigPrimDigiProducer.hcalSlhcTpDigi_cfi")
+process.simHcalSLHCTriggerPrimitiveDigis.SLHCMode = True
 
 ## Configure paths
 process.TPG = cms.Path(process.simHcalSLHCTriggerPrimitiveDigis)

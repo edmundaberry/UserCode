@@ -7,7 +7,7 @@
 HcalSLHCTriggerPrimitiveAlgo::HcalSLHCTriggerPrimitiveAlgo(bool pf, const std::vector<double>& w,
 							   int latency, 
 							   int firstTPSample, int TPSize,
-							   int minIsoDepth, int maxIsoDepth, bool excludeDepth5 ):
+							   int minIsoDepth, int maxIsoDepth, bool excludeDepth5, float lsb , bool slhcMode ):
   incoder_(0), 
   outcoder_(0), 
   theThreshold(0),
@@ -18,7 +18,9 @@ HcalSLHCTriggerPrimitiveAlgo::HcalSLHCTriggerPrimitiveAlgo(bool pf, const std::v
   TPSize_(TPSize),
   minIsoDepth_(minIsoDepth),
   maxIsoDepth_(maxIsoDepth),
-  excludeDepth5_(excludeDepth5)
+  excludeDepth5_(excludeDepth5),
+  slhcMode_ ( slhcMode ),
+  compressionLsb_( lsb )
 {}
 
 HcalSLHCTriggerPrimitiveAlgo::~HcalSLHCTriggerPrimitiveAlgo(){}
@@ -50,7 +52,7 @@ void HcalSLHCTriggerPrimitiveAlgo::run(const HcalTPGCoder * incoder,
   
   for(; hbheItr != hbheItr_end; ++hbheItr)
     addSignal(*hbheItr);
-  
+
   for(; hfItr != hfItr_end; ++hfItr)
     addSignal(*hfItr);
 
@@ -79,7 +81,26 @@ void HcalSLHCTriggerPrimitiveAlgo::run(const HcalTPGCoder * incoder,
   //------------------------------------------------------
 
   theSumMap.clear();  
+
   return;
+}
+
+//------------------------------------------------------
+// LUT function
+//------------------------------------------------------
+
+void HcalSLHCTriggerPrimitiveAlgo::adc2Linear(const HBHEDataFrame& frame, IntegerCaloSamples & sample ){
+  
+  int first_sample = 0;
+  int last_sample  = frame.size() - 1;
+  
+  for (int iSample = first_sample; iSample <= last_sample; ++iSample){
+    int value = (int) (frame[iSample].adc() * compressionLsb_);
+    value &= 0x3FF;
+
+    sample[iSample] = value;
+  }
+  
 }
 
 //------------------------------------------------------
@@ -109,7 +130,14 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const HBHEDataFrame & frame) {
   IntegerCaloSamples samples1(ids[0], int(frame.size()));
 
   samples1.setPresamples(frame.presamples());
-  incoder_->adc2Linear(frame, samples1);
+  
+  //------------------------------------------------------
+  // Compress HBHEDataFrame ADC -> IntegerCaloSamples
+  // 
+  //------------------------------------------------------
+
+  adc2Linear ( frame, samples1 ) ;
+  //incoder_->adc2Linear(frame, samples1);  
   
   //------------------------------------------------------
   // If there are two id's make a second trigprim for 
@@ -130,6 +158,7 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const HBHEDataFrame & frame) {
   }
   
   addSignal(samples1, depth);
+
 }
 
 
