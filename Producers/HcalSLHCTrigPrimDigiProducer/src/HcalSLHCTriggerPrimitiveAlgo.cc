@@ -89,18 +89,65 @@ void HcalSLHCTriggerPrimitiveAlgo::run(const HcalTPGCoder * incoder,
 // Compression function
 //------------------------------------------------------
 
+void HcalSLHCTriggerPrimitiveAlgo::fillDepth1Frame ( const HBHEDataFrame & frame, HBHEDataFrame & depth1_frame ){
+
+  int size = frame.size();
+  int pres = frame.presamples();
+  
+   depth1_frame.setSize       ( size );
+   depth1_frame.setPresamples ( pres );
+
+   for ( int isample = 0; isample < size; ++isample)
+      depth1_frame.setSample(isample,frame[isample]);
+
+}
+/*
+void HcalSLHCTriggerPrimitiveAlgo::getRightDepthCaloSample ( const HcalDetId & hcaldetId,
+				  const IntegerCaloSamples& depth1_sample,
+				  IntegerCaloSamples & sample );
+*/
+
 void HcalSLHCTriggerPrimitiveAlgo::adc2Linear(const HBHEDataFrame& frame, IntegerCaloSamples & sample ){
   
-  int first_sample = 0;
-  int last_sample  = frame.size() - 1;
-  
-  for (int iSample = first_sample; iSample <= last_sample; ++iSample){
-    int value = (int) (frame[iSample].adc() * compressionLsb_);
-    value &= 0x3FF;
+   
+   bool detIdIsValid = false;
+   int depth = 1;
+   
+   while ( !detIdIsValid ){
+      
+      detIdIsValid = HcalDetId::validDetId ( frame.id().subdet(),
+					     frame.id().ieta(),
+					     frame.id().iphi(),
+					     depth );
+      
+      if (!detIdIsValid) depth++;
+   }
+   
+   HcalDetId * depth1_frame_id  = new HcalDetId ( frame.id().subdet(),
+						  frame.id().ieta(),
+						  frame.id().iphi(),
+						  depth );
+   
+   HBHEDataFrame * depth1_frame
+      = new HBHEDataFrame( * depth1_frame_id );
 
-    sample[iSample] = value;
-  }
+   fillDepth1Frame        ( frame, * depth1_frame );
+   incoder_ -> adc2Linear ( * depth1_frame, sample );
   
+   if (depth1_frame_id) delete depth1_frame_id;
+   if (depth1_frame) delete depth1_frame;
+
+}
+
+void HcalSLHCTriggerPrimitiveAlgo::fillRightDepthSamples ( 
+   const IntegerCaloSamples & depth1_sample,
+   IntegerCaloSamples & sample ){
+
+   int size = depth1_sample.size();
+
+   for (int isample = 0; isample < size; ++isample)
+      sample[isample] = depth1_sample[isample];
+
 }
 
 //------------------------------------------------------
@@ -128,6 +175,7 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const HBHEDataFrame & frame) {
   assert(ids.size() == 1 || ids.size() == 2);
   
   IntegerCaloSamples samples1(ids[0], int(frame.size()));
+  IntegerCaloSamples samples1_depth1(ids[0], int(frame.size()));
 
   samples1.setPresamples(frame.presamples());
   
@@ -135,10 +183,12 @@ void HcalSLHCTriggerPrimitiveAlgo::addSignal(const HBHEDataFrame & frame) {
   // Compress HBHEDataFrame ADC -> IntegerCaloSamples
   // 
   //------------------------------------------------------
-
-  if (slhcMode_)           adc2Linear( frame, samples1 );
-  else           incoder_->adc2Linear( frame, samples1 );  
   
+  adc2Linear( frame, samples1 );
+
+  // if (slhcMode_)           
+  // else           incoder_->adc2Linear( frame, samples1 );  
+
   //------------------------------------------------------
   // If there are two id's make a second trigprim for 
   // the other one, and split the energy

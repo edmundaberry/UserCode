@@ -10,6 +10,7 @@ HcalTPGCoderULUT = cms.ESProducer("HcalTPGCoderULUT",
     DumpL1TriggerObjects = cms.bool(False),
     TagName = cms.string("LUTFromHCALDb"),
     AlgoName = cms.string("LUTFromHCALDb"),
+##    inputLUTs = cms.FileInPath('CalibCalorimetry/HcalTPGAlgos/data/inputLUTcoder_SLHC.dat'),
     inputLUTs = cms.FileInPath('CalibCalorimetry/HcalTPGAlgos/data/inputLUTcoder_physics.dat'),
     filename = cms.FileInPath('CalibCalorimetry/HcalTPGAlgos/data/RecHit-TPG-calib.dat')
 )

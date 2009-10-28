@@ -68,8 +68,15 @@ public:
   // The LUT tables don't work for the SLHC software yet.
   // Use this for now.
   //------------------------------------------------------
+  
+   void fillDepth1Frame ( const HBHEDataFrame & frame,
+			 HBHEDataFrame & depth1_frame );
 
-  void adc2Linear(const HBHEDataFrame& frame, IntegerCaloSamples & sample );
+   void fillRightDepthSamples ( 
+      const IntegerCaloSamples & depth1_sample,
+      IntegerCaloSamples & sample );
+   
+   void adc2Linear(const HBHEDataFrame& frame, IntegerCaloSamples & sample );
 
   //------------------------------------------------------
   // Conversion methods for HB & HE (for analyze function)
