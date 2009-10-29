@@ -1,0 +1,128 @@
+#!/bin/bash
+
+## Set release base and version
+rundir="/uscms/home/eberry/3DayLifetime/Crab/OfficialCSCSample/"
+logdir="${rundir}/log/"
+datapath=""
+
+MY_RELEASE_BASE="/uscms/home/eberry/MuonMomentumStudy/"
+CMSSW_VERSION="CMSSW_3_2_4"
+TEST="false"
+export HOME=/uscms/home/${USER}
+
+## Set variables 
+numJobs="50"
+eventsPerJob="100000"
+## numJobs="1"
+## eventsPerJob="10"
+suffix="_NewField_MuMinus_OfficialSample"
+verbose=""
+
+if [ $TEST == "true" ]; then
+    verbose="process.csctfMuonPtAnalyzer.Verbose = True"
+    suffix="_TEST"
+fi
+
+## Make the run dir if it doesn't exist ...
+if [ ! -d ${rundir} ]; then
+    mkdir -p ${rundir} || exit
+fi
+cd ${rundir} || exit
+
+if [ ! -d ${logdir} ]; then
+    mkdir -p ${logdir} || exit
+fi
+
+cd $rundir
+
+## Load the environment
+source /uscmst1/prod/sw/cms/bashrc prod
+source /uscmst1/prod/grid/CRAB/crab.csh
+source /uscmst1/prod/grid/CRAB_2_6_3/crab.sh
+
+
+## Set python file name
+pythonFile="CSCMuonGun${suffix}_cfg.py"
+outputFile="CSCMuonGun${suffix}.root"
+
+## Tell the log file what you're going to do
+echo "I am going to do some binning"
+echo "I am using CMSSW version: ${CMSSW_VERSION}"
+echo "I am making python cfg file: ${pythonFile}"
+echo "I am using the suffix ${suffix}"
+
+cat > ${pythonFile}<<EOF
+
+import FWCore.ParameterSet.Config as cms
+process = cms.Process ("AnalyzeMuonPt")
+
+## Start message logger
+MessageLogger = cms.Service("MessageLogger",
+ infoModules = cms.untracked.vstring('CSCTFMuonPtAnalyzer'),
+ debugModules = cms.untracked.vstring('CSCTFMuonPtAnalyzer'),
+ cout = cms.untracked.PSet(
+    threshold = cms.untracked.string('INFO')
+ ),
+ destinations = cms.untracked.vstring('cout')
+)
+ 
+## Configure the source
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1))
+process.source = cms.Source("PoolSource",
+  fileNames = cms.untracked.vstring(),
+  duplicateCheckMode = cms.untracked.string('noDuplicateCheck')
+)
+
+## Load my analyzer
+process.load("Analyzers.CSCTFMuonPtAnalyzer.csctfmuonptanalyzer_cfi")
+process.csctfMuonPtAnalyzer.MakeHists = False
+process.csctfMuonPtAnalyzer.MakeFiles = True
+process.csctfMuonPtAnalyzer.FileName = cms.string("${outputFile}")
+${verbose}
+
+## Configure paths
+process.ANALYZE = cms.Path ( process.csctfMuonPtAnalyzer )
+
+## Schedule paths
+process.schedule = cms.Schedule()
+process.schedule.append( process.ANALYZE )
+ 
+EOF
+
+if [ $TEST == "true" ]; then
+    cmsRun ${pythonFile}
+    exit
+fi
+
+crabFile=crab.cfg
+cat > ${crabFile} <<EOF
+[CRAB]
+jobtype = cmssw
+scheduler = glite
+server_name = bari
+
+[CMSSW]
+datasetpath=/SingleMuonMinusOneOverPt_NewField/Summer09-MC_31X_V8-v1/GEN-SIM-DIGI-RAW-RECO
+pset=${pythonFile}
+number_of_jobs = ${numJobs}
+events_per_job = ${eventsPerJob}
+output_file = ${outputFile}
+
+[USER]
+eMail = Edmund.Berry@gmail.com
+copy_data = 1
+storage_element = T3_US_FNALLPC
+user_remote_dir = OfficialSample/
+return_data = 0
+logdir=${logdir}
+
+[GRID]
+##  Black and White Lists management:
+## By ComputingElement
+## ce_black_list = ucsd
+se_white_list = T1_IT_CNAF, T2_ES_CIEMAT
+
+EOF
+
+crab -create
+crab -submit
