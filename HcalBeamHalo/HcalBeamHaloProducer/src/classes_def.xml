@@ -1,0 +1,8 @@
+<lcgdict>
+  <class name="HcalDetId"/>
+  <class name="HcalBeamHalo"/>
+  <class name="std::vector<HcalBeamHalo>"/>
+  <class name="std::vector<HcalDetId>"/>
+  <class name="edm::Wrapper<std::vector<HcalBeamHalo> >"/>
+</lcgdict>
+

@@ -1,0 +1,5 @@
+<library name=HcalBeamHaloHcalBeamHaloProducer_plugins file=*.cc>
+<use name=HcalBeamHalo/HcalBeamHaloProducer>
+<use name=FWCore/ServiceRegistry>
+<flags EDM_PLUGIN=1>			
+</library>
