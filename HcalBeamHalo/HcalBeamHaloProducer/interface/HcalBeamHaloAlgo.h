@@ -1,6 +1,8 @@
 #ifndef HCALBEAMHALO_HCALBEAMHALOPRODUCER_HCALBEAMHALOALGO_H
 #define HCALBEAMHALO_HCALBEAMHALOPRODUCER_HCALBEAMHALOALGO_H
 
+#include <string>
+
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/TrackReco/interface/TrackFwd.h"
 #include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
@@ -12,7 +14,7 @@
 class HcalBeamHaloAlgo {
 
  public:
-  HcalBeamHaloAlgo( double minRecHitEnergy, double minBandEnergy, int minCounts, int width, int maxNWindows, bool verbose );
+  HcalBeamHaloAlgo( const std::vector<int> & rechit_blacklist, double minRecHitEnergy, double minBandEnergy, int minCounts, int width, int maxNWindows, bool verbose );
   ~HcalBeamHaloAlgo();
   
   void process ( const HBHERecHitCollection & hbheRecHits, const reco::TrackCollection & saMuons );
@@ -22,7 +24,7 @@ class HcalBeamHaloAlgo {
  private:
 
   //--------------------------------------------------------------
-  // Functions for blacklisting a phi strip or window
+  // Functions for blacklisting a phi strip, window, or rechit
   //--------------------------------------------------------------
   
   void initialize_blacklists   ();
@@ -30,6 +32,7 @@ class HcalBeamHaloAlgo {
   void add_to_window_blacklist ( int window );
   bool check_iphi_blacklist    ( int iphi   );
   bool check_window_blacklist  ( int window );
+  bool check_rechit_blacklist  ( const HcalDetId & id );
 
   //--------------------------------------------------------------
   // Functions for building the halo tracks
@@ -37,6 +40,8 @@ class HcalBeamHaloAlgo {
 
   void initialize_iphi_strips();
   void initialize_windows();
+  void initialize_halo ();
+  void initialize_rechits();
   void sum_iphi_strips ( const HBHERecHitCollection & hbheRecHits );
   void build_windows();
   void build_halo();
@@ -53,6 +58,10 @@ class HcalBeamHaloAlgo {
   // User-set constant global variables
   //--------------------------------------------------------------
 
+  std::vector <int> m_rechit_blacklist_raw;
+  std::vector <HcalDetId> m_rechit_blacklist;
+
+  const int    n_rechit_blacklist;
   const double m_rechit_minEnergy;
   const double m_window_minEnergy;
   const int    m_window_minCounts;
@@ -66,14 +75,14 @@ class HcalBeamHaloAlgo {
   //--------------------------------------------------------------
 
   const bool m_verbose;
-
+  
   //--------------------------------------------------------------
   // Geometry 
   //--------------------------------------------------------------
 
   const CaloGeometry * m_calo_geometry;
   const CaloSubdetectorGeometry * m_hb_geometry;
-
+  
   //--------------------------------------------------------------
   // HcalBeamHalo vector
   //--------------------------------------------------------------

@@ -4,6 +4,7 @@
 
 <use name=DataFormats/HcalDetId>
 <use name=Geometry/CaloGeometry>
+<use name=Geometry/CSCGeometry>
 
 <use name=clhep>
 <use name=rootrflx>

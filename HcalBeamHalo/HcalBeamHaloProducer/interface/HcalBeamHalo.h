@@ -25,19 +25,19 @@ class HcalBeamHalo {
   void setPhiBoundaries ( int min_iphi, int max_iphi,
 			  float min_phi, float max_phi );
 
-  float minPhi  () { return m_min_phi  ; }
-  float maxPhi  () { return m_max_phi  ; }
-  int   minIPhi () { return m_min_iphi ; }
-  int   maxIPhi () { return m_max_iphi ; }
+  float minPhi  () const { return m_min_phi  ; }
+  float maxPhi  () const { return m_max_phi  ; }
+  int   minIPhi () const { return m_min_iphi ; }
+  int   maxIPhi () const { return m_max_iphi ; }
 
-  const std::vector <HcalDetId> & getConstituents() { return m_constituents; }
+  const std::vector <HcalDetId> * getConstituents() const { return & m_constituents; }
   void addConstituent  ( HcalDetId id ) { m_constituents.push_back ( id ); }
   void setConstituents ( std::vector <HcalDetId> v ) { m_constituents = v; }
 
-  bool getMatchedStatus () { return m_matched; }
+  bool getMatchedStatus () const { return m_matched; }
   void setMatchedStatus (bool m) { m_matched = m; }
 
-  float getEnergy() { return m_energy; }
+  float getEnergy() const { return m_energy; }
   void  setEnergy( float e ) { m_energy = e ; } 
 
   //------------------------------------------------------

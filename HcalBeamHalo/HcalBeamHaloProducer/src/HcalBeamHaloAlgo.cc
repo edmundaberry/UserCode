@@ -6,7 +6,9 @@
 
 #include <cmath>
 
-HcalBeamHaloAlgo::HcalBeamHaloAlgo ( double minRecHitEnergy, double minBandEnergy, int minCounts, int width, int maxNWindows, bool verbose ):
+HcalBeamHaloAlgo::HcalBeamHaloAlgo ( const std::vector<int> & rechit_blacklist, double minRecHitEnergy, double minBandEnergy, int minCounts, int width, int maxNWindows, bool verbose ):
+  m_rechit_blacklist_raw (rechit_blacklist),
+  n_rechit_blacklist (rechit_blacklist.size()),
   m_rechit_minEnergy (minRecHitEnergy),
   m_window_minEnergy (minBandEnergy),
   m_window_minCounts (minCounts),
@@ -15,7 +17,9 @@ HcalBeamHaloAlgo::HcalBeamHaloAlgo ( double minRecHitEnergy, double minBandEnerg
   m_max_iphi         ( 72 ),
   m_max_n_windows    ( maxNWindows ),
   m_verbose          ( verbose )
-{}
+{
+  initialize_rechits();
+}
 
 HcalBeamHaloAlgo::~HcalBeamHaloAlgo(){}
 
@@ -54,6 +58,7 @@ void HcalBeamHaloAlgo::process ( const HBHERecHitCollection & hbheRecHits,
   initialize_blacklists();
   initialize_iphi_strips();
   initialize_windows();
+  initialize_halo();
   
   //--------------------------------------------------------------
   // "Track" building
@@ -77,18 +82,25 @@ void HcalBeamHaloAlgo::sum_iphi_strips ( const HBHERecHitCollection & hbheRecHit
   HBHERecHitCollection::const_iterator hbheRecHit     = hbheRecHits.begin();
   HBHERecHitCollection::const_iterator hbheRecHit_end = hbheRecHits.end();
 
+  int nrechit = 0;
+  
   for (; hbheRecHit != hbheRecHit_end; ++hbheRecHit ){
     float           energy = hbheRecHit -> energy();
     HcalDetId       id     = hbheRecHit -> id();
     HcalSubdetector subdet = id.subdet();
+    
+    bool blacklisted = check_rechit_blacklist ( id ) ;
 
     if (subdet != HcalBarrel       ) continue;
     if (energy < m_rechit_minEnergy) continue;
-
+    if (blacklisted                ) continue;
+    
     int iphi = id.iphi();
 
     m_iphi_strip_cells [iphi].push_back(id);
     m_iphi_strip_energy[iphi] += energy;
+
+    nrechit++;
 
   }
 
@@ -280,9 +292,11 @@ void HcalBeamHaloAlgo::build_halo (){
     phi_1 -= half_cell_width;
     phi_2 += half_cell_width;
 
-    std::cout << "  Inserting " << ids.size() << " RecHits into halo candidate #" << iwindow + 1 << std::endl;
-    std::cout << "    phi_1 = " << phi_1 << std::endl;
-    std::cout << "    phi_2 = " << phi_2 << std::endl;
+    if (m_verbose){
+      std::cout << "  Inserting " << ids.size() << " RecHits into halo candidate #" << iwindow + 1 << std::endl;
+      std::cout << "    phi_1 = " << phi_1 << std::endl;
+      std::cout << "    phi_2 = " << phi_2 << std::endl;
+    }
 
     HcalBeamHalo halo;    
     halo.setConstituents ( ids );
@@ -312,7 +326,7 @@ bool HcalBeamHaloAlgo::match_to_sa_muons ( const reco::TrackCollection & saMuons
   bool fiducial_muon = false;
   
   for (; saMuon != saMuon_end; ++saMuon){
-
+    
     float mu_phi_plus, mu_phi_minus;
     
     if (m_verbose) std::cout << " Found StandAlone muon #" << nSaMuon + 1 << std::endl;
@@ -333,7 +347,7 @@ bool HcalBeamHaloAlgo::match_to_sa_muons ( const reco::TrackCollection & saMuons
     nSaMuon++;
 
   }
-  
+
   return fiducial_muon;
 
 }
@@ -381,6 +395,32 @@ bool HcalBeamHaloAlgo::check_iphi_blacklist  ( int iphi ){
     is_in_blacklist |= ((*iter) == iphi );
   
   return is_in_blacklist;
+
+}
+
+bool HcalBeamHaloAlgo::check_rechit_blacklist ( const HcalDetId & id ) {
+
+  bool blacklisted = false;
+
+  int test_ieta  = id.ieta();
+  int test_iphi  = id.iphi();
+  int test_depth = id.depth();
+
+  for (int iRechit = 0 ; iRechit < n_rechit_blacklist; ++iRechit ) {
+        
+    int bad_ieta   = m_rechit_blacklist[iRechit].ieta();
+    int bad_iphi   = m_rechit_blacklist[iRechit].iphi();
+    int bad_depth  = m_rechit_blacklist[iRechit].depth();    
+
+    bool match = ( test_ieta  == bad_ieta &&
+		   test_iphi  == bad_iphi &&
+		   test_depth == bad_depth );
+    
+    blacklisted |= match;
+
+  }
+
+  return blacklisted;
 
 }
 
@@ -514,5 +554,30 @@ bool HcalBeamHaloAlgo::match ( float mu_phi_plus, float mu_phi_minus , float win
 void HcalBeamHaloAlgo::getHalo ( std::auto_ptr <HcalBeamHaloCollection> & coll ){
   
   (*coll).insert((*coll).begin(), m_beam_halo.begin() , m_beam_halo.end());
+
+}
+
+void HcalBeamHaloAlgo::initialize_halo () {
+  m_beam_halo.clear();
+}
+
+void HcalBeamHaloAlgo::initialize_rechits(){
+
+  std::vector<int>::iterator raw_id_ptr     = m_rechit_blacklist_raw.begin();
+  std::vector<int>::iterator raw_id_ptr_end = m_rechit_blacklist_raw.end();
+
+  for (; raw_id_ptr != raw_id_ptr_end; ++raw_id_ptr){
+    
+    int raw_id = * raw_id_ptr;
+
+    int depth = raw_id - (raw_id / 100) * 100;
+    int iphi  = ( raw_id / 100 ) - ( raw_id / 10000 ) * 100;
+    int ieta  = ( raw_id / 10000 );
+    
+    HcalDetId id = HcalDetId ( HcalBarrel, ieta, iphi , depth ) ;
+
+    m_rechit_blacklist.push_back ( id );
+
+  }
 
 }

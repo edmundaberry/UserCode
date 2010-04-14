@@ -12,6 +12,8 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32 (200) )
 
 process.load("FWCore.MessageLogger.MessageLogger_cfi")
 process.load("Configuration/StandardSequences/Geometry_cff")
+process.load("Configuration/StandardSequences/FrontierConditions_GlobalTag_cff")
+process.GlobalTag.globaltag = 'GR10_P_V4::All'
 
 process.hcalBeamHaloProducer = cms.EDProducer("HcalBeamHaloProducer",
                                               HBHERecHits = cms.InputTag ('hbhereco'),
@@ -21,7 +23,18 @@ process.hcalBeamHaloProducer = cms.EDProducer("HcalBeamHaloProducer",
                                               MinWindowEnergy = cms.double(5.0) ,
                                               MinWindowCounts = cms.int32(3),
                                               MaxNWindows = cms.int32(3),
-                                              Verbose = cms.bool (True) 
+                                              Verbose = cms.bool (False),
+                                              BlackListCells = cms.vint32 (311401)
+)
+
+process.hcalBeamHaloAnalyzer = cms.EDAnalyzer("HcalBeamHaloAnalyzer",
+                                              HBHERecHits = cms.InputTag ('hbhereco'),
+                                              CSCRecHits = cms.InputTag("csc2DRecHits"),
+                                              CSCSegments = cms.InputTag("cscSegments"),
+                                              StandAloneTracks = cms.InputTag("cosmicMuonsEndCapsOnly"),
+                                              HcalBeamHalo = cms.InputTag ("hcalBeamHaloProducer"),
+                                              NtupleFileName = cms.string ("analyzer_output.root"),
+                                              MinRecHitEnergy = process.hcalBeamHaloProducer.MinRecHitEnergy
 )
 
 process.outputSkim = cms.OutputModule(
@@ -31,6 +44,7 @@ process.outputSkim = cms.OutputModule(
     )
 
 process.produce = cms.Path ( process.hcalBeamHaloProducer )
-process.output  = cms.EndPath ( process.outputSkim )
+process.analyze = cms.Path ( process.hcalBeamHaloAnalyzer ) 
+# process.output  = cms.EndPath ( process.outputSkim )
 
 

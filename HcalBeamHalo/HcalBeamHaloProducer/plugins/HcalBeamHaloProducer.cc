@@ -26,12 +26,14 @@ private:
   edm::InputTag m_hbheRecHitTag;
   edm::InputTag m_standAloneTrackTag;
   
-  double m_rechit_minEnergy;
+  std::vector<int> m_rechit_blacklist;
+
+  double m_rechit_minEnergy  ;
   double m_window_minEnergy  ;   
   int    m_window_minCounts  ;
   int    m_window_iphiWidth  ;
-  int    m_max_n_windows   ; 
-  bool   m_verbose         ;
+  int    m_max_n_windows     ; 
+  bool   m_verbose           ;
   
   HcalBeamHaloAlgo * m_algo;
 
@@ -40,13 +42,14 @@ private:
 HcalBeamHaloProducer::HcalBeamHaloProducer(const edm::ParameterSet& iConfig):
   m_hbheRecHitTag      ( iConfig.getParameter<edm::InputTag>("HBHERecHits") ),
   m_standAloneTrackTag ( iConfig.getParameter<edm::InputTag>("StandAloneTracks") ),
+  m_rechit_blacklist   ( iConfig.getParameter<std::vector<int> >("BlackListCells")),
   m_rechit_minEnergy   ( iConfig.getParameter<double>("MinRecHitEnergy") ),            
-  m_window_minEnergy     ( iConfig.getParameter<double>("MinWindowEnergy") ),
-  m_window_minCounts     ( iConfig.getParameter<int>("MinWindowCounts") ),
-  m_window_iphiWidth     ( iConfig.getParameter<int>("Width") ),
+  m_window_minEnergy   ( iConfig.getParameter<double>("MinWindowEnergy") ),
+  m_window_minCounts   ( iConfig.getParameter<int>("MinWindowCounts") ),
+  m_window_iphiWidth   ( iConfig.getParameter<int>("Width") ),
   m_max_n_windows      ( iConfig.getParameter<int>("MaxNWindows")),
   m_verbose            ( iConfig.getParameter<bool>("Verbose")),
-  m_algo ( new HcalBeamHaloAlgo ( m_rechit_minEnergy, m_window_minEnergy, m_window_minCounts, m_window_iphiWidth, m_max_n_windows, m_verbose ) )
+  m_algo ( new HcalBeamHaloAlgo ( m_rechit_blacklist, m_rechit_minEnergy, m_window_minEnergy, m_window_minCounts, m_window_iphiWidth, m_max_n_windows, m_verbose ))
 {
   produces<HcalBeamHaloCollection>("");
 }
@@ -56,7 +59,7 @@ HcalBeamHaloProducer::~HcalBeamHaloProducer(){
 }
 
 void HcalBeamHaloProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
-
+  
   std::auto_ptr<HcalBeamHaloCollection> hcalBeamHaloCollection ( new HcalBeamHaloCollection() );
 
   edm::Handle<HBHERecHitCollection> hbheRecHitCollection;
@@ -69,7 +72,7 @@ void HcalBeamHaloProducer::produce(edm::Event& iEvent, const edm::EventSetup& iS
   iEvent.getByLabel(m_hbheRecHitTag, hbheRecHitCollection);
   
   m_algo -> setGeom ( calo_geometry_handle.product() );
-  m_algo -> process ( *hbheRecHitCollection, * standAloneTrackCollection ) ;
+  m_algo -> process ( *hbheRecHitCollection, * standAloneTrackCollection );
   m_algo -> getHalo ( hcalBeamHaloCollection);
 
   iEvent.put(hcalBeamHaloCollection);
