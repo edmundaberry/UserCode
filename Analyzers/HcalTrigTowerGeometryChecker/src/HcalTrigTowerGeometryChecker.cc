@@ -13,7 +13,7 @@
 //
 // Original Author:  "Edmund Berry"
 //         Created:  Thu Mar 19 16:42:49 CDT 2009
-// $Id: HcalTrigTowerGeometryChecker.cc,v 1.1 2009/03/20 21:34:11 eberry Exp $
+// $Id: HcalTrigTowerGeometryChecker.cc,v 1.2 2009/03/20 23:08:20 eberry Exp $
 //
 
 
@@ -50,7 +50,7 @@ public:
   
   
 private:
-  virtual void beginJob(const edm::EventSetup&) ;
+  virtual void beginJob();
   virtual void analyze(const edm::Event&, const edm::EventSetup&);
   virtual void endJob() ;
   void checkForMapDisagreement(std::vector<DetId> cells);
@@ -388,7 +388,7 @@ void HcalTrigTowerGeometryChecker::analyze(const edm::Event& iEvent, const edm::
 
 }
 
-void HcalTrigTowerGeometryChecker::beginJob(const edm::EventSetup&) {}
+void HcalTrigTowerGeometryChecker::beginJob(){}
 
 void HcalTrigTowerGeometryChecker::endJob() {
 
