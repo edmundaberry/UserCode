@@ -1,143 +1,110 @@
 #ifndef Analyzers_HcalDigiAnalyzer_DigiTree_h
 #define Analyzers_HcalDigiAnalyzer_DigiTree_h
 
-class DigiTree
-{
+#include <vector>
 
-   public:
+class DigiTree {
+  
+ public:
+  
+  DigiTree();
+  virtual ~DigiTree();
+  
+  std::vector<int> * run;
+  std::vector<int> * event;
 
-      enum { MAXNHITS  = 5000 };
-      enum { MAXNTP    = 2    };
-      enum { NQIE      = 10   };
-      enum { MAX_IETA  = 83   };
-      enum { MAX_IPHI  = 73   };
-      enum { MAX_DEPTH = 6    };
-      enum { MAX_NCT   = 5000 };
+  std::vector < int > * digi_subdet         ;
+  std::vector < int > * digi_ieta           ;
+  std::vector < int > * digi_iphi           ;
+  std::vector < int > * digi_depth          ;
+  std::vector < int > * digi_presamples     ;
+  std::vector < int > * digi_nTS            ;
+  std::vector < int > * digi_fiberIdleOffset;
+  
+  std::vector < std::vector<int   > > * digi_timeslice_dv        ;
+  std::vector < std::vector<int   > > * digi_timeslice_er        ;
+  std::vector < std::vector<int   > > * digi_timeslice_raw       ;
+  std::vector < std::vector<int   > > * digi_timeslice_adc       ;
+  std::vector < std::vector<int   > > * digi_timeslice_nomFC     ;
+  std::vector < std::vector<int   > > * digi_timeslice_fiber     ;
+  std::vector < std::vector<int   > > * digi_timeslice_fiberChan ;
+  std::vector < std::vector<int   > > * digi_timeslice_capid     ;
+  std::vector < std::vector<double> > * digi_timeslice_allFC     ;
+  std::vector < std::vector<double> > * digi_timeslice_pedFC     ;
+  std::vector < std::vector<double> > * digi_timeslice_gain      ;
+  std::vector < std::vector<double> > * digi_timeslice_rcgain    ;
+  std::vector < std::vector<double> > * digi_timeslice_energy    ;
 
-      DigiTree();
-      virtual ~DigiTree();
+  std::vector < double > * reco_energy;
+  std::vector < double > * reco_time;
+  
+  void init () { 
 
-      // Public member data
-      int run;
-      int event;
+    run   =  0;
+    event =  0;
+    
+    digi_subdet          = 0;
+    digi_ieta            = 0;
+    digi_iphi            = 0;
+    digi_depth           = 0;
+    digi_presamples      = 0;
+    digi_nTS             = 0;
+    digi_fiberIdleOffset = 0;
+    
+    digi_timeslice_dv         = 0;
+    digi_timeslice_er         = 0;
+    digi_timeslice_raw        = 0;
+    digi_timeslice_adc        = 0;
+    digi_timeslice_nomFC      = 0;
+    digi_timeslice_fiber      = 0;
+    digi_timeslice_fiberChan  = 0;
+    digi_timeslice_capid      = 0;
+    digi_timeslice_allFC      = 0;
+    digi_timeslice_pedFC      = 0;
+    digi_timeslice_gain       = 0;
+    digi_timeslice_rcgain     = 0;
+    digi_timeslice_energy     = 0;
+    
+    reco_energy = 0;
+    reco_time   = 0;
+    
+  }
 
-      // Information about digi hits
-      int   nchn;
-      int   nhit;
-      int   nct;
+  void clear() { 
+    run -> clear();
+    event -> clear();
 
-      int   h_id    [MAXNHITS];
-      int   h_depth [MAXNHITS];
-      int   h_iphi  [MAXNHITS];
-      int   h_ieta  [MAXNHITS];
-		    
-      int   h_psam  [MAX_IETA][MAX_IPHI][MAX_DEPTH];
-      int   h_size  [MAX_IETA][MAX_IPHI][MAX_DEPTH];
-      float h_rh_GeV_amp [MAX_IETA][MAX_IPHI][MAX_DEPTH];
-      float h_rh_fC_amp  [MAX_IETA][MAX_IPHI][MAX_DEPTH];
-      float h_correction [MAX_IETA][MAX_IPHI][MAX_DEPTH];
-      float h_threshold  [MAX_IETA][MAX_IPHI][MAX_DEPTH];
-      int   h_adc   [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
-      float h_fC    [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
-      float h_ped   [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
-      float h_pedc  [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
-      float h_gain  [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
-      float h_rcgain[MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
-      int   h_capid [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
-      int   h_fiber [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
-      int   h_fchan [MAX_IETA][MAX_IPHI][MAX_DEPTH][NQIE];
+    digi_subdet         -> clear();
+    digi_ieta           -> clear();
+    digi_iphi           -> clear();
+    digi_depth          -> clear();
+    digi_presamples     -> clear();
+    digi_nTS            -> clear();
+    digi_fiberIdleOffset-> clear();
+    
+    digi_timeslice_dv        -> clear();
+    digi_timeslice_er        -> clear();
+    digi_timeslice_raw       -> clear();
+    digi_timeslice_adc       -> clear();
+    digi_timeslice_nomFC     -> clear();
+    digi_timeslice_fiber     -> clear();
+    digi_timeslice_fiberChan -> clear();
+    digi_timeslice_capid     -> clear();
+    digi_timeslice_allFC     -> clear();
+    digi_timeslice_pedFC     -> clear();
+    digi_timeslice_gain      -> clear();
+    digi_timeslice_rcgain    -> clear();
+    digi_timeslice_energy    -> clear();
 
-      int   t_spike [MAX_IETA][MAX_IPHI][MAX_DEPTH];
-      int   t_ntp   [MAX_IETA][MAX_IPHI][MAX_DEPTH];      
-      int   t_subdet[MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP];
-      int   t_ieta  [MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP];
-      int   t_iphi  [MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP];
-      int   t_found [MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP];
-      int   t_size  [MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP];
-      int   t_psam  [MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP];
-      int   t_ntpts [MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP];
-      int   t_cET   [MAX_IETA][MAX_IPHI][MAX_DEPTH][MAXNTP][NQIE];
-      
-      int   ct_ieta [MAX_NCT];
-      int   ct_iphi [MAX_NCT];
-
-      void init(){
-
-	run   = -999;
-	event = -999;
-	nchn  = -999;
-	nhit  = -999;
-	nct   = -999;
-
-	for (int i = 0; i < MAX_NCT; i++){
-	  ct_ieta[i] = -999;
-	  ct_iphi[i] = -999;
-	}
-	
-	for (int i = 0; i < MAXNHITS; i++){
-
-	  h_id   [i] = -999;
-	  h_depth[i] = -999;
-	  h_iphi [i] = -999;
-	  h_ieta [i] = -999;
-
-	}
-
-	for (int ieta = 0; ieta < MAX_IETA; ieta++){
-	  for (int iphi = 0; iphi < MAX_IPHI; iphi++){
-	    for (int depth = 0; depth < MAX_DEPTH; depth++){
-	      
-	      h_threshold  [ieta][iphi][depth] = -999.0;
-	      h_correction [ieta][iphi][depth] = -999.0;
-	      h_rh_GeV_amp [ieta][iphi][depth] = -999.0;
-	      h_rh_fC_amp  [ieta][iphi][depth] = -999.0;
-	      
-	      h_psam    [ieta][iphi][depth] = -999;
-	      h_size    [ieta][iphi][depth] = -999;
-	      t_spike   [ieta][iphi][depth] = -999;
-	      t_ntp     [ieta][iphi][depth] = -999;
-
-	      for (int iqie = 0; iqie < NQIE; iqie++){
-
-		h_fC    [ieta][iphi][depth][iqie] = -999.0;
-		h_ped   [ieta][iphi][depth][iqie] = -999.0;
-		h_pedc  [ieta][iphi][depth][iqie] = -999.0;
-		h_gain  [ieta][iphi][depth][iqie] = -999.0;
-		
-		h_adc   [ieta][iphi][depth][iqie] = -999;
-		h_capid [ieta][iphi][depth][iqie] = -999;
-		h_fiber [ieta][iphi][depth][iqie] = -999;
-		h_fchan [ieta][iphi][depth][iqie] = -999;		 		  
-
-	      }
-
-	      for (int itp = 0; itp < MAXNTP; itp++){
-
-		t_subdet[ieta][iphi][depth][itp]  = -999;
-		t_ieta  [ieta][iphi][depth][itp]  = -999;
-		t_iphi  [ieta][iphi][depth][itp]  = -999;
-		t_found [ieta][iphi][depth][itp]  = -999;
-		t_size  [ieta][iphi][depth][itp]  = -999;
-		t_psam  [ieta][iphi][depth][itp]  = -999;
-		t_ntpts [ieta][iphi][depth][itp]  = -999;
-
-		for (int iqie2 = 0; iqie2 < NQIE; iqie2++)
-		  t_cET [ieta][iphi][depth][itp][iqie2] = -999;
-
-		
-	      }
-	    }
-	  }
-	}
-      }
-
+    reco_energy-> clear();
+    reco_time  -> clear();
+    
+  }
+  
  private:
-      DigiTree(const DigiTree&); // stop default
-      
-      const DigiTree& operator=(const DigiTree&); // stop default
-      
+  DigiTree(const DigiTree&); // stop default
+  const DigiTree& operator=(const DigiTree&); // stop default
 
 };
-
 
 #endif
